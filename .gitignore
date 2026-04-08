@@ -1,0 +1,29 @@
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Root-only local data
+/行业数据/
+
+# Python backend
+backend/.env
+backend/.venv/
+backend/.pytest_cache/
+backend/.pytest-tmp/
+backend/data/
+backend/**/__pycache__/
+backend/**/*.pyc
+
+# Frontend build artifacts
+myapp/node_modules/
+myapp/dist/
+myapp/.umi/
+myapp/.umi-production/
+myapp/.umi-test/
+myapp/coverage/
+
+# Common logs and temp files
+*.log
+npm-debug.log*
+yarn-error.log*

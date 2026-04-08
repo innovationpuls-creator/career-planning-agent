@@ -1,0 +1,36 @@
+[project]
+name = "feature-map-backend"
+version = "0.1.0"
+description = "FastAPI backend for feature map"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0,<1.0.0",
+  "httpx>=0.28.1,<1.0.0",
+  "openpyxl>=3.1.5,<4.0.0",
+  "python-multipart>=0.0.20,<1.0.0",
+  "uvicorn[standard]>=0.35.0,<1.0.0",
+  "sqlalchemy>=2.0.41,<3.0.0",
+  "pydantic-settings>=2.10.0,<3.0.0",
+  "python-jose[cryptography]>=3.5.0,<4.0.0",
+  "passlib>=1.7.4,<2.0.0",
+  "neo4j>=6.1.0",
+  "pywin32>=311; platform_system == 'Windows'",
+  "qdrant-client>=1.17.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4.1,<9.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
