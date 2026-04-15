@@ -47,6 +47,16 @@ export type CareerDevelopmentGoalPlanStreamEvent = {
   snapshot?: API.CareerDevelopmentGoalPlanTaskPayload;
 };
 
+export type PersonalGrowthReportTaskStreamEvent = {
+  stage: string;
+  task_id: string;
+  status?: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
+  status_text?: string;
+  progress?: number;
+  created_at?: string;
+  snapshot?: API.PersonalGrowthReportTaskPayload;
+};
+
 export type CareerDevelopmentPlanWorkspaceExportResult = {
   blob: Blob;
   filename?: string;
@@ -178,6 +188,95 @@ export async function getJobTitleOptions(options?: { [key: string]: any }) {
     method: 'GET',
     ...(options || {}),
   });
+}
+
+/** 首页 v2 GET /api/home-v2 */
+export async function getHomeV2(options?: { [key: string]: any }) {
+  return request<API.HomeV2Response>('/api/home-v2', {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
+/** 提交用户引导资料 POST /api/user-profile/onboarding */
+export async function submitOnboardingProfile(body: FormData, options?: { [key: string]: any }) {
+  return request<API.HomeV2Response>('/api/user-profile/onboarding', {
+    method: 'POST',
+    data: body,
+    requestType: 'form',
+    ...(options || {}),
+  });
+}
+
+/** 蜗牛学习路径：从 match report 生成学习阶段 POST /api/snail-learning-path/workspaces */
+const requestWith404Fallback = async <T>(
+  primaryPath: string,
+  fallbackPath: string,
+  config: Record<string, any>,
+) => {
+  try {
+    return await request<T>(primaryPath, config);
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status !== 404 || primaryPath === fallbackPath) {
+      throw error;
+    }
+    return request<T>(fallbackPath, config);
+  }
+};
+
+export async function generateSnailLearningPath(
+  report: API.CareerDevelopmentMatchReport,
+  options?: { [key: string]: any },
+) {
+  return requestWith404Fallback<API.PlanWorkspaceResponse>(
+    '/api/career-development-report/snail-learning-path/workspaces',
+    '/api/snail-learning-path/workspaces',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: report,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function createSnailLearningPathReview(
+  workspaceId: string,
+  formData: FormData,
+  options?: { [key: string]: any },
+) {
+  return requestWith404Fallback<API.SnailLearningPathReviewResponse>(
+    `/api/career-development-report/snail-learning-path/workspaces/${workspaceId}/reviews`,
+    `/api/snail-learning-path/workspaces/${workspaceId}/reviews`,
+    {
+      method: 'POST',
+      requestType: 'form',
+      data: formData,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function listSnailLearningPathReviews(
+  workspaceId: string,
+  params?: {
+    phase_key?: API.LearningPathPhaseKey;
+    review_type?: 'weekly' | 'monthly';
+  },
+  options?: { [key: string]: any },
+) {
+  return requestWith404Fallback<API.SnailLearningPathReviewListResponse>(
+    `/api/career-development-report/snail-learning-path/workspaces/${workspaceId}/reviews`,
+    `/api/snail-learning-path/workspaces/${workspaceId}/reviews`,
+    {
+      method: 'GET',
+      params,
+      ...(options || {}),
+    },
+  );
 }
 
 /** 获取指定岗位的行业选项 GET /api/job-postings/industries */
@@ -451,6 +550,223 @@ export async function updateCareerDevelopmentPlanWorkspace(
       ...(options || {}),
     },
   );
+}
+
+export async function getPersonalGrowthReportWorkspace(
+  favoriteId: number,
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportResponse>(
+    `/api/career-development-report/personal-growth-report/workspaces/${favoriteId}`,
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function updatePersonalGrowthReportWorkspace(
+  favoriteId: number,
+  body: API.PersonalGrowthReportUpdateRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportResponse>(
+    `/api/career-development-report/personal-growth-report/workspaces/${favoriteId}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function regeneratePersonalGrowthReport(
+  favoriteId: number,
+  body: API.PersonalGrowthReportRegenerateRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportResponse>(
+    `/api/career-development-report/personal-growth-report/workspaces/${favoriteId}/regenerate`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function createPersonalGrowthReportTask(
+  body: API.PersonalGrowthReportTaskCreateRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportTaskCreateResponse>(
+    '/api/career-development-report/personal-growth-report/tasks',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function getPersonalGrowthReportTask(
+  taskId: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportTaskResponse>(
+    `/api/career-development-report/personal-growth-report/tasks/${taskId}`,
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function cancelPersonalGrowthReportTask(
+  taskId: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportTaskCancelResponse>(
+    `/api/career-development-report/personal-growth-report/tasks/${taskId}/cancel`,
+    {
+      method: 'POST',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function* streamPersonalGrowthReportTask(
+  taskId: string,
+  signal: AbortSignal,
+): AsyncGenerator<PersonalGrowthReportTaskStreamEvent, void, void> {
+  const token = getAccessToken();
+  const response = await fetch(
+    `/api/career-development-report/personal-growth-report/tasks/${taskId}/stream`,
+    {
+      method: 'GET',
+      signal,
+      headers: {
+        Accept: 'application/x-ndjson',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    let detail = `Request failed with status ${response.status}.`;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        const payload = (await response.json()) as { detail?: string };
+        detail = payload.detail || detail;
+      } catch {}
+    } else {
+      try {
+        detail = (await response.text()) || detail;
+      } catch {}
+    }
+    throw new Error(detail);
+  }
+
+  if (!response.body) {
+    throw new Error('Personal growth task stream response was empty.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      while (true) {
+        const newlineIndex = buffer.indexOf('\n');
+        if (newlineIndex < 0) {
+          break;
+        }
+        const line = buffer.slice(0, newlineIndex).trim();
+        buffer = buffer.slice(newlineIndex + 1);
+        if (!line) {
+          continue;
+        }
+        yield JSON.parse(line) as PersonalGrowthReportTaskStreamEvent;
+      }
+    }
+
+    const tail = `${buffer}${decoder.decode()}`.trim();
+    if (tail) {
+      yield JSON.parse(tail) as PersonalGrowthReportTaskStreamEvent;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+export async function bootstrapPersonalGrowthReport(
+  options?: { [key: string]: any },
+) {
+  return request<API.PersonalGrowthReportResponse>(
+    '/api/career-development-report/personal-growth-report/bootstrap/regenerate',
+    {
+      method: 'POST',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function exportPersonalGrowthReport(
+  favoriteId: number,
+  body: API.PersonalGrowthReportExportRequest,
+): Promise<CareerDevelopmentPlanWorkspaceExportResult> {
+  const token = getAccessToken();
+  const response = await fetch(
+    `/api/career-development-report/personal-growth-report/workspaces/${favoriteId}/export`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    let detail = `Request failed with status ${response.status}.`;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        const payload = (await response.json()) as { detail?: string };
+        detail = payload.detail || detail;
+      } catch {}
+    } else {
+      try {
+        detail = (await response.text()) || detail;
+      } catch {}
+    }
+    throw new Error(detail);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('content-disposition') || '';
+  const filenameMatch =
+    disposition.match(/filename\\*=UTF-8''([^;]+)/i) || disposition.match(/filename=\"?([^\";]+)\"?/i);
+  const filename = filenameMatch?.[1] ? decodeURIComponent(filenameMatch[1]) : undefined;
+  return { blob, filename };
 }
 
 export async function polishCareerDevelopmentPlanWorkspace(
@@ -870,6 +1186,131 @@ export async function syncStudentCompetencyResult(
       'Content-Type': 'application/json',
     },
     data: body,
+    ...(options || {}),
+  });
+}
+
+/** 获取用户列表 GET /api/admin/users */
+export async function getAdminUsers(params?: API.AdminUserQueryParams, options?: { [key: string]: any }) {
+  const token = getAccessToken();
+  return request<API.AdminUserListResponse>('/api/admin/users', {
+    method: 'GET',
+    params,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(options || {}),
+  });
+}
+
+/** 获取单个用户 GET /api/admin/users/{user_id} */
+export async function getAdminUser(userId: number, options?: { [key: string]: any }) {
+  return request<API.AdminUserDetailResponse>(`/api/admin/users/${userId}`, {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
+/** 新增用户 POST /api/admin/users */
+export async function createAdminUser(body: API.AdminUserCreateParams, options?: { [key: string]: any }) {
+  const token = getAccessToken();
+  return request<{
+    success?: boolean;
+    data: API.AdminUserItem;
+  }>('/api/admin/users', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 修改用户 PATCH /api/admin/users/{user_id} */
+export async function updateAdminUser(params: API.AdminUserUpdateParams, options?: { [key: string]: any }) {
+  const token = getAccessToken();
+  return request<{
+    success?: boolean;
+    data: API.AdminUserItem;
+  }>(`/api/admin/users/${params.user_id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    data: {
+      role: params.role,
+      is_active: params.is_active,
+      display_name: params.display_name,
+    },
+    ...(options || {}),
+  });
+}
+
+/** 删除用户 DELETE /api/admin/users/{user_id} */
+export async function deleteAdminUser(userId: number, options?: { [key: string]: any }) {
+  const token = getAccessToken();
+  return request<{ success?: boolean }>(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(options || {}),
+  });
+}
+
+/** 获取管理员个人信息 GET /api/admin/profile */
+export async function getAdminProfile(options?: { [key: string]: any }) {
+  const token = getAccessToken();
+  return request<API.AdminProfileResponse>('/api/admin/profile', {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(options || {}),
+  });
+}
+
+/** 修改管理员个人信息 PATCH /api/admin/profile */
+export async function updateAdminProfile(
+  body: API.AdminProfileUpdateParams,
+  options?: { [key: string]: any },
+) {
+  return request<{
+    success?: boolean;
+    data: API.AdminUserItem;
+  }>('/api/admin/profile', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 就读专业分布统计 GET /api/admin/data-dashboard/major-distribution */
+export async function getMajorDistribution(options?: { [key: string]: any }) {
+  return request<API.MajorDistributionResponse>('/api/admin/data-dashboard/major-distribution', {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
+/** 能力评估分析统计 GET /api/admin/data-dashboard/competency-analysis */
+export async function getCompetencyAnalysis(options?: { [key: string]: any }) {
+  return request<API.CompetencyAnalysisResponse>('/api/admin/data-dashboard/competency-analysis', {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
+/** 就业趋势洞察统计 GET /api/admin/data-dashboard/employment-trends */
+export async function getEmploymentTrends(options?: { [key: string]: any }) {
+  return request<API.EmploymentTrendsResponse>('/api/admin/data-dashboard/employment-trends', {
+    method: 'GET',
     ...(options || {}),
   });
 }

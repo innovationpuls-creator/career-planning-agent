@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.auth_dependencies import require_admin_user
+from app.api.auth_dependencies import require_admin_user, require_authenticated_user
 from app.db.session import get_db
 from app.models.job_posting import JobPosting
 from app.models.job_requirement_profile import JobRequirementProfile
@@ -98,7 +98,7 @@ def list_job_requirement_comparisons(
 def get_job_requirement_comparison(
     profile_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin_user),
+    _: User = Depends(require_authenticated_user),
 ) -> JobRequirementComparisonDetailResponse:
     profile = db.get(JobRequirementProfile, profile_id)
     if profile is None:

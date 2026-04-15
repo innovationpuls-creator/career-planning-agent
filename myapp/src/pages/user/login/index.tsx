@@ -3,7 +3,6 @@ import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import {
   FormattedMessage,
   Helmet,
-  Link,
   SelectLang,
   history,
   useIntl,
@@ -244,9 +243,18 @@ const Login: React.FC = () => {
               textAlign: 'right',
             }}
           >
-            <Link data-testid="register-account-link" to="/user/register">
+            <a
+              data-testid="register-account-link"
+              href="/user/register"
+              onClick={(event) => {
+                event.preventDefault();
+                startTransition(() => {
+                  history.push('/user/register');
+                });
+              }}
+            >
               创建账户
-            </Link>
+            </a>
           </div>
         </LoginForm>
       </div>

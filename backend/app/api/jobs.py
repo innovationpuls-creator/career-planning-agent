@@ -23,7 +23,6 @@ def _clean_multi_values(values: list[str] | None) -> list[str]:
 @router.get("/job-titles", response_model=JobTitleOptionsResponse)
 def get_job_titles(
     db: Session = Depends(get_db),
-    _: User = Depends(require_standard_user),
 ) -> JobTitleOptionsResponse:
     return JobTitleOptionsResponse(data=list_job_title_options(db))
 

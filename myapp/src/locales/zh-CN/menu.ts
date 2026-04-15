@@ -1,8 +1,13 @@
 export default {
-  'menu.home': '首页',
-  'menu.admin': '管理员',
-  'menu.admin.job-postings': '岗位数据',
-  'menu.admin.job-requirement-comparisons': '岗位画像对比',
+  'menu.home': '职业规划',
+  'menu.admin': '管理端',
+  'menu.admin.user-management': '用户管理',
+  'menu.admin.upload-data': '上传数据',
+  'menu.admin.major-distribution': '就读专业分布',
+  'menu.admin.competency-analysis': '能力评估分析',
+  'menu.admin.employment-trends': '就业趋势洞察',
+  'menu.admin.job-postings': '岗位信息',
+  'menu.admin.job-requirement-comparisons': '岗位要求对比',
   'menu.login': '登录',
   'menu.register': '注册',
 };

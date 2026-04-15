@@ -32,16 +32,34 @@ class CareerDevelopmentPlanWorkspace(Base):
         unique=True,
         index=True,
     )
-    source_task_id: Mapped[str | None] = mapped_column(
-        String(36),
-        ForeignKey("career_development_goal_plan_tasks.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
+    source_task_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     generated_plan_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     current_plan_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     generated_report_markdown: Mapped[str] = mapped_column(Text, nullable=False, default="")
     edited_report_markdown: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    personal_growth_report_generated_payload_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}"
+    )
+    personal_growth_report_current_payload_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}"
+    )
+    personal_growth_report_generated_markdown: Mapped[str] = mapped_column(
+        Text, nullable=False, default=""
+    )
+    personal_growth_report_edited_markdown: Mapped[str] = mapped_column(
+        Text, nullable=False, default=""
+    )
+    personal_growth_report_export_meta_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}"
+    )
+    personal_growth_report_last_generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    personal_growth_report_last_saved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     latest_integrity_check_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     latest_review_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     export_meta_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")

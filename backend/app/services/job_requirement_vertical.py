@@ -11,6 +11,9 @@ from sqlalchemy.orm import Session
 from app.models.job_posting import JobPosting
 from app.schemas.job_requirement_vertical import (
     OptionItem,
+    SalaryTierGroup,
+    SalaryTierItem,
+    TieredVerticalComparisonPayload,
     VerticalJobProfileCompany,
     VerticalJobProfileCompanyDetailOverview,
     VerticalJobProfileCompanyDetailPayload,
@@ -25,7 +28,7 @@ from app.schemas.job_requirement_vertical import (
 MONTHS_PER_WORKING_DAY = 21.75
 MAX_COMPANIES_PER_INDUSTRY = 10
 SALARY_RANGE_PATTERN = re.compile(r"(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)")
-SALARY_MONTHS_PATTERN = re.compile(r"·\s*(\d+)\s*薪")
+SALARY_MONTHS_PATTERN = re.compile(r"(\d+)\s*薪")
 
 
 @dataclass(frozen=True)
@@ -92,7 +95,47 @@ def parse_salary_sort_metrics(salary_range: str | None) -> SalarySortMetrics | N
 def format_salary_sort_label(metrics: SalarySortMetrics | None) -> str:
     if metrics is None:
         return "薪资面议或暂未披露"
-    return f"月薪等效上限 {round(metrics.upper):,} 元"
+    return f"{round(metrics.lower):,}–{round(metrics.upper):,} 元/月"
+
+
+def build_tiered_vertical_comparison(payload: VerticalJobProfilePayload) -> TieredVerticalComparisonPayload:
+    rated_items: list[SalaryTierItem] = []
+    unrated_items: list[SalaryTierItem] = []
+
+    for group in payload.groups:
+        for company in group.companies:
+            item = SalaryTierItem(
+                industry=group.industry,
+                company_name=company.company_name,
+                salary_range=company.salary_range,
+                salary_sort_value=company.salary_sort_value,
+                salary_sort_label=company.salary_sort_label,
+            )
+            if company.salary_sort_value is None:
+                unrated_items.append(item)
+            else:
+                rated_items.append(item)
+
+    rated_items.sort(
+        key=lambda item: (
+            -(item.salary_sort_value or 0),
+            item.industry,
+            item.company_name,
+        )
+    )
+
+    total_rated = len(rated_items)
+    first_cut = max(1, (total_rated + 2) // 3) if total_rated else 0
+    second_cut = max(first_cut, (total_rated * 2 + 2) // 3) if total_rated else 0
+
+    return TieredVerticalComparisonPayload(
+        job_title=payload.job_title,
+        tiers=[
+            SalaryTierGroup(level="高级", items=rated_items[:first_cut]),
+            SalaryTierGroup(level="中级", items=rated_items[first_cut:second_cut]),
+            SalaryTierGroup(level="低级", items=rated_items[second_cut:] + unrated_items),
+        ],
+    )
 
 
 def build_vertical_job_profile_payload(
@@ -113,18 +156,20 @@ def build_vertical_job_profile_payload(
         company_rows: dict[str, list[JobPosting]] = defaultdict(list)
         for row in industry_rows:
             company_rows[row.company_name].append(row)
+
         sorted_rows = sorted(
             industry_rows,
             key=lambda row: _build_salary_sort_key(row.salary_range, row.company_name),
         )
         top_rows = sorted_rows[:MAX_COMPANIES_PER_INDUSTRY]
-        companies = []
+        companies: list[VerticalJobProfileCompany] = []
         for row in top_rows:
             metrics = parse_salary_sort_metrics(row.salary_range)
             related_rows = company_rows.get(row.company_name, [row])
             companies.append(
                 VerticalJobProfileCompany(
                     company_name=row.company_name,
+                    industry=industry,
                     salary_range=row.salary_range,
                     salary_sort_value=metrics.upper if metrics is not None else None,
                     salary_sort_label=format_salary_sort_label(metrics),
@@ -137,8 +182,8 @@ def build_vertical_job_profile_payload(
         total_companies += len(companies)
         groups.append(VerticalJobProfileGroup(industry=industry, companies=companies))
 
-    return VerticalJobProfilePayload(
-        title=f"{job_title}职业在{len(selected_industries)}个行业的工资垂直对比图谱",
+    payload = VerticalJobProfilePayload(
+        title=f"{job_title}在{len(selected_industries)}个行业的工资垂直对比",
         job_title=job_title,
         selected_industries=selected_industries,
         available_industries=available_industries,
@@ -149,6 +194,8 @@ def build_vertical_job_profile_payload(
             generated_at=datetime.now(timezone.utc).isoformat(),
         ),
     )
+    payload.tiered_comparison = build_tiered_vertical_comparison(payload)
+    return payload
 
 
 def get_vertical_job_profile(

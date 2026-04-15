@@ -6,12 +6,14 @@ const AUTH_PAGE_PATHS = new Set([
 
 const USER_ONLY_PAGE_PATHS = new Set([
   '/',
+  '/home-v2',
   '/job-requirement-profile',
   '/job-requirement-profile/overview',
   '/job-requirement-profile/vertical',
   '/job-requirement-profile/transfer',
   '/student-competency-profile',
   '/career-development-report',
+  '/snail-learning-path',
 ]);
 
 export const getDefaultPostLoginPath = (
@@ -19,7 +21,7 @@ export const getDefaultPostLoginPath = (
 ): string => {
   return currentUser?.access === 'admin'
     ? '/admin/job-postings'
-    : '/student-competency-profile';
+    : '/home-v2';
 };
 
 const getPathnameFromTarget = (target: string): string => {

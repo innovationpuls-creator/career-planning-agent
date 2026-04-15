@@ -18,6 +18,7 @@ class IndustryOptionsResponse(BaseModel):
 
 class VerticalJobProfileCompany(BaseModel):
     company_name: str
+    industry: str | None = None
     salary_range: str | None = None
     salary_sort_value: float | None = None
     salary_sort_label: str
@@ -37,6 +38,24 @@ class VerticalJobProfileMeta(BaseModel):
     generated_at: str
 
 
+class SalaryTierItem(BaseModel):
+    industry: str
+    company_name: str
+    salary_range: str | None = None
+    salary_sort_value: float | None = None
+    salary_sort_label: str
+
+
+class SalaryTierGroup(BaseModel):
+    level: str
+    items: list[SalaryTierItem] = Field(default_factory=list)
+
+
+class TieredVerticalComparisonPayload(BaseModel):
+    job_title: str
+    tiers: list[SalaryTierGroup]
+
+
 class VerticalJobProfilePayload(BaseModel):
     title: str
     job_title: str
@@ -44,6 +63,7 @@ class VerticalJobProfilePayload(BaseModel):
     available_industries: list[str]
     groups: list[VerticalJobProfileGroup]
     meta: VerticalJobProfileMeta
+    tiered_comparison: TieredVerticalComparisonPayload | None = None
 
 
 class VerticalJobProfileResponse(BaseModel):

@@ -86,92 +86,23 @@ const TYPE_COLORS: Record<GraphNodeType, { fill: string; stroke: string; label: 
 };
 
 const DEFAULT_DIMENSION_COUNT = 12;
-const DEFAULT_DIMENSION_TITLES = [
-  '专业技能',
-  '专业背景',
-  '学历要求',
-  '工作经验',
-  '其他/特殊要求',
-  '团队协作能力',
-  '抗压/适应能力',
-  '沟通表达能力',
-  '文档规范意识',
-  '责任心/工作态度',
-  '学习能力',
-  '分析解决问题能力',
-].join('、');
-
 const useStyles = createStyles(({ css, token }) => ({
   pageContainer: css`
     :global(.ant-pro-page-container-children-container) {
-      padding-inline: 0;
-      padding-block: 0;
+      padding-inline: 24px;
+      padding-block: 24px;
+
+      @media (max-width: 768px) {
+        padding-inline: 16px;
+        padding-block: 16px;
+      }
     }
   `,
   shell: css`
-    min-height: calc(100vh - 112px);
-    padding: 24px;
-    background:
-      radial-gradient(circle at top left, rgba(22, 119, 255, 0.12), transparent 28%),
-      linear-gradient(180deg, #f7fbff 0%, #ffffff 42%, #f5f8ff 100%);
-
-    @media (max-width: 768px) {
-      padding: 16px;
-    }
-  `,
-  hero: css`
-    margin-bottom: 24px;
-    padding: 32px;
-    border: 1px solid rgba(22, 119, 255, 0.12);
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 18px 48px rgba(31, 56, 88, 0.08);
-  `,
-  eyebrow: css`
-    display: inline-flex;
-    align-items: center;
-    margin-bottom: 16px;
-    padding: 6px 12px;
-    color: ${token.colorPrimary};
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 999px;
-    background: rgba(22, 119, 255, 0.08);
-  `,
-  heroTitle: css`
-    margin: 0 0 12px;
-    color: #12314d;
-    font-size: clamp(28px, 4vw, 40px);
-    line-height: 1.2;
-  `,
-  markdownBlock: css`
-    max-width: 860px;
-    color: rgba(18, 49, 77, 0.76);
-    font-size: 16px;
-    line-height: 1.8;
-
-    p {
-      margin: 0 0 10px;
-    }
-
-    ul {
-      margin: 0;
-      padding-left: 22px;
-    }
-
-    li {
-      margin: 6px 0;
-    }
-
-    strong {
-      color: #12314d;
-      font-weight: 700;
-    }
+    min-height: calc(100vh - 160px);
   `,
   sectionCard: css`
-    border: 1px solid rgba(18, 49, 77, 0.08);
-    border-radius: 24px;
-    box-shadow: 0 18px 40px rgba(31, 56, 88, 0.08);
+    border-radius: ${token.borderRadiusLG}px;
 
     :global(.ant-card-body) {
       padding: 24px;
@@ -207,11 +138,9 @@ const useStyles = createStyles(({ css, token }) => ({
   graphStage: css`
     width: 100%;
     min-height: 720px;
-    border-radius: 24px;
-    background:
-      radial-gradient(circle at center, rgba(22, 119, 255, 0.06), transparent 42%),
-      linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    border: 1px solid rgba(22, 119, 255, 0.1);
+    border-radius: ${token.borderRadiusLG}px;
+    background: #fff;
+    border: 1px solid ${token.colorBorderSecondary};
     overflow: hidden;
   `,
   loadingWrap: css`
@@ -222,8 +151,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   infoPanel: css`
     height: 100%;
-    border-radius: 20px;
-    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    border-radius: ${token.borderRadiusLG}px;
 
     :global(.ant-card-body) {
       padding: 20px 22px;
@@ -266,7 +194,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   legendCard: css`
     height: 100%;
-    border-radius: 18px;
+    border-radius: ${token.borderRadius}px;
 
     :global(.ant-card-body) {
       padding: 18px;
@@ -278,46 +206,6 @@ const useStyles = createStyles(({ css, token }) => ({
     line-height: 1.7;
   `,
 }));
-
-const renderMarkdownSummary = (markdown: string) => {
-  const lines = markdown.split('\n').map((line) => line.trim()).filter(Boolean);
-  const elements: React.ReactNode[] = [];
-  let listItems: string[] = [];
-  let key = 0;
-
-  const pushList = () => {
-    if (!listItems.length) return;
-    const listKey = key++;
-    elements.push(
-      <ul key={`list-${listKey}`}>
-        {listItems.map((item) => {
-          const normalized = item.replace(/\*\*/g, '');
-          const [label, ...rest] = normalized.split('：');
-          return (
-            <li key={`item-${listKey}-${normalized}`}>
-              <strong>{label}：</strong>
-              {rest.join('：')}
-            </li>
-          );
-        })}
-      </ul>,
-    );
-    listItems = [];
-  };
-
-  lines.forEach((line) => {
-    if (line.startsWith('- ')) {
-      listItems.push(line.slice(2));
-      return;
-    }
-
-    pushList();
-    elements.push(<p key={`p-${key++}`}>{line.replace(/\*\*/g, '')}</p>);
-  });
-
-  pushList();
-  return elements;
-};
 
 const getRelatedIds = (nodeId: string, edges: GraphEdge[]) => {
   const relatedIds = new Set<string>([nodeId]);
@@ -473,14 +361,6 @@ const JobRequirementProfilePage: React.FC = () => {
   );
 
   const dimensionCount = dimensionNodes.length || DEFAULT_DIMENSION_COUNT;
-  const dimensionTitles = dimensionNodes.length
-    ? dimensionNodes.map((node) => node.title).join('、')
-    : DEFAULT_DIMENSION_TITLES;
-  const heroMarkdown = `**岗位要求画像**用于概括企业招聘中最常见、最有代表性的要求结构。
-
-- **${dimensionCount} 个维度**：${dimensionTitles}
-- **3 个分组**：专业与门槛、协作与适应、成长与职业素养
-- **阅读方式**：先看整体结构，再点节点查看右侧详情，理解招聘信息中的共性关注点，并补充关注第 12 维“其他/特殊要求”`;
 
   const focusNode = (nodeId: string) => {
     setActiveNodeId(nodeId);
@@ -642,30 +522,14 @@ const JobRequirementProfilePage: React.FC = () => {
   }, [activeNodeId, error, graphPayload, loading]);
 
   return (
-    <PageContainer className={styles.pageContainer} title={false} breadcrumbRender={false}>
+    <PageContainer className={styles.pageContainer} title="构建就业岗位要求画像" breadcrumbRender={false}>
       <div className={styles.shell}>
-        <section className={styles.hero}>
-          <div className={styles.eyebrow}>岗位要求画像总览图谱</div>
-          <Typography.Title level={1} className={styles.heroTitle}>
-            构建就业岗位要求画像
-          </Typography.Title>
-          <div className={styles.markdownBlock}>{renderMarkdownSummary(heroMarkdown)}</div>
-          <Space wrap size={[8, 8]} style={{ marginTop: 20 }}>
-            <Tag color="blue">Neo4j 图谱驱动</Tag>
-            <Tag color="cyan">点击节点查看右侧详情</Tag>
-          </Space>
-        </section>
-
         <Card className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <div>
               <Typography.Title level={2} className={styles.sectionTitle}>
                 岗位要求图谱总览
               </Typography.Title>
-              <Typography.Paragraph className={styles.sectionText}>
-                先在图中浏览“总画像 - 分组 - 维度”的层级关系，再点击感兴趣的节点查看右侧详情。
-                如果你想继续看更细的岗位关系，可以从左侧导航进入“垂直岗位图谱”或“换岗路径图谱”。
-              </Typography.Paragraph>
             </div>
             <Space wrap size={[8, 8]}>
               <Tag icon={<NodeIndexOutlined />} color="blue">

@@ -90,21 +90,25 @@ export const buildGoalGraphPaths = (favorite?: API.CareerDevelopmentFavoritePayl
   if (!favorite) {
     return {
       vertical: '/job-requirement-profile/vertical',
-      transfer: '/job-requirement-profile/transfer',
+      learningPath: '/snail-learning-path',
     };
   }
   const vertical = new URLSearchParams({
     job_title: favorite.representative_job_title || favorite.canonical_job_title,
   });
   if (favorite.industry) vertical.set('industry', favorite.industry);
-  const transfer = new URLSearchParams({ job_title: favorite.canonical_job_title });
   return {
     vertical: `/job-requirement-profile/vertical?${vertical.toString()}`,
-    transfer: `/job-requirement-profile/transfer?${transfer.toString()}`,
+    learningPath: `/snail-learning-path?favorite_id=${favorite.favorite_id}`,
   };
 };
 
-export const useCareerGoalPlanningData = () => {
+export const useCareerGoalPlanningData = (
+  options?: {
+    workspaceMode?: 'goal-plan' | 'none';
+  },
+) => {
+  const workspaceMode = options?.workspaceMode || 'goal-plan';
   const [favorites, setFavorites] = useState<API.CareerDevelopmentFavoritePayload[]>([]);
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<number | undefined>(
     () => readGoalPlanningSharedState().selectedFavoriteId,
@@ -243,6 +247,12 @@ export const useCareerGoalPlanningData = () => {
       return;
     }
 
+    if (workspaceMode === 'none') {
+      setWorkspace(undefined);
+      setTaskSnapshot(undefined);
+      return;
+    }
+
     void loadWorkspace(activeFavorite.favorite_id);
     const taskId = taskIdsByFavorite[String(activeFavorite.favorite_id)];
     if (!taskId) {
@@ -264,7 +274,7 @@ export const useCareerGoalPlanningData = () => {
         }
       })
       .catch(() => setTaskSnapshot(undefined));
-  }, [activeFavorite?.favorite_id, taskIdsByFavorite]);
+  }, [activeFavorite?.favorite_id, taskIdsByFavorite, workspaceMode]);
 
   const startAnalysis = async () => {
     if (!activeFavorite) return;

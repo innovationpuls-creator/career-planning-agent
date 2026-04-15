@@ -2,6 +2,13 @@
 Thumbs.db
 .idea/
 .vscode/
+.claude
+.codex
+.pytest_cache
+.ruff_cache
+docs
+everything-claude-code
+CLAUDE.md
 
 # Root-only local data
 /行业数据/

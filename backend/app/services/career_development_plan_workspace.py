@@ -5,19 +5,15 @@ import re
 import textwrap
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from uuid import uuid4
 from xml.sax.saxutils import escape as xml_escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from fastapi import UploadFile
 
-from app.models.career_development_goal_plan_task import CareerDevelopmentGoalPlanTask
-from app.models.career_development_plan_review import CareerDevelopmentPlanReview
-from app.models.career_development_plan_step_submission import CareerDevelopmentPlanStepSubmission
 from app.models.career_development_plan_workspace import CareerDevelopmentPlanWorkspace
 from app.core.config import DATA_DIR
 from app.schemas.career_development_report import (
@@ -33,12 +29,9 @@ from app.schemas.career_development_report import (
     GrowthPlanPhase,
     GrowthPlanPhaseFlowItem,
     GrowthPlanPracticeAction,
-    GrowthPlanStepAssessment,
-    GrowthPlanSubmissionFile,
     IntegrityCheckPayload,
     IntegrityIssue,
     PlanExportMeta,
-    PlanLearningResourceRequest,
     PlanReviewChangeItem,
     PlanReviewPayload,
     PlanWorkspaceCurrentActionSummary,
@@ -49,7 +42,10 @@ from app.schemas.career_development_report import (
 from app.schemas.student_competency_profile import StudentCompetencyComparisonDimensionItem
 from app.services.career_development_learning_resources import (
     CareerDevelopmentLearningResourceError,
-    DifyCareerLearningResourceClient,
+    DifyKnowsearchClient,
+    filter_learning_resource_recommendations,
+    normalize_learning_resource_domain,
+    normalize_learning_resource_url,
     parse_learning_resource_recommendations,
 )
 from app.services.career_development_goal_planning import (
@@ -57,13 +53,10 @@ from app.services.career_development_goal_planning import (
     get_favorite_report_record,
     read_favorite_report_payload,
 )
-from app.services.career_development_report import CareerDevelopmentMatchService
-from app.services.llm import ChatMessage, LLMClientError, OpenAICompatibleLLMClient
-from app.services.student_competency_latest_analysis import get_student_competency_latest_profile_record
+from app.services.llm import LLMClientError
 
 
 UTC = timezone.utc
-PLAN_STEP_UPLOAD_DIR = DATA_DIR / "career_plan_step_uploads"
 
 PHASE_BLUEPRINTS = [
     {
@@ -1461,118 +1454,6 @@ def _parse_export_meta(row: CareerDevelopmentPlanWorkspace) -> PlanExportMeta:
         return PlanExportMeta()
 
 
-def _safe_filename(name: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9._-]+", "_", name or "upload.bin").strip("._") or "upload.bin"
-
-
-def _strip_markup(text: str) -> str:
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text or "")).strip()
-
-
-def _extract_upload_text(*, file_name: str, content_type: str, content: bytes) -> str:
-    suffix = Path(file_name).suffix.lower()
-    if suffix in {".txt", ".md", ".markdown", ".json", ".csv", ".xml", ".html", ".htm", ".py", ".js", ".ts"}:
-        return content.decode("utf-8", errors="ignore").strip()[:4000]
-    if suffix == ".docx":
-        try:
-            with ZipFile(BytesIO(content)) as archive:
-                xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
-                return _strip_markup(xml)[:4000]
-        except Exception:
-            return ""
-    if content_type.startswith("text/"):
-        return content.decode("utf-8", errors="ignore").strip()[:4000]
-    return ""
-
-
-def _extract_json_candidate(text: str) -> Any | None:
-    raw = (text or "").strip()
-    if not raw:
-        return None
-    candidates = [raw]
-    if "```" in raw:
-        for segment in raw.split("```"):
-            cleaned = segment.strip()
-            if not cleaned:
-                continue
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:].strip()
-            candidates.append(cleaned)
-    if "{" in raw and "}" in raw:
-        candidates.append(raw[raw.find("{") : raw.rfind("}") + 1])
-    for candidate in candidates:
-        try:
-            return json.loads(candidate)
-        except Exception:
-            continue
-    return None
-
-
-async def _assess_learning_step(
-    *,
-    favorite: CareerDevelopmentFavoritePayload,
-    phase: GrowthPlanPhase,
-    milestone: GrowthPlanMilestone,
-    module: GrowthPlanLearningModule | None,
-    resource: GrowthPlanLearningResourceItem | None,
-    summary_text: str,
-    uploaded_files: list[GrowthPlanSubmissionFile],
-) -> GrowthPlanStepAssessment:
-    client = OpenAICompatibleLLMClient.from_settings()
-    try:
-        file_context = "\n".join(
-            [
-                f"- 文件名：{item.file_name}\n  提取文本：{item.text_excerpt or '无可提取文本，仅记录了文件元数据。'}"
-                for item in uploaded_files
-            ]
-        )
-        messages = [
-            ChatMessage(
-                role="system",
-                content=(
-                    "你是学生成长路径规划工作台的学习步骤审核器。"
-                    "请只判断学生是否基于给定学习网站完成了当前步骤的基础学习。"
-                    "不要评估高阶水平，不要补造事实。"
-                    "输出必须是 JSON："
-                    '{"result":"passed|needs_more_evidence","summary":"...","missing_points":["..."],"next_action":"..."}'
-                ),
-            ),
-            ChatMessage(
-                role="user",
-                content=(
-                    f"目标岗位：{favorite.canonical_job_title}\n"
-                    f"当前阶段：{phase.phase_label}（{phase.time_horizon}）\n"
-                    f"当前步骤：{milestone.title}\n"
-                    f"步骤目标：{module.learning_content if module else phase.goal_statement}\n"
-                    f"学习网站：{resource.url if resource else '暂无链接'}\n"
-                    f"推荐理由：{resource.reason if resource else '暂无'}\n"
-                    f"期望输出：{resource.expected_output if resource else (_resource_expected_output(phase=phase, module=module) if module else '提交学习小结、基础笔记或基础练习结果。')}\n"
-                    f"学生小结：{summary_text or '未填写'}\n"
-                    f"上传材料：\n{file_context or '- 无附件'}\n\n"
-                    "判断标准：只要能看出学生确实围绕该网站完成了基础学习，并沉淀了基础笔记、总结或基础练习结果，就判定为 passed；否则为 needs_more_evidence。"
-                ),
-            ),
-        ]
-        raw = await client.chat_completion(messages, temperature=0.0)
-    finally:
-        await client.aclose()
-
-    payload = _extract_json_candidate(raw)
-    if not isinstance(payload, dict):
-        raise LLMClientError("学习步骤审核返回了不可解析的结果。")
-    result = str(payload.get("result") or "").strip()
-    if result not in {"passed", "needs_more_evidence"}:
-        raise LLMClientError("学习步骤审核结果缺少有效的 result 字段。")
-    missing_points = payload.get("missing_points") or []
-    return GrowthPlanStepAssessment(
-        result=result,
-        summary=str(payload.get("summary") or "").strip() or "系统已完成本次步骤审核。",
-        missing_points=[str(item).strip() for item in missing_points if str(item).strip()],
-        next_action=str(payload.get("next_action") or "").strip(),
-        assessed_at=utc_now(),
-    )
-
-
 def get_plan_workspace_record(
     db: Session,
     *,
@@ -1587,23 +1468,6 @@ def get_plan_workspace_record(
     )
 
 
-def _latest_completed_task_record(
-    db: Session,
-    *,
-    user_id: int,
-    favorite_id: int,
-) -> CareerDevelopmentGoalPlanTask | None:
-    return db.scalar(
-        select(CareerDevelopmentGoalPlanTask)
-        .where(
-            CareerDevelopmentGoalPlanTask.user_id == user_id,
-            CareerDevelopmentGoalPlanTask.favorite_id == favorite_id,
-            CareerDevelopmentGoalPlanTask.status == "completed",
-        )
-        .order_by(CareerDevelopmentGoalPlanTask.updated_at.desc())
-    )
-
-
 def _generated_markdown_supporting_sections(
     db: Session,
     *,
@@ -1615,29 +1479,7 @@ def _generated_markdown_supporting_sections(
     comprehensive = str(generated_payload.get("comprehensive_report_markdown") or "").strip()
     trend = str(generated_payload.get("trend_section_markdown") or "").strip()
     path = str(generated_payload.get("path_section_markdown") or "").strip()
-    if comprehensive or trend or path:
-        return comprehensive, trend, path
-
-    task_row = None
-    if row.source_task_id:
-        task_row = db.get(CareerDevelopmentGoalPlanTask, row.source_task_id)
-    if task_row is None:
-        task_row = _latest_completed_task_record(db, user_id=user_id, favorite_id=favorite_id)
-    if task_row is None:
-        return "", "", ""
-
-    payload = _json_loads(task_row.result_json)
-    if not payload:
-        return "", "", ""
-    try:
-        result = CareerDevelopmentGoalPlanResultPayload.model_validate(payload)
-    except Exception:
-        return "", "", ""
-    return (
-        result.comprehensive_report_markdown,
-        result.trend_section_markdown,
-        result.path_section_markdown,
-    )
+    return comprehensive, trend, path
 
 
 def _rebuild_generated_report_markdown(
@@ -1723,25 +1565,7 @@ def get_or_create_plan_workspace(
     user_id: int,
     favorite_id: int,
 ) -> CareerDevelopmentPlanWorkspace | None:
-    existing = get_plan_workspace_record(db, user_id=user_id, favorite_id=favorite_id)
-    if existing is not None:
-        return existing
-
-    task_row = _latest_completed_task_record(db, user_id=user_id, favorite_id=favorite_id)
-    if task_row is None:
-        return None
-
-    result_payload = _json_loads(task_row.result_json)
-    if not result_payload:
-        return None
-    result = CareerDevelopmentGoalPlanResultPayload.model_validate(result_payload)
-    return upsert_workspace_from_goal_plan_result(
-        db,
-        user_id=user_id,
-        favorite_id=favorite_id,
-        result=result,
-        source_task_id=task_row.id,
-    )
+    return get_plan_workspace_record(db, user_id=user_id, favorite_id=favorite_id)
 
 
 def build_plan_workspace_payload(
@@ -1854,6 +1678,7 @@ async def generate_learning_resources_for_workspace(
     phase_key: str,
     module_id: str,
     force_refresh: bool = False,
+    exclude_urls: list[str] | None = None,
 ) -> CareerDevelopmentPlanWorkspace:
     row = get_or_create_plan_workspace(db, user_id=user_id, favorite_id=favorite_id)
     if row is None:
@@ -1880,27 +1705,65 @@ async def generate_learning_resources_for_workspace(
     if current_module.resource_recommendations and not force_refresh:
         return row
 
-    client = DifyCareerLearningResourceClient()
+    # 收集同 workspace 中其他 modules 已推荐的 URL，用于去重
+    accumulated_urls: list[str] = [
+        item
+        for item in (normalize_learning_resource_url(url) for url in (exclude_urls or []))
+        if item
+    ]
+    accumulated_domains: list[str] = []
+    for phase in current_phases:
+        for mod in phase.learning_modules:
+            if mod.module_id == module_id:
+                continue
+            for rec in mod.resource_recommendations or []:
+                normalized_url = normalize_learning_resource_url(rec.url)
+                normalized_domain = normalize_learning_resource_domain(rec.url)
+                if normalized_url and normalized_url not in accumulated_urls:
+                    accumulated_urls.append(normalized_url)
+                if normalized_domain and normalized_domain not in accumulated_domains:
+                    accumulated_domains.append(normalized_domain)
+
+    client = DifyKnowsearchClient()
     try:
-        result = await client.generate_learning_resources(
-            favorite=favorite,
-            phase=current_phase,
-            module=current_module,
+        result = await client.generate_for_module(
+            canonical_job_title=favorite.canonical_job_title,
+            topic=current_module.topic,
             user=f"career-goal-resource-{user_id}-{favorite_id}-{module_id}",
         )
         recommendations = parse_learning_resource_recommendations(
             result.answer,
             fallback_title=current_module.topic,
         )
-        if not recommendations:
-            raise CareerDevelopmentLearningResourceError("未能从 Dify 返回中解析出有效学习路线链接。")
 
-        generated_at = utc_now()
-        for module in (current_module, generated_module):
-            module.resource_recommendations = recommendations
-            module.resource_status = "ready"
-            module.resource_generated_at = generated_at
-            module.resource_error_message = ""
+        if not recommendations:
+            # Dify 返回了结果但为空，不算失败；设置 idle 让前端走 fallback 静态资源
+            generated_at = utc_now()
+            for module in (current_module, generated_module):
+                module.resource_recommendations = []
+                module.resource_status = "idle"
+                module.resource_generated_at = generated_at
+                module.resource_error_message = "Dify 返回结果为空，已使用默认学习资源。"
+        else:
+            recommendations = filter_learning_resource_recommendations(
+                recommendations,
+                excluded_urls=accumulated_urls,
+                excluded_domains=accumulated_domains,
+            )
+            generated_at = utc_now()
+            if not recommendations:
+                # 过滤后为空，同样走 fallback
+                for module in (current_module, generated_module):
+                    module.resource_recommendations = []
+                    module.resource_status = "idle"
+                    module.resource_generated_at = generated_at
+                    module.resource_error_message = "Dify 返回结果去重后为空，已使用默认学习资源。"
+            else:
+                for module in (current_module, generated_module):
+                    module.resource_recommendations = recommendations
+                    module.resource_status = "ready"
+                    module.resource_generated_at = generated_at
+                    module.resource_error_message = ""
 
         generated_payload["growth_plan_phases"] = [item.model_dump(mode="json") for item in generated_phases]
         row.generated_plan_json = _json_dumps(generated_payload)
@@ -1944,193 +1807,6 @@ async def generate_learning_resources_for_workspace(
     db.commit()
     db.refresh(row)
     return row
-
-
-async def submit_workspace_learning_milestone(
-    db: Session,
-    *,
-    user_id: int,
-    favorite_id: int,
-    milestone_id: str,
-    summary_text: str,
-    uploads: list[UploadFile],
-) -> CareerDevelopmentPlanWorkspace:
-    row = get_or_create_plan_workspace(db, user_id=user_id, favorite_id=favorite_id)
-    if row is None:
-        raise ValueError("当前目标尚未生成工作台，请先完成成长路径规划生成。")
-    favorite_record = get_favorite_report_record(db, user_id=user_id, favorite_id=favorite_id)
-    if favorite_record is None:
-        raise ValueError("收藏目标不存在或无权访问。")
-    favorite = read_favorite_report_payload(favorite_record)
-    current_payload = _load_workspace_current_payload(row)
-    generated_payload = _load_workspace_generated_payload(row)
-    phases = _parse_phases(current_payload) or _parse_phases(generated_payload) or build_growth_plan_phases(favorite)
-
-    target_phase: GrowthPlanPhase | None = None
-    target_milestone: GrowthPlanMilestone | None = None
-    target_module: GrowthPlanLearningModule | None = None
-    target_resource: GrowthPlanLearningResourceItem | None = None
-    for phase in phases:
-        for milestone in phase.milestones:
-            if milestone.milestone_id != milestone_id:
-                continue
-            if milestone.category != "learning":
-                raise ValueError("当前只支持提交学习型里程碑。")
-            target_phase = phase
-            target_milestone = milestone
-            target_module = next(
-                (
-                    item
-                    for item in phase.learning_modules
-                    if item.module_id == milestone.related_learning_module_id
-                ),
-                None,
-            )
-            if target_module and target_module.resource_recommendations:
-                resource_index = max((milestone.step_index or 1) - 1, 0)
-                target_resource = target_module.resource_recommendations[
-                    min(resource_index, len(target_module.resource_recommendations) - 1)
-                ]
-                target_resource = target_resource.model_copy(
-                    update={
-                        "step_label": target_resource.step_label or f"第 {milestone.step_index or 1} 步",
-                        "why_first": target_resource.why_first
-                        or _resource_why_first(module=target_module, step_index=milestone.step_index or 1),
-                        "expected_output": target_resource.expected_output
-                        or _resource_expected_output(phase=phase, module=target_module),
-                    }
-                )
-            break
-        if target_milestone is not None:
-            break
-    if target_phase is None or target_milestone is None:
-        raise ValueError("未找到对应的学习步骤。")
-
-    PLAN_STEP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    upload_dir = PLAN_STEP_UPLOAD_DIR / row.id / milestone_id
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    file_payloads: list[GrowthPlanSubmissionFile] = []
-    for upload in uploads:
-        content = await upload.read()
-        safe_name = _safe_filename(upload.filename or "upload.bin")
-        stored_name = f"{utc_now().strftime('%Y%m%d%H%M%S')}-{uuid4().hex}-{safe_name}"
-        stored_path = upload_dir / stored_name
-        stored_path.write_bytes(content)
-        excerpt = _extract_upload_text(
-            file_name=safe_name,
-            content_type=upload.content_type or "",
-            content=content,
-        )
-        file_payloads.append(
-            GrowthPlanSubmissionFile(
-                file_name=upload.filename or safe_name,
-                stored_name=stored_name,
-                content_type=upload.content_type or "application/octet-stream",
-                size_bytes=len(content),
-                file_path=str(stored_path.relative_to(DATA_DIR)),
-                text_excerpt=excerpt,
-            )
-        )
-
-    assessment = await _assess_learning_step(
-        favorite=favorite,
-        phase=target_phase,
-        milestone=target_milestone,
-        module=target_module,
-        resource=target_resource,
-        summary_text=summary_text,
-        uploaded_files=file_payloads,
-    )
-    target_milestone.submission_summary = summary_text.strip()
-    target_milestone.submission_files = file_payloads
-    target_milestone.latest_assessment = assessment
-    target_milestone.submission_status = assessment.result
-    if assessment.result == "passed":
-        target_milestone.status = "completed"
-        target_milestone.completed_at = assessment.assessed_at
-        target_milestone.evidence_note = assessment.summary
-        target_milestone.blocker_note = ""
-    else:
-        target_milestone.status = "in_progress"
-        target_milestone.completed_at = None
-        target_milestone.blocker_note = ""
-
-    populate_phase_summaries(phases)
-    row.current_plan_json = _json_dumps({"growth_plan_phases": [item.model_dump(mode="json") for item in phases]})
-    db.add(
-        CareerDevelopmentPlanStepSubmission(
-            workspace_id=row.id,
-            user_id=user_id,
-            favorite_id=favorite_id,
-            milestone_id=milestone_id,
-            submission_json=_json_dumps(
-                {
-                    "summary_text": summary_text.strip(),
-                    "files": [item.model_dump(mode="json") for item in file_payloads],
-                    "assessment": assessment.model_dump(mode="json"),
-                }
-            ),
-        )
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
-
-
-async def create_workspace_review(
-    db: Session,
-    *,
-    user_id: int,
-    favorite_id: int,
-    review_type: str,
-    match_service: CareerDevelopmentMatchService | None = None,
-) -> PlanReviewPayload:
-    row = get_or_create_plan_workspace(db, user_id=user_id, favorite_id=favorite_id)
-    if row is None:
-        raise ValueError("当前目标尚未生成工作台，请先完成路径报告生成。")
-    favorite_record = get_favorite_report_record(db, user_id=user_id, favorite_id=favorite_id)
-    if favorite_record is None:
-        raise ValueError("收藏目标不存在或无权访问。")
-    favorite = read_favorite_report_payload(favorite_record)
-    phases = _parse_phases(_load_workspace_current_payload(row)) or build_growth_plan_phases(favorite)
-
-    if review_type == "weekly":
-        payload = build_weekly_review_payload(favorite, phases=phases)
-    else:
-        latest_profile = get_student_competency_latest_profile_record(db, user_id=user_id)
-        current_report_payload: CareerDevelopmentFavoritePayload | None = None
-        if latest_profile is not None and match_service is not None:
-            try:
-                latest_report = await match_service.build_report_for_favorite(user_id=user_id, favorite=favorite)
-                current_report_payload = favorite.model_copy(update={"report_snapshot": latest_report})
-            except Exception:
-                current_report_payload = None
-        payload = build_monthly_review_payload(
-            favorite,
-            phases=phases,
-            current_report=current_report_payload,
-            latest_profile_refreshed_at=latest_profile.updated_at if latest_profile is not None else None,
-        )
-
-    review_row = CareerDevelopmentPlanReview(
-        workspace_id=row.id,
-        user_id=user_id,
-        favorite_id=favorite_id,
-        review_type=review_type,
-        snapshot_json="{}",
-    )
-    db.add(review_row)
-    db.commit()
-    db.refresh(review_row)
-    payload = payload.model_copy(update={"review_id": review_row.id, "created_at": review_row.created_at})
-    review_row.snapshot_json = _json_dumps(payload.model_dump(mode="json"))
-    row.latest_review_json = review_row.snapshot_json
-    db.add(review_row)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return payload
 
 
 def _docx_document_xml(markdown: str) -> str:

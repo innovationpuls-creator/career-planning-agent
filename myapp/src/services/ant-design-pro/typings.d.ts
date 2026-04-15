@@ -1,4 +1,4 @@
-// @ts-ignore
+﻿// @ts-ignore
 /* eslint-disable */
 
 declare namespace API {
@@ -67,6 +67,34 @@ declare namespace API {
   type JobTitleOptionsResponse = {
     success?: boolean;
     data: JobTitleOption[];
+  };
+
+  type StudentProfilePayload = {
+    full_name: string;
+    school: string;
+    major: string;
+    education_level: string;
+    grade: string;
+    target_job_title: string;
+  };
+
+  type HomeV2Payload = {
+    onboarding_completed: boolean;
+    current_stage?: string;
+    profile?: StudentProfilePayload;
+    attachments?: Array<{
+      original_name: string;
+      stored_name: string;
+      content_type: string;
+      size_bytes: number;
+      file_path: string;
+    }>;
+    vertical_profile?: VerticalJobProfilePayload;
+  };
+
+  type HomeV2Response = {
+    success?: boolean;
+    data: HomeV2Payload;
   };
 
   type IndustryOptionsResponse = {
@@ -695,6 +723,171 @@ declare namespace API {
     data: PlanWorkspacePayload;
   };
 
+  type PersonalGrowthReportSectionKey =
+    | 'self_cognition'
+    | 'career_direction_analysis'
+    | 'match_assessment'
+    | 'development_suggestions'
+    | 'action_plan';
+
+  type PersonalGrowthReportSection = {
+    key: PersonalGrowthReportSectionKey;
+    title: string;
+    content: string;
+    completed: boolean;
+  };
+
+  type PersonalGrowthReportPayload = {
+    workspace_id: string;
+    favorite: CareerDevelopmentFavoritePayload;
+    sections: PersonalGrowthReportSection[];
+    generated_markdown: string;
+    edited_markdown: string;
+    export_meta: PlanExportMeta;
+    content_status: 'ready' | 'insufficient';
+    generation_status: 'not_started' | 'ready' | 'insufficient';
+    active_task?: PersonalGrowthReportTaskSummary;
+    last_generated_at?: string;
+    last_saved_at?: string;
+    updated_at: string;
+  };
+
+  type PersonalGrowthReportResponse = {
+    success?: boolean;
+    data: PersonalGrowthReportPayload;
+  };
+
+  type PersonalGrowthReportUpdateRequest = {
+    sections: PersonalGrowthReportSection[];
+  };
+
+  type PersonalGrowthReportRegenerateRequest = {
+    overwrite_current?: boolean;
+  };
+
+  type PersonalGrowthReportExportRequest = {
+    format: 'md' | 'docx' | 'pdf';
+    force_with_issues?: boolean;
+  };
+
+  type PersonalGrowthReportTaskCreateRequest = {
+    favorite_id: number;
+    overwrite_current?: boolean;
+  };
+
+  type PersonalGrowthReportTaskSummary = {
+    task_id: string;
+    favorite_id: number;
+    status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
+    progress: number;
+    overwrite_current: boolean;
+    status_text: string;
+    started_at: string;
+    updated_at: string;
+    can_cancel: boolean;
+  };
+
+  type PersonalGrowthReportTaskEvent = {
+    stage: string;
+    status_text: string;
+    progress: number;
+    details?: Record<string, string | number | boolean | null>;
+    created_at: string;
+  };
+
+  type PersonalGrowthReportTaskResult = {
+    workspace_id: string;
+    section_count: number;
+    generated_markdown: string;
+    updated_at: string;
+  };
+
+  type PersonalGrowthReportTaskPayload = {
+    task_id: string;
+    favorite_id: number;
+    status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
+    progress: number;
+    overwrite_current: boolean;
+    latest_event?: PersonalGrowthReportTaskEvent;
+    result?: PersonalGrowthReportTaskResult;
+    error_message?: string;
+    cancel_requested_at?: string;
+    completed_at?: string;
+    created_at: string;
+    updated_at: string;
+  };
+
+  type PersonalGrowthReportTaskCreateResponse = {
+    success?: boolean;
+    data: PersonalGrowthReportTaskSummary;
+  };
+
+  type PersonalGrowthReportTaskResponse = {
+    success?: boolean;
+    data: PersonalGrowthReportTaskPayload;
+  };
+
+  type PersonalGrowthReportTaskCancelResponse = {
+    success?: boolean;
+    data: PersonalGrowthReportTaskPayload;
+  };
+
+  type SnailUploadedFileSummary = {
+    file_name: string;
+    content_type: string;
+    text_excerpt: string;
+  };
+
+  type SnailWeeklyReviewReport = {
+    headline: string;
+    focus_keywords: string[];
+    progress_assessment: string;
+    progress_keywords: string[];
+    goal_gap_summary: string;
+    gap_keywords: string[];
+    highlights: string[];
+    blockers: string[];
+    next_action: string;
+    action_keywords: string[];
+  };
+
+  type SnailMonthlyReviewReport = {
+    headline: string;
+    focus_keywords: string[];
+    monthly_summary: string;
+    phase_progress_summary: string;
+    progress_keywords: string[];
+    gap_assessment: string;
+    gap_keywords: string[];
+    recommendation: 'continue' | 'strengthen' | 'advance';
+    focus_points: string[];
+    next_actions: string[];
+    action_keywords: string[];
+  };
+
+  type SnailLearningPathReviewPayload = {
+    review_id: number;
+    workspace_id: string;
+    review_type: 'weekly' | 'monthly';
+    phase_key: LearningPathPhaseKey;
+    checked_resource_urls: string[];
+    uploaded_files: SnailUploadedFileSummary[];
+    user_prompt: string;
+    weekly_report?: SnailWeeklyReviewReport;
+    monthly_report?: SnailMonthlyReviewReport;
+    created_at: string;
+  };
+
+  type SnailLearningPathReviewResponse = {
+    success?: boolean;
+    data: SnailLearningPathReviewPayload;
+  };
+
+  type SnailLearningPathReviewListResponse = {
+    success?: boolean;
+    data: SnailLearningPathReviewPayload[];
+  };
+
   type PlanWorkspacePolishRequest = {
     markdown: string;
     mode: 'formal' | 'concise' | 'mentor_facing';
@@ -733,6 +926,7 @@ declare namespace API {
     phase_key: 'short_term' | 'mid_term' | 'long_term';
     module_id: string;
     force_refresh?: boolean;
+    exclude_urls?: string[];
   };
 
   type PlanLearningResourceResponse = {
@@ -1036,5 +1230,137 @@ declare namespace API {
     datetime?: string;
     description?: string;
     type?: NoticeIconItemType;
+  };
+
+  type AdminUserItem = {
+    id: number;
+    username: string;
+    display_name: string;
+    role: string;
+    avatar?: string;
+    is_active: boolean;
+    created_at: string;
+    last_login_at?: string;
+  };
+
+  type AdminUserListResponse = {
+    success?: boolean;
+    data?: AdminUserItem[];
+    total?: number;
+  };
+
+  type AdminUserDetailResponse = {
+    success?: boolean;
+    data: AdminUserItem;
+  };
+
+  type AdminProfileResponse = {
+    success?: boolean;
+    data: AdminUserItem;
+  };
+
+  type AdminUserQueryParams = {
+    current?: number;
+    pageSize?: number;
+    username?: string;
+    role?: string;
+    is_active?: boolean;
+  };
+
+  type AdminUserUpdateParams = {
+    user_id: number;
+    role?: string;
+    is_active?: boolean;
+    display_name?: string;
+  };
+
+  type AdminUserDeleteResponse = { success?: boolean };
+
+  type AdminUserCreateParams = {
+    username: string;
+    password: string;
+    display_name?: string;
+    role?: string;
+    is_active?: boolean;
+  };
+
+  type AdminProfileUpdateParams = {
+    display_name?: string;
+    avatar?: string;
+    password?: string;
+  };
+
+  // ---- Data Dashboard ----
+
+  type MajorDistributionItem = {
+    major: string;
+    count: number;
+  };
+
+  type SchoolDistributionItem = {
+    school: string;
+    count: number;
+  };
+
+  type EducationDistributionItem = {
+    level: string;
+    count: number;
+  };
+
+  type MajorDistributionResponse = {
+    success?: boolean;
+    total_users: number;
+    profiles_completed: number;
+    completion_rate: number;
+    major_distribution: MajorDistributionItem[];
+    school_distribution: SchoolDistributionItem[];
+    education_distribution: EducationDistributionItem[];
+  };
+
+  type ScoreDistributionItem = {
+    dimension: string;
+    high: number;
+    medium: number;
+    low: number;
+  };
+
+  type TopStudentItem = {
+    user_id: number;
+    display_name: string;
+    overall_score: number;
+  };
+
+  type CompetencyAnalysisResponse = {
+    success?: boolean;
+    total_assessments: number;
+    average_scores: Record<string, number>;
+    score_distribution: ScoreDistributionItem[];
+    top_students: TopStudentItem[];
+  };
+
+  type IndustryDistributionItem = {
+    industry: string;
+    count: number;
+  };
+
+  type JobTitleDistributionItem = {
+    job_title: string;
+    count: number;
+  };
+
+  type SalaryDistribution = {
+    below_15k: number;
+    from_15k_to_25k: number;
+    from_25k_to_35k: number;
+    above_35k: number;
+  };
+
+  type EmploymentTrendsResponse = {
+    success?: boolean;
+    total_jobs: number;
+    total_companies: number;
+    industry_distribution: IndustryDistributionItem[];
+    job_title_distribution: JobTitleDistributionItem[];
+    salary_distribution: SalaryDistribution;
   };
 }

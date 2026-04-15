@@ -7,7 +7,7 @@ import {
 describe('postLoginRedirect', () => {
   it('should return role-based default landing pages', () => {
     expect(getDefaultPostLoginPath({ access: 'user' } as API.CurrentUser)).toBe(
-      '/student-competency-profile',
+      '/home-v2',
     );
     expect(
       getDefaultPostLoginPath({ access: 'admin' } as API.CurrentUser),

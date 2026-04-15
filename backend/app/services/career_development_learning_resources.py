@@ -1,33 +1,48 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Literal
-from urllib.parse import urlparse
+from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 
 from app.core.config import settings
 from app.schemas.career_development_report import (
     CareerDevelopmentFavoritePayload,
-    GrowthPlanLearningModule,
     GrowthPlanLearningResourceItem,
     GrowthPlanPhase,
 )
 
 
-RouteMode = Literal["workflow", "chat"]
+TRACKING_QUERY_PARAM_PREFIXES = ("utm_",)
+TRACKING_QUERY_PARAMS = {
+    "feature",
+    "feature_id",
+    "featureid",
+    "fbclid",
+    "from",
+    "from_source",
+    "gclid",
+    "igshid",
+    "mc_cid",
+    "mc_eid",
+    "share",
+    "share_channel",
+    "share_medium",
+    "share_source",
+    "si",
+    "source",
+    "spm",
+    "src",
+    "yclid",
+}
 
 
 class CareerDevelopmentLearningResourceError(RuntimeError):
     pass
-
-
-@dataclass(slots=True)
-class DifyLearningResourceRuntimeConfig:
-    input_variables: list[str]
-    app_mode: str | None = None
 
 
 @dataclass(slots=True)
@@ -36,7 +51,14 @@ class DifyLearningResourceResult:
     answer: str
 
 
-class DifyCareerLearningResourceClient:
+class DifyKnowsearchClient:
+    """简化版 Dify 客户端，专用于"去哪里学"场景。
+
+    - 固定调用 /chat-messages（streaming 模式，blocking 模式在 advanced-chat 下有 bug）
+    - query 格式：{canonical_job_title}：{topic}
+    - 解析 Dify SSE 流中的 answer JSON：{"index": [{"url": "...", "reason": "..."}]}
+    """
+
     def __init__(self) -> None:
         api_key = (
             settings.career_goal_knowsearch_dify_api_key
@@ -44,7 +66,9 @@ class DifyCareerLearningResourceClient:
             or settings.dify_api_key
         )
         base_url = settings.career_goal_dify_base_url or settings.dify_base_url
-        timeout_seconds = float(settings.career_goal_dify_timeout_seconds or settings.dify_timeout_seconds)
+        timeout_seconds = float(
+            settings.career_goal_dify_timeout_seconds or settings.dify_timeout_seconds
+        )
         if not api_key:
             raise CareerDevelopmentLearningResourceError(
                 "学习路线推荐 Dify API key 缺失，请检查 backend/.env。"
@@ -60,392 +84,150 @@ class DifyCareerLearningResourceClient:
                 pool=min(timeout_seconds, 30.0),
             ),
             headers={"Authorization": f"Bearer {api_key}"},
+            trust_env=False,
         )
-        self._runtime_config: DifyLearningResourceRuntimeConfig | None = None
 
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def get_runtime_config(self, *, force_refresh: bool = False) -> DifyLearningResourceRuntimeConfig:
-        if self._runtime_config is not None and not force_refresh:
-            return self._runtime_config
-
-        try:
-            response = await self._client.get("/parameters")
-            response.raise_for_status()
-            body = response.json()
-        except (httpx.HTTPError, json.JSONDecodeError) as exc:
-            raise CareerDevelopmentLearningResourceError(
-                f"加载学习路线推荐 Dify 参数失败：{exc}"
-            ) from exc
-
-        input_variables: list[str] = []
-        for entry in body.get("user_input_form") or []:
-            if not isinstance(entry, dict) or len(entry) != 1:
-                continue
-            _, config = next(iter(entry.items()))
-            if not isinstance(config, dict):
-                continue
-            variable_name = str(config.get("variable") or "").strip()
-            if variable_name:
-                input_variables.append(variable_name)
-
-        self._runtime_config = DifyLearningResourceRuntimeConfig(
-            input_variables=list(dict.fromkeys(input_variables)),
-            app_mode=str(body.get("app_mode") or "").strip().lower() or None,
-        )
-        return self._runtime_config
-
-    async def generate_learning_resources(
+    def build_query(
         self,
         *,
-        favorite: CareerDevelopmentFavoritePayload,
-        phase: GrowthPlanPhase,
-        module: GrowthPlanLearningModule,
-        user: str,
-    ) -> DifyLearningResourceResult:
-        runtime = await self.get_runtime_config()
-        inputs = self._build_inputs(
-            favorite=favorite,
-            phase=phase,
-            module=module,
-            input_variables=runtime.input_variables,
-        )
-        query = self._build_query(favorite=favorite, phase=phase, module=module)
+        canonical_job_title: str,
+        topic: str,
+    ) -> str:
+        """极简 query：职业 + 学习模块 topic，无其他内容。"""
+        return f"{canonical_job_title}：{topic}"
 
-        errors: list[str] = []
-        for mode in self._candidate_modes(runtime.app_mode):
-            try:
-                return await self._request_generation(
-                    mode=mode,
-                    inputs=inputs,
-                    query=query,
-                    user=user,
-                )
-            except CareerDevelopmentLearningResourceError as exc:
-                if self._is_route_mismatch(exc):
-                    errors.append(str(exc))
-                    continue
-                raise
-
-        detail = "；".join(errors) if errors else "未找到可用的 Dify 应用路由。"
-        raise CareerDevelopmentLearningResourceError(
-            f"学习路线推荐失败：{detail}"
-        )
-
-    @staticmethod
-    def _candidate_modes(app_mode: str | None) -> list[RouteMode]:
-        if app_mode and "chat" in app_mode:
-            return ["chat", "workflow"]
-        if app_mode and "workflow" in app_mode:
-            return ["workflow", "chat"]
-        return ["workflow", "chat"]
-
-    async def _request_generation(
+    async def generate_for_module(
         self,
         *,
-        mode: RouteMode,
-        inputs: dict[str, str],
-        query: str,
+        canonical_job_title: str,
+        topic: str,
         user: str,
     ) -> DifyLearningResourceResult:
-        path = "/workflows/run" if mode == "workflow" else "/chat-messages"
+        """对单个 learning_module 调用 Dify SSE 流，累积 answer 并返回。
+
+        Dify advanced-chat 的 blocking 模式在 workflow 下有 bug（只返回 ping 后卡住），
+        因此改用 streaming 模式并手动解析 SSE 流。
+        """
+        query = self.build_query(
+            canonical_job_title=canonical_job_title,
+            topic=topic,
+        )
         payload: dict[str, Any] = {
-            "inputs": inputs,
+            "query": query,
             "user": user,
             "response_mode": "streaming",
+            "inputs": {},
         }
-        if mode == "chat":
-            payload["query"] = query
+
+        accumulated_answer = ""
+        message_id = ""
 
         try:
-            async with self._client.stream("POST", path, json=payload) as response:
-                if response.is_error:
-                    detail = (await response.aread()).decode("utf-8", errors="ignore").strip()
+            async with self._client.stream("POST", "/chat-messages", json=payload) as response:
+                if response.status_code >= 400:
+                    body = await response.text()
                     raise CareerDevelopmentLearningResourceError(
-                        f"Dify 学习路线推荐失败：HTTP {response.status_code}"
-                        + (f"，响应为：{detail[:500]}" if detail else "")
+                        f"Dify 学习路线推荐请求失败：HTTP {response.status_code}，响应：{body[:500]}"
                     )
-                content_type = (response.headers.get("content-type") or "").lower()
-                if "application/json" in content_type:
-                    body = json.loads((await response.aread()).decode("utf-8"))
-                    return (
-                        self._parse_workflow_blocking_body(body)
-                        if mode == "workflow"
-                        else self._parse_chat_blocking_body(body)
-                    )
-                return (
-                    await self._parse_workflow_stream_body(response)
-                    if mode == "workflow"
-                    else await self._parse_chat_stream_body(response)
-                )
-        except (httpx.HTTPError, json.JSONDecodeError) as exc:
+
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        event_data: dict[str, Any] = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
+
+                    event_type = str(event_data.get("event") or "")
+
+                    # 累积 answer 片段
+                    if event_type in ("message", "agent_message"):
+                        chunk = str(event_data.get("answer") or "")
+                        accumulated_answer += chunk
+
+                    # 提取 message_id
+                    if not message_id:
+                        mid = str(event_data.get("message_id") or event_data.get("id") or "")
+                        if mid:
+                            message_id = mid
+
+                    # 流结束，停止读取
+                    if event_type in ("message_end", "workflow_finished"):
+                        break
+
+        except httpx.HTTPError as exc:
             raise CareerDevelopmentLearningResourceError(
-                f"Dify 学习路线推荐失败：{exc}"
+                f"Dify 学习路线推荐请求失败：{exc}"
             ) from exc
 
-    @staticmethod
-    def _is_route_mismatch(error: CareerDevelopmentLearningResourceError) -> bool:
-        message = str(error).lower()
-        return any(
-            marker in message
-            for marker in (
-                "not_workflow_app",
-                "not_chat_app",
-                "not_chatflow_app",
-                "not_completion_app",
-                "right api route",
+        accumulated_answer = accumulated_answer.strip()
+        if not accumulated_answer:
+            raise CareerDevelopmentLearningResourceError(
+                "Dify 已返回结果，但 answer 内容为空。"
             )
+
+        return DifyLearningResourceResult(
+            message_id=message_id or "unknown",
+            answer=accumulated_answer,
         )
 
-    @classmethod
-    def _build_inputs(
-        cls,
-        *,
-        favorite: CareerDevelopmentFavoritePayload,
-        phase: GrowthPlanPhase,
-        module: GrowthPlanLearningModule,
-        input_variables: list[str],
-    ) -> dict[str, str]:
-        report = favorite.report_snapshot
-        report_summary = (
-            f"目标岗位：{favorite.canonical_job_title}\n"
-            f"参考方向：{favorite.target_title}\n"
-            f"行业：{favorite.industry or '不限'}\n"
-            f"当前总体匹配度：{favorite.overall_match:.2f}%\n"
-            f"优先补强项：{'、'.join(report.priority_gap_dimensions[:3]) or '待识别'}\n"
-            f"当前阶段：{phase.phase_label}（{phase.time_horizon}）\n"
-            f"学习主题：{module.topic}\n"
-            f"学习内容：{module.learning_content}"
-        )
-        candidate_values = {
-            "topic": module.topic,
-            "learning_content": module.learning_content,
-            "phase_label": phase.phase_label,
-            "career_title": favorite.canonical_job_title,
-            "job_title": favorite.representative_job_title or favorite.target_title,
-            "favorite_summary": report_summary,
-            "query": cls._build_query(favorite=favorite, phase=phase, module=module),
-        }
-        if not input_variables:
-            return candidate_values
 
-        inputs: dict[str, str] = {}
-        for variable_name in input_variables:
-            normalized = re.sub(r"[\s_-]+", "", variable_name).lower()
-            if any(keyword in normalized for keyword in ("topic", "module", "主题", "模块")):
-                inputs[variable_name] = candidate_values["topic"]
-            elif any(keyword in normalized for keyword in ("content", "learning", "study", "学习")):
-                inputs[variable_name] = candidate_values["learning_content"]
-            elif any(keyword in normalized for keyword in ("phase", "stage", "阶段")):
-                inputs[variable_name] = candidate_values["phase_label"]
-            elif any(keyword in normalized for keyword in ("career", "岗位", "职业")):
-                inputs[variable_name] = candidate_values["career_title"]
-            elif any(keyword in normalized for keyword in ("job", "position", "target", "目标")):
-                inputs[variable_name] = candidate_values["job_title"]
-            elif any(keyword in normalized for keyword in ("summary", "report", "overview", "概述", "摘要")):
-                inputs[variable_name] = candidate_values["favorite_summary"]
-            else:
-                inputs[variable_name] = candidate_values["query"]
-        return inputs
+def _parse_index_from_answer(
+    answer: str,
+) -> list[dict[str, str]]:
+    """从 Dify answer 中提取 {"index": [...]} JSON。"""
+    text = answer.strip()
+    candidates: list[str] = [text]
 
-    @staticmethod
-    def _build_query(
-        *,
-        favorite: CareerDevelopmentFavoritePayload,
-        phase: GrowthPlanPhase,
-        module: GrowthPlanLearningModule,
-    ) -> str:
-        return (
-            "请根据以下成长路径规划学习模块，推荐 2-4 个合适的中文或英文学习网址，并说明推荐理由。"
-            "优先选择官方文档、优质课程、体系化教程或高质量实战资料。"
-            "如果可以，请尽量返回 JSON，格式为 resources: [{title, url, reason}]。\n"
-            f"- 目标岗位：{favorite.canonical_job_title}\n"
-            f"- 参考方向：{favorite.target_title}\n"
-            f"- 当前阶段：{phase.phase_label}（{phase.time_horizon}）\n"
-            f"- 学习主题：{module.topic}\n"
-            f"- 学习内容：{module.learning_content}\n"
-        )
-
-    @classmethod
-    def _parse_workflow_blocking_body(cls, body: dict[str, Any]) -> DifyLearningResourceResult:
-        payload = body.get("data") if isinstance(body.get("data"), dict) else body
-        outputs = cls._extract_outputs(payload)
-        answer = cls._extract_text_from_outputs(outputs) or str(payload.get("answer") or "").strip()
-        message_id = cls._extract_run_id(payload, body)
-        if not message_id:
-            raise CareerDevelopmentLearningResourceError("Dify workflow 返回中缺少任务标识。")
-        if not answer:
-            raise CareerDevelopmentLearningResourceError("Dify workflow 已返回结果，但没有解析到可展示内容。")
-        return DifyLearningResourceResult(message_id=message_id, answer=answer)
-
-    @staticmethod
-    def _parse_chat_blocking_body(body: dict[str, Any]) -> DifyLearningResourceResult:
-        answer = str(body.get("answer") or "").strip()
-        message_id = str(body.get("message_id") or body.get("id") or "").strip()
-        if not message_id:
-            raise CareerDevelopmentLearningResourceError("Dify 对话返回中缺少消息标识。")
-        if not answer:
-            raise CareerDevelopmentLearningResourceError("Dify 对话已返回结果，但没有解析到可展示内容。")
-        return DifyLearningResourceResult(message_id=message_id, answer=answer)
-
-    @classmethod
-    async def _parse_workflow_stream_body(cls, response: httpx.Response) -> DifyLearningResourceResult:
-        answer_chunks: list[str] = []
-        current_event: str | None = None
-        message_id = ""
-        final_outputs: dict[str, Any] = {}
-
-        async for raw_line in response.aiter_lines():
-            line = raw_line.strip()
-            if not line:
+    # 尝试提取代码块内的 JSON
+    if "```" in text:
+        for segment in text.split("```"):
+            cleaned = segment.strip()
+            if not cleaned:
                 continue
-            if line.startswith("event:"):
-                current_event = line.split(":", 1)[1].strip()
-                continue
-            if not line.startswith("data:"):
-                continue
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:].strip()
+            candidates.append(cleaned)
 
-            payload_text = line.split(":", 1)[1].strip()
-            if not payload_text or payload_text == "[DONE]":
-                continue
+    # 尝试提取 {...} 或 [...]
+    for start_char, end_char in [("{", "}"), ("[", "]")]:
+        start = text.find(start_char)
+        end = text.rfind(end_char)
+        if start >= 0 and end > start:
+            candidates.append(text[start : end + 1])
 
-            body = json.loads(payload_text)
-            event_name = str(body.get("event") or current_event or "").strip().lower()
-            if event_name == "ping":
-                continue
-            if event_name == "error":
-                raise CareerDevelopmentLearningResourceError(
-                    str(body.get("message") or body.get("error") or "Dify workflow 返回错误。")
-                )
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
 
-            message_id = message_id or cls._extract_run_id(body.get("data"), body) or ""
-            if event_name in {"message", "agent_message"}:
-                fragment = body.get("answer") or body.get("text") or ""
-                if isinstance(fragment, str) and fragment:
-                    answer_chunks.append(fragment)
-                continue
-            if event_name == "text_chunk":
-                fragment = body.get("text")
-                if not isinstance(fragment, str):
-                    data = body.get("data") if isinstance(body.get("data"), dict) else {}
-                    fragment = data.get("text") or data.get("chunk") or data.get("answer") or ""
-                if isinstance(fragment, str) and fragment:
-                    answer_chunks.append(fragment)
-                continue
-            if event_name == "workflow_finished":
-                final_outputs = cls._extract_outputs(body.get("data"))
-                break
+        # 顶层 {"index": [...]} 或直接返回 [...]
+        index: list[dict[str, str]] | None = None
+        if isinstance(parsed, dict):
+            raw = parsed.get("index") or parsed.get("resources") or parsed.get("data") or []
+            if isinstance(raw, list):
+                index = raw
+        elif isinstance(parsed, list):
+            index = parsed
 
-        answer = "".join(answer_chunks).strip() or cls._extract_text_from_outputs(final_outputs)
-        if not message_id:
-            raise CareerDevelopmentLearningResourceError("Dify workflow 流式响应缺少任务标识。")
-        if not answer:
-            raise CareerDevelopmentLearningResourceError("Dify workflow 已完成，但没有解析到内容。")
-        return DifyLearningResourceResult(message_id=message_id, answer=answer)
+        if index:
+            return [
+                {
+                    "url": str(item.get("url") or item.get("link") or item.get("href") or ""),
+                    "reason": str(item.get("reason") or item.get("description") or item.get("推荐理由") or ""),
+                }
+                for item in index
+                if isinstance(item, dict) and (item.get("url") or item.get("link") or item.get("href"))
+            ]
 
-    @staticmethod
-    async def _parse_chat_stream_body(response: httpx.Response) -> DifyLearningResourceResult:
-        answer_chunks: list[str] = []
-        current_event: str | None = None
-        message_id = ""
-
-        async for raw_line in response.aiter_lines():
-            line = raw_line.strip()
-            if not line:
-                continue
-            if line.startswith("event:"):
-                current_event = line.split(":", 1)[1].strip()
-                continue
-            if not line.startswith("data:"):
-                continue
-
-            payload_text = line.split(":", 1)[1].strip()
-            if not payload_text or payload_text == "[DONE]":
-                continue
-
-            body = json.loads(payload_text)
-            event_name = str(body.get("event") or current_event or "").strip().lower()
-            if event_name in {"ping", "workflow_started", "node_started", "node_finished", "workflow_finished"}:
-                continue
-            if event_name == "error":
-                raise CareerDevelopmentLearningResourceError(
-                    str(body.get("message") or body.get("error") or "Dify 对话返回错误。")
-                )
-
-            candidate_message_id = str(body.get("message_id") or body.get("id") or "").strip()
-            if candidate_message_id:
-                message_id = candidate_message_id
-
-            if event_name in {"message", "agent_message"}:
-                fragment = body.get("answer") or body.get("text") or ""
-                if isinstance(fragment, str) and fragment:
-                    answer_chunks.append(fragment)
-                continue
-            if event_name == "message_end":
-                break
-
-        answer = "".join(answer_chunks).strip()
-        if not message_id:
-            raise CareerDevelopmentLearningResourceError("Dify 对话流式响应缺少消息标识。")
-        if not answer:
-            raise CareerDevelopmentLearningResourceError("Dify 对话已完成，但没有解析到内容。")
-        return DifyLearningResourceResult(message_id=message_id, answer=answer)
-
-    @staticmethod
-    def _extract_run_id(payload: Any, fallback: Any = None) -> str | None:
-        candidates: list[Any] = []
-        if isinstance(payload, dict):
-            candidates.extend(
-                [payload.get("workflow_run_id"), payload.get("task_id"), payload.get("message_id"), payload.get("id")]
-            )
-        if isinstance(fallback, dict):
-            candidates.extend(
-                [fallback.get("workflow_run_id"), fallback.get("task_id"), fallback.get("message_id"), fallback.get("id")]
-            )
-        for candidate in candidates:
-            text = str(candidate or "").strip()
-            if text:
-                return text
-        return None
-
-    @staticmethod
-    def _extract_outputs(payload: Any) -> dict[str, Any]:
-        if not isinstance(payload, dict):
-            return {}
-        outputs = payload.get("outputs")
-        return outputs if isinstance(outputs, dict) else {}
-
-    @classmethod
-    def _extract_text_from_outputs(cls, outputs: dict[str, Any]) -> str:
-        if not outputs:
-            return ""
-        for key in (
-            "resources",
-            "recommendations",
-            "items",
-            "data",
-            "answer",
-            "text",
-            "result",
-            "output",
-            "content",
-        ):
-            text = cls._stringify_output_value(outputs.get(key))
-            if text:
-                return text
-        fragments = [cls._stringify_output_value(value) for value in outputs.values()]
-        return "\n".join(fragment for fragment in fragments if fragment).strip()
-
-    @staticmethod
-    def _stringify_output_value(value: Any) -> str:
-        if value is None:
-            return ""
-        if isinstance(value, str):
-            return value.strip()
-        if isinstance(value, (list, dict)):
-            return json.dumps(value, ensure_ascii=False)
-        return str(value).strip()
+    return []
 
 
 def _coerce_resource_item(raw: Any) -> GrowthPlanLearningResourceItem | None:
@@ -490,84 +272,11 @@ def _coerce_resource_item(raw: Any) -> GrowthPlanLearningResourceItem | None:
     ).strip()
     if not reason:
         reason = "可作为当前学习主题的延伸参考资料。"
-    step_label = str(raw.get("step_label") or raw.get("step") or raw.get("姝ラ鏍囩") or "").strip()
-    why_first = str(raw.get("why_first") or raw.get("涓轰粈涔堝厛瀛?") or "").strip()
-    expected_output = str(raw.get("expected_output") or raw.get("瀛︿範浜у嚭") or "").strip()
     return GrowthPlanLearningResourceItem(
         title=title,
         url=url,
         reason=reason,
-        step_label=step_label,
-        why_first=why_first,
-        expected_output=expected_output,
     )
-
-
-def _looks_like_resource_collection(raw: Any) -> bool:
-    if not isinstance(raw, list) or not raw:
-        return False
-    return any(
-        isinstance(item, dict)
-        and any(
-            key in item
-            for key in (
-                "url",
-                "link",
-                "href",
-                "website",
-                "web_url",
-                "resource_url",
-                "resource_link",
-                "推荐网址",
-                "网址",
-                "链接",
-                "网站",
-            )
-        )
-        for item in raw
-    )
-
-
-def _find_resource_collections(raw: Any) -> list[list[dict[str, Any]]]:
-    collections: list[list[dict[str, Any]]] = []
-    if _looks_like_resource_collection(raw):
-        collections.append([item for item in raw if isinstance(item, dict)])
-        return collections
-    if isinstance(raw, dict):
-        for value in raw.values():
-            collections.extend(_find_resource_collections(value))
-    elif isinstance(raw, list):
-        for value in raw:
-            collections.extend(_find_resource_collections(value))
-    return collections
-
-
-def _extract_json_candidate(answer: str) -> Any | None:
-    text = answer.strip()
-    candidates = [text]
-    if "```" in text:
-        for segment in text.split("```"):
-            cleaned = segment.strip()
-            if not cleaned:
-                continue
-            if cleaned.startswith("json"):
-                cleaned = cleaned[4:].strip()
-            candidates.append(cleaned)
-    object_start = text.find("{")
-    object_end = text.rfind("}")
-    if object_start >= 0 and object_end > object_start:
-        candidates.append(text[object_start : object_end + 1])
-    list_start = text.find("[")
-    list_end = text.rfind("]")
-    if list_start >= 0 and list_end > list_start:
-        candidates.append(text[list_start : list_end + 1])
-
-    for candidate in candidates:
-        try:
-            return json.loads(candidate)
-        except (json.JSONDecodeError, TypeError, ValueError):
-            continue
-    return None
 
 
 def parse_learning_resource_recommendations(
@@ -575,23 +284,19 @@ def parse_learning_resource_recommendations(
     *,
     fallback_title: str,
 ) -> list[GrowthPlanLearningResourceItem]:
-    payload = _extract_json_candidate(answer)
-    if payload is not None:
-        for collection in _find_resource_collections(payload):
-            items = [_coerce_resource_item(item) for item in collection]
-            normalized = [item for item in items if item is not None]
-            if normalized:
-                return normalized
-        if isinstance(payload, dict):
-            item = _coerce_resource_item(payload)
-            if item is not None:
-                return [item]
-        if isinstance(payload, list):
-            items = [_coerce_resource_item(item) for item in payload]
-            normalized = [item for item in items if item is not None]
-            if normalized:
-                return normalized
+    """从 Dify answer 中解析学习资源 URL。
 
+    优先从 {"index": [...]} JSON 中提取；
+    JSON 解析失败则 fallback 到正则提取 markdown/bare URL。
+    """
+    index_items = _parse_index_from_answer(answer)
+    if index_items:
+        items = [_coerce_resource_item(item) for item in index_items]
+        normalized = [item for item in items if item is not None]
+        if normalized:
+            return normalized
+
+    # Fallback: 正则提取 markdown 链接
     resources: list[GrowthPlanLearningResourceItem] = []
     markdown_link_pattern = re.compile(r"\[(?P<title>[^\]]+)\]\((?P<url>https?://[^)\s]+)\)")
     used_urls: set[str] = set()
@@ -609,6 +314,7 @@ def parse_learning_resource_recommendations(
     if resources:
         return resources
 
+    # Fallback: bare URL
     bare_url_pattern = re.compile(r"https?://[^\s)\]]+")
     for raw_line in answer.splitlines():
         line = raw_line.strip()
@@ -630,6 +336,100 @@ def parse_learning_resource_recommendations(
     return resources
 
 
+def normalize_learning_resource_domain(value: str) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+    host = (parsed.netloc or parsed.path or "").strip().lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if ":" in host:
+        hostname, port = host.rsplit(":", 1)
+        if port in {"80", "443"}:
+            host = hostname
+    return host
+
+
+def normalize_learning_resource_url(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw)
+    host = normalize_learning_resource_domain(parsed.netloc or parsed.path)
+    if not host:
+        return raw.rstrip("/").lower()
+
+    path = (parsed.path or "").rstrip("/")
+    filtered_query = [
+        (key, value)
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() not in TRACKING_QUERY_PARAMS
+        and not any(key.lower().startswith(prefix) for prefix in TRACKING_QUERY_PARAM_PREFIXES)
+    ]
+    query = urlencode(filtered_query, doseq=True)
+    normalized = urlunparse(("", host, path, "", query, ""))
+    return normalized.lstrip("/")
+
+
+def filter_learning_resource_recommendations(
+    recommendations: list[GrowthPlanLearningResourceItem],
+    *,
+    excluded_urls: list[str] | None = None,
+    excluded_domains: list[str] | None = None,
+    allow_same_domain_if_empty: bool = True,
+) -> list[GrowthPlanLearningResourceItem]:
+    normalized_excluded_urls = {
+        normalized
+        for normalized in (normalize_learning_resource_url(item) for item in (excluded_urls or []))
+        if normalized
+    }
+    normalized_excluded_domains = {
+        normalized
+        for normalized in (normalize_learning_resource_domain(item) for item in (excluded_domains or []))
+        if normalized
+    }
+
+    filtered: list[GrowthPlanLearningResourceItem] = []
+    seen_urls: set[str] = set()
+    seen_domains: set[str] = set()
+    url_only_candidates: list[tuple[GrowthPlanLearningResourceItem, str]] = []
+
+    for item in recommendations:
+        normalized_url = normalize_learning_resource_url(item.url)
+        normalized_domain = normalize_learning_resource_domain(item.url)
+        if not normalized_url or not normalized_domain:
+            continue
+        if normalized_url in normalized_excluded_urls:
+            continue
+        if normalized_domain in normalized_excluded_domains:
+            continue
+        if normalized_url in seen_urls:
+            continue
+        url_only_candidates.append((item, normalized_url))
+        if normalized_domain in seen_domains:
+            continue
+        filtered.append(item)
+        seen_urls.add(normalized_url)
+        seen_domains.add(normalized_domain)
+
+    if filtered or not allow_same_domain_if_empty:
+        return filtered
+
+    fallback_filtered: list[GrowthPlanLearningResourceItem] = []
+    fallback_seen_urls: set[str] = set()
+    for item, normalized_url in url_only_candidates:
+        if normalized_url in fallback_seen_urls:
+            continue
+        fallback_filtered.append(item)
+        fallback_seen_urls.add(normalized_url)
+
+    if fallback_filtered:
+        return fallback_filtered
+
+    return filtered
+
+
 async def generate_learning_resources_for_phases(
     *,
     favorite: CareerDevelopmentFavoritePayload,
@@ -637,34 +437,59 @@ async def generate_learning_resources_for_phases(
     user_id: int,
     favorite_id: int,
 ) -> list[GrowthPlanPhase]:
-    client = DifyCareerLearningResourceClient()
+    """为每个 learning_module 调用 Dify，填充 resource_recommendations。
+
+    每个 learning_module 调用一次 Dify（2 topic × 3 阶段 = 6 次）。
+    query 格式：{canonical_job_title}：{topic}
+    Dify 返回 JSON：{"index": [{"url": "...", "reason": "..."}]}
+    """
+    client = DifyKnowsearchClient()
+    _logger = logging.getLogger(__name__)
     try:
-      updated_phases = [phase.model_copy(deep=True) for phase in phases]
-      for phase in updated_phases:
-          for index, module in enumerate(phase.learning_modules, start=1):
-              module_id = module.module_id or f"{phase.phase_key}-module-{index}"
-              module.module_id = module_id
-              try:
-                  result = await client.generate_learning_resources(
-                      favorite=favorite,
-                      phase=phase,
-                      module=module,
-                      user=f"career-goal-resource-{user_id}-{favorite_id}-{module_id}",
-                  )
-                  recommendations = parse_learning_resource_recommendations(
-                      result.answer,
-                      fallback_title=module.topic,
-                  )
-                  if not recommendations:
-                      raise CareerDevelopmentLearningResourceError(
-                          "未能从 Dify 返回中解析出有效学习路线链接。"
-                      )
-                  module.resource_recommendations = recommendations
-                  module.resource_status = "ready"
-                  module.resource_error_message = ""
-              except CareerDevelopmentLearningResourceError as exc:
-                  module.resource_status = "failed"
-                  module.resource_error_message = str(exc)
-      return updated_phases
+        updated_phases = [phase.model_copy(deep=True) for phase in phases]
+
+        for phase in updated_phases:
+            for index, module in enumerate(phase.learning_modules, start=1):
+                module_id = module.module_id or f"{phase.phase_key}-module-{index}"
+                module.module_id = module_id
+
+                try:
+                    result = await client.generate_for_module(
+                        canonical_job_title=favorite.canonical_job_title,
+                        topic=module.topic,
+                        user=f"career-goal-resource-{user_id}-{favorite_id}-{module_id}",
+                    )
+                    _logger.info(
+                        "[Dify] module=%s topic=%s answer_len=%d answer_preview=%s",
+                        module_id,
+                        module.topic,
+                        len(result.answer),
+                        result.answer[:200],
+                    )
+                    recommendations = parse_learning_resource_recommendations(
+                        result.answer,
+                        fallback_title=module.topic,
+                    )
+                    _logger.info(
+                        "[Dify] module=%s recommendations_count=%d",
+                        module_id,
+                        len(recommendations),
+                    )
+                    if not recommendations:
+                        # Dify 返回了结果但为空，不算失败；设置 idle 让前端走 fallback 静态资源
+                        module.resource_recommendations = []
+                        module.resource_status = "idle"
+                        module.resource_error_message = "Dify 返回结果为空，已使用默认学习资源。"
+                    else:
+                        # 直接使用 Dify 返回的推荐，不过滤
+                        module.resource_recommendations = recommendations
+                        module.resource_status = "ready"
+                        module.resource_error_message = ""
+
+                except CareerDevelopmentLearningResourceError as exc:
+                    module.resource_status = "failed"
+                    module.resource_error_message = str(exc)
+
+        return updated_phases
     finally:
-      await client.aclose()
+        await client.aclose()

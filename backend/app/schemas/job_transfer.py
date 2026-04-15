@@ -87,10 +87,22 @@ class JobTransferMeta(BaseModel):
     generated_at: str
 
 
+class BridgeSkillItem(BaseModel):
+    skill_name: str
+    description: str
+    source_coverage: float = Field(ge=0, le=1)
+    target_importance: float = Field(ge=0, le=1)
+    bridge_score: float = Field(ge=0, le=1)
+    left_edge_score: float = Field(ge=0, le=1)
+    right_edge_score: float = Field(ge=0, le=1)
+    phase: str = "short_term"
+
+
 class JobTransferPayload(BaseModel):
     source: JobTransferSourceSnapshot
     targets: list[JobTransferTargetItem]
     comparisons: list[JobTransferComparisonItem]
+    bridge_skills: list[BridgeSkillItem] = Field(default_factory=list)
     meta: JobTransferMeta
 
 

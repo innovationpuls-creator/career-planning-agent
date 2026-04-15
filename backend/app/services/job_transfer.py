@@ -14,6 +14,7 @@ from app.models.career_group_embedding import CareerGroupEmbedding
 from app.models.career_requirement_profile import CareerRequirementProfile
 from app.models.job_requirement_profile import JobRequirementProfile
 from app.schemas.job_transfer import (
+    BridgeSkillItem,
     JobTransferComparisonItem,
     JobTransferComparisonRow,
     JobTransferGroupWeightItem,
@@ -284,6 +285,7 @@ class JobTransferService:
             source=self._build_source_snapshot(source, group_weights=group_weights),
             targets=[self._build_target_item(item) for item in analyses],
             comparisons=[self._build_comparison_item(source_dimension_payload, item) for item in analyses],
+            bridge_skills=self._build_bridge_skills(source_dimension_payload, analyses),
             meta={
                 "vector_version": GROUP_VECTOR_VERSION,
                 "merged_candidate_count": merged_candidate_count,
@@ -363,6 +365,54 @@ class JobTransferService:
             )
             for group_key in group_scores
         ]
+
+    def _build_bridge_skills(
+        self,
+        source_dimension_payload: dict[str, list[str]],
+        analyses: list[CandidateAnalysis],
+        top_n: int = 8,
+    ) -> list[BridgeSkillItem]:
+        """Compute skill bridge items between source and top-scoring target."""
+        if not analyses:
+            return []
+        top = analyses[0]
+        target_dimension_payload = build_dimension_payload(top.profile)
+
+        # Build a keyword → {group_key, source_coverage, target_importance} map
+        keyword_map: dict[str, dict] = {}
+        for dimension in DIMENSION_FIELDS:
+            group_key = DIMENSION_TO_GROUP_KEY[dimension]
+            group_score = top.group_scores.get(group_key, 0.0)
+            for kw in source_dimension_payload.get(dimension, []):
+                if kw not in keyword_map:
+                    keyword_map[kw] = {"group_key": group_key, "source_coverage": 0.0, "target_importance": 0.0}
+                keyword_map[kw]["source_coverage"] = max(keyword_map[kw]["source_coverage"], 1.0)
+                keyword_map[kw]["target_importance"] = max(keyword_map[kw]["target_importance"], group_score)
+            for kw in target_dimension_payload.get(dimension, []):
+                if kw not in keyword_map:
+                    keyword_map[kw] = {"group_key": group_key, "source_coverage": 0.0, "target_importance": 0.0}
+                keyword_map[kw]["target_importance"] = max(keyword_map[kw]["target_importance"], group_score)
+
+        # Compute bridge scores
+        bridges = []
+        for skill_name, info in keyword_map.items():
+            bridge_score = info["source_coverage"] * info["target_importance"]
+            if bridge_score > 0:
+                bridges.append(
+                    BridgeSkillItem(
+                        skill_name=skill_name,
+                        description=f"{skill_name} 是从源职业到目标职业的重要过渡技能",
+                        source_coverage=round(info["source_coverage"], 4),
+                        target_importance=round(info["target_importance"], 4),
+                        bridge_score=round(bridge_score, 4),
+                        left_edge_score=round(info["source_coverage"], 4),
+                        right_edge_score=round(info["target_importance"], 4),
+                        phase="short_term" if bridge_score >= 0.5 else "mid_term" if bridge_score >= 0.3 else "long_term",
+                    )
+                )
+
+        bridges.sort(key=lambda x: x.bridge_score, reverse=True)
+        return bridges[:top_n]
 
     def _count_professional_threshold_dimensions(self, profile: JobRequirementProfile) -> int:
         group = TRANSFER_GROUPS_BY_KEY["professional-and-threshold"]

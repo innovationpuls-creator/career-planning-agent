@@ -1,5 +1,6 @@
 from app.models.job_posting import JobPosting
 from app.services.job_requirement_vertical import (
+    build_tiered_vertical_comparison,
     build_vertical_job_profile_payload,
     parse_salary_sort_metrics,
 )
@@ -112,3 +113,48 @@ def test_build_vertical_job_profile_payload_sorts_limits_and_exposes_overview_fi
     assert "乙公司" in [company.company_name for company in internet_group.companies]
     assert internet_group.companies[2].company_name == "乙公司"
     assert len(software_group.companies) == 10
+    assert payload.tiered_comparison is not None
+
+
+def test_build_tiered_vertical_comparison_places_missing_salary_at_lowest_end():
+    payload = build_vertical_job_profile_payload(
+        rows=[
+            build_job_posting(
+                id=1,
+                industry="互联网",
+                job_title="Java",
+                company_name="甲公司",
+                salary_range="2-3万",
+            ),
+            build_job_posting(
+                id=2,
+                industry="互联网",
+                job_title="Java",
+                company_name="乙公司",
+                salary_range="1-2万",
+            ),
+            build_job_posting(
+                id=3,
+                industry="软件",
+                job_title="Java",
+                company_name="丙公司",
+                salary_range="5000-8000元",
+            ),
+            build_job_posting(
+                id=4,
+                industry="软件",
+                job_title="Java",
+                company_name="丁公司",
+                salary_range="面议",
+            ),
+        ],
+        job_title="Java",
+        selected_industries=["互联网", "软件"],
+        available_industries=["互联网", "软件"],
+    )
+
+    tiered = build_tiered_vertical_comparison(payload)
+
+    assert [tier.level for tier in tiered.tiers] == ["高级", "中级", "低级"]
+    assert tiered.tiers[0].items[0].company_name == "甲公司"
+    assert tiered.tiers[2].items[-1].company_name == "丁公司"

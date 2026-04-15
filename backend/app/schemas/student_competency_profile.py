@@ -6,8 +6,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-DEFAULT_PROFILE_VALUE = ["暂无明确信息"]
-LEGACY_EMPTY_PROFILE_VALUES = {"暂无明确信息", "无明确要求"}
+DEFAULT_PROFILE_VALUE = ["暂无补充信息"]
+LEGACY_EMPTY_PROFILE_VALUES = {"暂无补充信息", "未补充信息"}
 JOB_PROFILE_FIELD_ORDER = [
     "professional_skills",
     "professional_background",

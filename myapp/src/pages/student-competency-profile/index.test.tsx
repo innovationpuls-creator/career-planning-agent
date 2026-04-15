@@ -8,6 +8,12 @@ const mockGetLatestAnalysis = jest.fn();
 const mockDeleteLatestAnalysis = jest.fn();
 const mockStreamChat = jest.fn();
 const mockSyncResult = jest.fn();
+const mockGetCareerMatchInit = jest.fn();
+const mockGetCareerFavorites = jest.fn();
+const mockCreateCareerFavorite = jest.fn();
+const mockDeleteCareerFavorite = jest.fn();
+const mockGetJobRequirementComparison = jest.fn();
+const mockGoToSnailLearningPath = jest.fn();
 
 jest.mock('@/services/ant-design-pro/api', () => ({
   getStudentCompetencyRuntime: (...args: any[]) => mockGetRuntime(...args),
@@ -16,15 +22,20 @@ jest.mock('@/services/ant-design-pro/api', () => ({
   deleteStudentCompetencyLatestAnalysis: (...args: any[]) => mockDeleteLatestAnalysis(...args),
   streamStudentCompetencyChat: (...args: any[]) => mockStreamChat(...args),
   syncStudentCompetencyResult: (...args: any[]) => mockSyncResult(...args),
+  getCareerDevelopmentMatchInit: (...args: any[]) => mockGetCareerMatchInit(...args),
+  getCareerDevelopmentFavorites: (...args: any[]) => mockGetCareerFavorites(...args),
+  createCareerDevelopmentFavorite: (...args: any[]) => mockCreateCareerFavorite(...args),
+  deleteCareerDevelopmentFavorite: (...args: any[]) => mockDeleteCareerFavorite(...args),
+  getJobRequirementComparison: (...args: any[]) => mockGetJobRequirementComparison(...args),
 }));
 
-jest.mock('@ant-design/charts', () => ({
-  Radar: () => require('react').createElement('div', { 'data-testid': 'radar-chart' }),
+jest.mock('../career-development-report/learning-path/learningPathUtils', () => ({
+  goToSnailLearningPath: (...args: any[]) => mockGoToSnailLearningPath(...args),
 }));
 
-const createMatchMedia = (matches: boolean) =>
+const createMatchMedia = () =>
   jest.fn().mockImplementation(() => ({
-    matches,
+    matches: true,
     media: '',
     onchange: null,
     addListener: jest.fn(),
@@ -37,16 +48,16 @@ const createMatchMedia = (matches: boolean) =>
 const profile = {
   professional_skills: ['Python'],
   professional_background: ['计算机相关专业'],
-  education_requirement: ['本科及以上'],
+  education_requirement: ['本科'],
   teamwork: ['团队协作'],
-  stress_adaptability: ['抗压能力'],
-  communication: ['暂无明确信息'],
-  work_experience: ['项目经历'],
-  documentation_awareness: ['文档规范'],
+  stress_adaptability: ['适应快节奏'],
+  communication: ['暂无补充信息'],
+  work_experience: ['前端项目经验'],
+  documentation_awareness: ['文档整理'],
   responsibility: ['责任心强'],
   learning_ability: ['学习能力强'],
-  problem_solving: ['分析解决问题能力'],
-  other_special: ['暂无明确信息'],
+  problem_solving: ['独立解决问题'],
+  other_special: ['暂无补充信息'],
 };
 
 const latestAnalysis: API.StudentCompetencyLatestAnalysisPayload = {
@@ -58,145 +69,96 @@ const latestAnalysis: API.StudentCompetencyLatestAnalysisPayload = {
     competitiveness: 74,
     overall: 76,
   },
-  comparison_dimensions: [
-    {
-      key: 'communication',
-      title: '沟通表达能力',
-      user_values: [],
-      market_keywords: ['跨部门沟通', '汇报表达'],
-      market_weight: 0.8,
-      normalized_weight: 0.1,
-      market_target: 92,
-      user_readiness: 0,
-      gap: 92,
-      presence: 0,
-      richness: 0,
-      status_label: '明显缺失',
-      matched_market_keywords: [],
-      missing_market_keywords: ['跨部门沟通', '汇报表达'],
-      coverage_score: 0,
-      alignment_score: 0,
-    },
-    {
-      key: 'professional_skills',
-      title: '专业技能',
-      user_values: ['Python'],
-      market_keywords: ['Python', 'SQL'],
-      market_weight: 0.9,
-      normalized_weight: 0.12,
-      market_target: 100,
-      user_readiness: 82,
-      gap: 18,
-      presence: 1,
-      richness: 0.4,
-      status_label: '较强匹配',
-      matched_market_keywords: ['Python'],
-      missing_market_keywords: ['SQL'],
-      coverage_score: 0.4,
-      alignment_score: 0.5,
-    },
-  ],
-  chart_series: [
-    {
-      key: 'communication',
-      title: '沟通表达能力',
-      market_importance: 92,
-      user_readiness: 0,
-    },
-  ],
-  strength_dimensions: ['professional_skills'],
-  priority_gap_dimensions: ['communication'],
-  recommended_keywords: {
-    communication: ['跨部门沟通', '汇报表达'],
-  },
-  action_advices: [
-    {
-      key: 'communication',
-      title: '沟通表达能力',
-      status_label: '明显缺失',
-      gap: 92,
-      why_it_matters: '属于岗位高关注维度，会影响需求理解和协作推进。',
-      current_issue: '当前缺少直接关键词、可证明经历，以及与市场高频词对齐的表达。',
-      next_actions: [
-        '先从跨部门协作里梳理具体沟通经历。',
-        '再补充沟通对象、输出物和推进结果。',
-        '最后补上汇报、同步或协调后的实际结果。',
-      ],
-      example_phrases: ['跨部门沟通协调', '需求澄清与同步', '汇报反馈闭环'],
-      evidence_sources: ['跨部门协作', '汇报场景', '项目对接'],
-      recommended_keywords: ['跨部门沟通', '汇报表达'],
-    },
-  ],
+  comparison_dimensions: [],
+  chart_series: [],
+  strength_dimensions: [],
+  priority_gap_dimensions: [],
+  recommended_keywords: {},
+  action_advices: [],
   narrative: {
-    overall_review: '当前画像完整度 80 分，竞争力 74 分，综合评分 76 分。',
-    completeness_explanation: '完整度更强调覆盖深度。',
-    competitiveness_explanation: '竞争力同时看覆盖深度和市场对齐度。',
-    strength_highlights: ['专业技能：当前达到较强匹配。'],
-    priority_gap_highlights: ['沟通表达能力：建议优先补充跨部门沟通相关经历。'],
+    overall_review: '',
+    completeness_explanation: '',
+    competitiveness_explanation: '',
+    strength_highlights: [],
+    priority_gap_highlights: [],
   },
 };
 
-async function* buildProfileStream() {
-  yield {
-    event: 'meta' as const,
-    workspace_conversation_id: 'conversation-1',
-    assistant_message_id: 'assistant-1',
-    created_at: new Date().toISOString(),
-  };
-  yield {
-    event: 'delta' as const,
-    assistant_message_id: 'assistant-1',
-    delta: '已开始准备学生就业能力画像请求。',
-    stage: 'prepare',
-    progress: 5,
-    created_at: new Date().toISOString(),
-  };
-  yield {
-    event: 'done' as const,
-    assistant_message_id: 'assistant-1',
-    data: {
-      workspace_conversation_id: 'conversation-1',
-      dify_conversation_id: 'dify-1',
-      last_message_id: 'message-1',
-      assistant_message: '已生成学生就业能力画像。',
-      output_mode: 'profile' as const,
-      profile,
-      latest_analysis: latestAnalysis,
-    },
-  };
-}
+const recommendationReport: API.CareerDevelopmentMatchReport = {
+  report_id: 'career:frontend',
+  target_scope: 'career',
+  target_title: '前端工程师',
+  canonical_job_title: '前端工程师',
+  representative_job_title: '前端开发',
+  industry: '互联网',
+  overall_match: 78,
+  strength_dimension_count: 1,
+  priority_gap_dimension_count: 1,
+  group_summaries: [],
+  comparison_dimensions: [],
+  chart_series: [],
+  strength_dimensions: [],
+  priority_gap_dimensions: ['communication'],
+  action_advices: [],
+  evidence_cards: [],
+  narrative: {
+    overall_review: '',
+    completeness_explanation: '',
+    competitiveness_explanation: '',
+    strength_highlights: [],
+    priority_gap_highlights: [],
+  },
+};
 
-async function* buildChatOnlyStream() {
-  yield {
-    event: 'meta' as const,
-    workspace_conversation_id: 'conversation-1',
-    assistant_message_id: 'assistant-2',
-    created_at: new Date().toISOString(),
-  };
-  yield {
-    event: 'done' as const,
-    assistant_message_id: 'assistant-2',
-    data: {
-      workspace_conversation_id: 'conversation-1',
-      dify_conversation_id: 'dify-1',
-      last_message_id: 'message-2',
-      assistant_message: '建议补充量化项目成果。',
-      output_mode: 'chat' as const,
-    },
-  };
-}
+const companyMatchCard: API.CareerDevelopmentMatchEvidenceCard = {
+  profile_id: 101,
+  career_title: '前端工程师',
+  job_title: '前端开发',
+  company_name: '示例科技',
+  industry: '互联网',
+  match_score: 86,
+  professional_threshold_dimension_count: 4,
+  professional_threshold_keyword_count: 7,
+  group_similarities: [],
+};
+
+const comparisonDetail: API.JobRequirementComparisonDetailItem = {
+  id: 101,
+  industry: '互联网',
+  job_title: '前端开发',
+  company_name: '示例科技',
+  job_detail_count: 3,
+  merged_job_detail: '负责前端页面开发与交互优化。',
+  professional_skills: ['React', 'TypeScript'],
+  professional_background: ['计算机相关专业'],
+  education_requirement: ['本科'],
+  teamwork: ['团队协作'],
+  stress_adaptability: ['适应快节奏'],
+  communication: ['跨部门沟通'],
+  work_experience: ['项目经历'],
+  documentation_awareness: ['文档整理'],
+  responsibility: ['责任心强'],
+  learning_ability: ['学习能力强'],
+  problem_solving: ['独立解决问题'],
+  other_special: ['无明确要求'],
+};
+
+const recommendationReportWithCompany: API.CareerDevelopmentMatchReport = {
+  ...recommendationReport,
+  evidence_cards: [companyMatchCard],
+};
 
 describe('StudentCompetencyProfilePage', () => {
   beforeEach(() => {
-    window.localStorage.clear();
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: createMatchMedia(true),
+      value: createMatchMedia(),
     });
+
     mockGetRuntime.mockResolvedValue({
       data: {
         opening_statement: '',
-        fallback_opening_statement: '支持上传图片、文档或直接补充说明。',
+        fallback_opening_statement: '',
         file_upload_enabled: true,
         file_size_limit_mb: 15,
         image_upload: { max_length: 3 },
@@ -214,109 +176,82 @@ describe('StudentCompetencyProfilePage', () => {
       },
     });
     mockGetLatestAnalysis.mockResolvedValue({ data: latestAnalysis });
-    mockDeleteLatestAnalysis.mockResolvedValue({
+    mockDeleteLatestAnalysis.mockResolvedValue({ data: latestAnalysis });
+    mockStreamChat.mockImplementation(async function* () {});
+    mockSyncResult.mockResolvedValue({ data: {} });
+    mockGetCareerMatchInit.mockResolvedValue({
       data: {
-        available: false,
-        comparison_dimensions: [],
-        chart_series: [],
-        strength_dimensions: [],
-        priority_gap_dimensions: [],
-        recommended_keywords: {},
-        action_advices: [],
-      },
-    });
-    mockStreamChat.mockImplementation(() => buildProfileStream());
-    mockSyncResult.mockResolvedValue({
-      data: {
-        workspace_conversation_id: 'conversation-1',
-        dify_conversation_id: 'dify-1',
-        last_message_id: 'message-3',
-        assistant_message: '已同步最新画像。',
-        profile: {
-          ...profile,
-          professional_skills: ['Python', 'SQL'],
-        },
-        latest_analysis: {
-          ...latestAnalysis,
-          score: { completeness: 88, competitiveness: 80, overall: 83 },
+        available: true,
+        recommendations: [recommendationReportWithCompany],
+        default_report_id: recommendationReport.report_id,
+        source: {
+          workspace_conversation_id: 'conversation-1',
+          updated_at: new Date().toISOString(),
+          active_dimension_count: 8,
+          profile,
         },
       },
     });
+    mockGetCareerFavorites.mockResolvedValue({ data: [] });
+    mockCreateCareerFavorite.mockResolvedValue({ data: {} });
+    mockDeleteCareerFavorite.mockResolvedValue(undefined);
+    mockGetJobRequirementComparison.mockResolvedValue({ data: comparisonDetail });
+    mockGoToSnailLearningPath.mockReset();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('shows latest analysis cards on first load', async () => {
-    render(React.createElement(StudentCompetencyProfilePage));
-
-    expect(await screen.findByText('岗位对标分析')).toBeTruthy();
-    await waitFor(() => {
-      expect(screen.getAllByText('综合评分').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('优先补强行动卡片').length).toBeGreaterThan(0);
-    });
-  });
-
-  it('updates analysis after generating a profile', async () => {
-    render(React.createElement(StudentCompetencyProfilePage));
-
-    fireEvent.change(await screen.findByRole('textbox'), {
-      target: { value: '请生成画像' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '生成画像' }));
-
-    expect(await screen.findByText(/已开始准备学生就业能力画像请求/)).toBeTruthy();
-    expect(await screen.findByText(/已生成学生就业能力画像/)).toBeTruthy();
-    expect(await screen.findByText('12 维结果编辑区')).toBeTruthy();
-  });
-
-  it('does not replace analysis on plain chat replies', async () => {
-    mockStreamChat.mockImplementation(() => buildChatOnlyStream());
-    render(React.createElement(StudentCompetencyProfilePage));
-
-    fireEvent.change(await screen.findByRole('textbox'), {
-      target: { value: '再给我建议' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '生成画像' }));
-
-    expect(await screen.findByText('建议补充量化项目成果。')).toBeTruthy();
-    expect(screen.getByText('76')).toBeTruthy();
-  });
-
-  it('shows editable profile fields in the result panel', async () => {
-    render(React.createElement(StudentCompetencyProfilePage));
-
-    const expandButton = screen.queryByRole('button', { name: '展开结果区' });
-    if (expandButton) {
-      fireEvent.click(expandButton);
-    }
-
-    expect(await screen.findAllByPlaceholderText('输入关键词后回车或点击添加')).toHaveLength(12);
-    expect(screen.getByRole('button', { name: /保存同步/ })).toBeTruthy();
-  });
-
-  it('clears chat and analysis after reset', async () => {
+  it('renders the page title', async () => {
     render(React.createElement(StudentCompetencyProfilePage));
 
     await waitFor(() => {
-      expect(screen.getAllByText('重置对话').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('resume-page-title').textContent).toBe('简历解析');
     });
-    const resetButton = screen
-      .getAllByRole('button')
-      .find((item) => item.textContent?.includes('重置对话'));
-    fireEvent.click(resetButton!);
-
-    await waitFor(() => {
-      expect(mockDeleteLatestAnalysis).toHaveBeenCalled();
-    });
-    expect(await screen.findByText(/支持上传图片、文档或直接补充说明/)).toBeTruthy();
   });
 
-  it('queues uploaded files before sending', async () => {
+  it('shows career match workspace after switching tabs', async () => {
     render(React.createElement(StudentCompetencyProfilePage));
 
-    const uploadInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(uploadInput).toBeTruthy();
+    fireEvent.click(screen.getByText('职业匹配'));
+
+    await waitFor(() => {
+      expect(screen.getByText('推荐目标')).toBeTruthy();
+      expect(screen.getByRole('tab', { name: '推荐职业' })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: '和目标的差距' })).toBeTruthy();
+    });
+  });
+
+  it('opens company match detail drawer', async () => {
+    render(React.createElement(StudentCompetencyProfilePage));
+
+    fireEvent.click(screen.getByText('职业匹配'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: '匹配公司' })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: '匹配公司' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('示例科技')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText('查看具体信息'));
+
+    await waitFor(() => {
+      expect(screen.getByText('匹配公司详情')).toBeTruthy();
+      expect(screen.getByText('负责前端页面开发与交互优化。')).toBeTruthy();
+    });
+  });
+
+  it('starts snail learning path from student career match workspace', async () => {
+    render(React.createElement(StudentCompetencyProfilePage));
+
+    fireEvent.click(screen.getByText('职业匹配'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '生成计划' })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '生成计划' }));
+    expect(mockGoToSnailLearningPath).toHaveBeenCalledWith(recommendationReportWithCompany);
   });
 });

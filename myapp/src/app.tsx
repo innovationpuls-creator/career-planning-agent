@@ -13,7 +13,8 @@ import '@ant-design/v5-patch-for-react-19';
 
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
-const userDefaultPath = '/student-competency-profile';
+const userDefaultPath = '/home-v2';
+const publicPaths = [loginPath, '/user/register', '/user/register-result'];
 
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
@@ -31,17 +32,15 @@ export async function getInitialState(): Promise<{
       });
       return msg.data;
     } catch (_error) {
-      history.push(loginPath);
+      if (!publicPaths.includes(history.location.pathname)) {
+        history.push(loginPath);
+      }
     }
     return undefined;
   };
 
   const { location } = history;
-  if (
-    ![loginPath, '/user/register', '/user/register-result'].includes(
-      location.pathname,
-    )
-  ) {
+  if (!publicPaths.includes(location.pathname)) {
     const currentUser = await fetchUserInfo();
     return {
       fetchUserInfo,
@@ -81,7 +80,7 @@ export const layout: RunTimeLayoutConfig = ({
       : undefined,
     footerRender: false,
     onPageChange: () => {
-      if (!initialState?.currentUser && location.pathname !== loginPath) {
+      if (!initialState?.currentUser && !publicPaths.includes(location.pathname)) {
         history.replace(loginPath);
       }
     },
@@ -103,7 +102,7 @@ export const layout: RunTimeLayoutConfig = ({
               )
             }
           >
-            {isLoggedIn ? (isAdmin ? '前往管理端' : '返回学生就业能力画像') : '前往登录'}
+            {isLoggedIn ? (isAdmin ? '前往管理端' : '返回简历解析') : '前往登录'}
           </Button>
         }
       />
@@ -156,7 +155,7 @@ export const layout: RunTimeLayoutConfig = ({
       );
     },
     menu: {
-      defaultOpenAll: true,
+      defaultOpenAll: false,
     },
     ...initialState?.settings,
   };

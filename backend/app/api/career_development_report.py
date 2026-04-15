@@ -1,9 +1,8 @@
 ﻿from __future__ import annotations
 
 import json
-from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -14,50 +13,38 @@ from app.schemas.career_development_report import (
     CareerDevelopmentFavoriteCreateRequest,
     CareerDevelopmentFavoriteListResponse,
     CareerDevelopmentFavoriteResponse,
-    CareerDevelopmentGoalPlanTaskCreateRequest,
-    CareerDevelopmentGoalPlanTaskCreateResponse,
-    CareerDevelopmentGoalPlanTaskResponse,
     CareerDevelopmentMatchCustomResponse,
     CareerDevelopmentMatchInitResponse,
     CareerDevelopmentMatchReportRequest,
-    PlanLearningResourceRequest,
-    PlanLearningResourceResponse,
-    PlanWorkspaceExportRequest,
-    PlanWorkspaceIntegrityCheckRequest,
-    PlanWorkspaceIntegrityCheckResponse,
-    PlanWorkspaceMilestoneSubmissionResponse,
-    PlanWorkspacePolishRequest,
-    PlanWorkspacePolishResponse,
-    PlanWorkspaceResponse,
-    PlanWorkspaceReviewRequest,
-    PlanWorkspaceReviewResponse,
-    PlanWorkspaceUpdateRequest,
-)
-from app.services.career_development_goal_plan_task_manager import (
-    TERMINAL_TASK_STATUSES,
-    career_development_goal_plan_task_manager,
-)
-from app.services.career_development_plan_workspace import (
-    build_export_filename,
-    build_integrity_check,
-    build_plan_workspace_payload,
-    create_workspace_review,
-    export_docx_bytes,
-    export_markdown_bytes,
-    export_pdf_bytes,
-    generate_learning_resources_for_workspace,
-    get_plan_workspace_record,
-    polish_markdown,
-    submit_workspace_learning_milestone,
-    update_workspace_content,
-    update_workspace_export_meta,
+    PersonalGrowthReportExportRequest,
+    PersonalGrowthReportRegenerateRequest,
+    PersonalGrowthReportResponse,
+    PersonalGrowthReportTaskCancelResponse,
+    PersonalGrowthReportTaskCreateRequest,
+    PersonalGrowthReportTaskCreateResponse,
+    PersonalGrowthReportTaskResponse,
+    PersonalGrowthReportUpdateRequest,
 )
 from app.services.career_development_goal_planning import (
+    CareerDevelopmentGoalPlanningError,
     delete_favorite_report,
     get_favorite_report_record,
     list_favorite_report_payloads,
     read_favorite_report_payload,
     upsert_favorite_report,
+)
+from app.services.career_development_personal_growth_report import (
+    assert_personal_growth_prerequisites,
+    build_personal_growth_report_payload,
+    ensure_personal_growth_base_workspace,
+    export_personal_growth_report_bytes,
+    get_latest_personal_growth_favorite_id,
+    get_personal_growth_workspace_or_none,
+    regenerate_personal_growth_report,
+    update_personal_growth_report_workspace,
+)
+from app.services.career_development_personal_growth_report_task_manager import (
+    career_development_personal_growth_report_task_manager,
 )
 from app.services.career_development_report import (
     CareerDevelopmentMatchService,
@@ -168,48 +155,58 @@ def remove_career_development_favorite(
 
 
 @router.post(
-    "/api/career-development-report/goal-setting-path-planning/tasks",
-    response_model=CareerDevelopmentGoalPlanTaskCreateResponse,
+    "/api/career-development-report/personal-growth-report/tasks",
+    response_model=PersonalGrowthReportTaskCreateResponse,
 )
-async def create_goal_plan_task(
-    body: CareerDevelopmentGoalPlanTaskCreateRequest,
+async def create_personal_growth_report_task(
+    body: PersonalGrowthReportTaskCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_standard_user),
-) -> CareerDevelopmentGoalPlanTaskCreateResponse:
-    record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=body.favorite_id)
-    if record is None:
+) -> PersonalGrowthReportTaskCreateResponse:
+    favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=body.favorite_id)
+    if favorite_record is None:
         raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    summary = await career_development_goal_plan_task_manager.create_task(
+    favorite_payload = read_favorite_report_payload(favorite_record)
+    try:
+        assert_personal_growth_prerequisites(
+            db,
+            user_id=current_user.id,
+            favorite=favorite_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    summary = await career_development_personal_growth_report_task_manager.create_task(
         user_id=current_user.id,
         favorite_id=body.favorite_id,
+        overwrite_current=body.overwrite_current,
     )
-    return CareerDevelopmentGoalPlanTaskCreateResponse(data=summary)
+    return PersonalGrowthReportTaskCreateResponse(data=summary)
 
 
 @router.get(
-    "/api/career-development-report/goal-setting-path-planning/tasks/{task_id}",
-    response_model=CareerDevelopmentGoalPlanTaskResponse,
+    "/api/career-development-report/personal-growth-report/tasks/{task_id}",
+    response_model=PersonalGrowthReportTaskResponse,
 )
-async def get_goal_plan_task_snapshot(
+async def get_personal_growth_report_task(
     task_id: str,
     current_user: User = Depends(require_standard_user),
-) -> CareerDevelopmentGoalPlanTaskResponse:
-    snapshot = await career_development_goal_plan_task_manager.get_snapshot(
+) -> PersonalGrowthReportTaskResponse:
+    snapshot = await career_development_personal_growth_report_task_manager.get_snapshot(
         user_id=current_user.id,
         task_id=task_id,
     )
     if snapshot is None:
-        raise HTTPException(status_code=404, detail="职业路径规划任务不存在。")
-    return CareerDevelopmentGoalPlanTaskResponse(data=snapshot)
+        raise HTTPException(status_code=404, detail="个人职业成长报告任务不存在。")
+    return PersonalGrowthReportTaskResponse(data=snapshot)
 
 
-@router.get("/api/career-development-report/goal-setting-path-planning/tasks/{task_id}/stream")
-async def stream_goal_plan_task(
+@router.get("/api/career-development-report/personal-growth-report/tasks/{task_id}/stream")
+async def stream_personal_growth_report_task(
     task_id: str,
     current_user: User = Depends(require_standard_user),
 ) -> StreamingResponse:
     async def event_stream():
-        queue, snapshot = await career_development_goal_plan_task_manager.subscribe(
+        queue, snapshot = await career_development_personal_growth_report_task_manager.subscribe(
             user_id=current_user.id,
             task_id=task_id,
         )
@@ -229,7 +226,7 @@ async def stream_goal_plan_task(
             },
             ensure_ascii=False,
         ) + "\n"
-        if snapshot.status in TERMINAL_TASK_STATUSES:
+        if snapshot.status in {"completed", "cancelled", "failed"}:
             return
 
         try:
@@ -239,28 +236,48 @@ async def stream_goal_plan_task(
                     break
                 yield json.dumps(event, ensure_ascii=False) + "\n"
         finally:
-            await career_development_goal_plan_task_manager.unsubscribe(task_id=task_id, queue=queue)
+            await career_development_personal_growth_report_task_manager.unsubscribe(
+                task_id=task_id,
+                queue=queue,
+            )
 
     return StreamingResponse(event_stream(), media_type="application/x-ndjson")
 
 
-@router.get(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}",
-    response_model=PlanWorkspaceResponse,
+@router.post(
+    "/api/career-development-report/personal-growth-report/tasks/{task_id}/cancel",
+    response_model=PersonalGrowthReportTaskCancelResponse,
 )
-def get_goal_plan_workspace(
+async def cancel_personal_growth_report_task(
+    task_id: str,
+    current_user: User = Depends(require_standard_user),
+) -> PersonalGrowthReportTaskCancelResponse:
+    snapshot = await career_development_personal_growth_report_task_manager.cancel_task(
+        user_id=current_user.id,
+        task_id=task_id,
+    )
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="个人职业成长报告任务不存在。")
+    return PersonalGrowthReportTaskCancelResponse(data=snapshot)
+
+
+@router.get(
+    "/api/career-development-report/personal-growth-report/workspaces/{favorite_id}",
+    response_model=PersonalGrowthReportResponse,
+)
+def get_personal_growth_report_workspace(
     favorite_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_standard_user),
-) -> PlanWorkspaceResponse:
+) -> PersonalGrowthReportResponse:
     favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
     if favorite_record is None:
         raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    row = get_plan_workspace_record(db, user_id=current_user.id, favorite_id=favorite_id)
+    row = get_personal_growth_workspace_or_none(db, user_id=current_user.id, favorite_id=favorite_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="当前目标尚未生成工作台。")
-    return PlanWorkspaceResponse(
-        data=build_plan_workspace_payload(
+        raise HTTPException(status_code=404, detail="当前用于生成个人职业成长报告的基础内容不足。")
+    return PersonalGrowthReportResponse(
+        data=build_personal_growth_report_payload(
             db,
             row=row,
             user_id=current_user.id,
@@ -270,29 +287,28 @@ def get_goal_plan_workspace(
 
 
 @router.put(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}",
-    response_model=PlanWorkspaceResponse,
+    "/api/career-development-report/personal-growth-report/workspaces/{favorite_id}",
+    response_model=PersonalGrowthReportResponse,
 )
-def update_goal_plan_workspace(
+def update_personal_growth_report(
     favorite_id: int,
-    body: PlanWorkspaceUpdateRequest,
+    body: PersonalGrowthReportUpdateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_standard_user),
-) -> PlanWorkspaceResponse:
+) -> PersonalGrowthReportResponse:
     favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
     if favorite_record is None:
         raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    row = get_plan_workspace_record(db, user_id=current_user.id, favorite_id=favorite_id)
+    row = get_personal_growth_workspace_or_none(db, user_id=current_user.id, favorite_id=favorite_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="当前目标尚未生成工作台。")
-    updated_row = update_workspace_content(
+        raise HTTPException(status_code=404, detail="当前用于生成个人职业成长报告的基础内容不足。")
+    updated_row = update_personal_growth_report_workspace(
         db,
         row=row,
-        edited_report_markdown=body.edited_report_markdown or row.generated_report_markdown,
-        growth_plan_phases=body.growth_plan_phases,
+        sections=body.sections,
     )
-    return PlanWorkspaceResponse(
-        data=build_plan_workspace_payload(
+    return PersonalGrowthReportResponse(
+        data=build_personal_growth_report_payload(
             db,
             row=updated_row,
             user_id=current_user.id,
@@ -302,33 +318,41 @@ def update_goal_plan_workspace(
 
 
 @router.post(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}/learning-resources",
-    response_model=PlanLearningResourceResponse,
+    "/api/career-development-report/personal-growth-report/workspaces/{favorite_id}/regenerate",
+    response_model=PersonalGrowthReportResponse,
 )
-async def generate_goal_plan_learning_resources(
+async def regenerate_personal_growth_report_workspace(
     favorite_id: int,
-    body: PlanLearningResourceRequest,
+    body: PersonalGrowthReportRegenerateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_standard_user),
-) -> PlanLearningResourceResponse:
+) -> PersonalGrowthReportResponse:
     favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
     if favorite_record is None:
         raise HTTPException(status_code=404, detail="收藏目标不存在。")
+    row = get_personal_growth_workspace_or_none(db, user_id=current_user.id, favorite_id=favorite_id)
+    favorite_payload = read_favorite_report_payload(favorite_record)
     try:
-        row = await generate_learning_resources_for_workspace(
-            db,
-            user_id=current_user.id,
-            favorite_id=favorite_id,
-            phase_key=body.phase_key,
-            module_id=body.module_id,
-            force_refresh=body.force_refresh,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return PlanLearningResourceResponse(
-        data=build_plan_workspace_payload(
+        if row is None:
+            row = await ensure_personal_growth_base_workspace(
+                db,
+                user_id=current_user.id,
+                favorite_id=favorite_id,
+            )
+        if row is None:
+            raise HTTPException(status_code=400, detail="当前用于生成个人职业成长报告的基础内容不足。")
+        updated_row = await regenerate_personal_growth_report(
             db,
             row=row,
+            favorite=favorite_payload,
+            overwrite_current=body.overwrite_current,
+        )
+    except (LLMClientError, CareerDevelopmentGoalPlanningError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return PersonalGrowthReportResponse(
+        data=build_personal_growth_report_payload(
+            db,
+            row=updated_row,
             user_id=current_user.id,
             favorite_id=favorite_id,
         )
@@ -336,161 +360,73 @@ async def generate_goal_plan_learning_resources(
 
 
 @router.post(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}/milestones/{milestone_id}/submit",
-    response_model=PlanWorkspaceMilestoneSubmissionResponse,
+    "/api/career-development-report/personal-growth-report/bootstrap/regenerate",
+    response_model=PersonalGrowthReportResponse,
 )
-async def submit_goal_plan_workspace_milestone(
-    favorite_id: int,
-    milestone_id: str,
-    summary_text: str = Form(default=""),
-    files: list[UploadFile] | None = File(default=None),
+async def bootstrap_personal_growth_report_workspace(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_standard_user),
-) -> PlanWorkspaceMilestoneSubmissionResponse:
+) -> PersonalGrowthReportResponse:
+    favorite_id = get_latest_personal_growth_favorite_id(db, user_id=current_user.id)
+    if favorite_id is None:
+        raise HTTPException(status_code=400, detail="当前用于生成个人职业成长报告的基础内容不足。")
     favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
     if favorite_record is None:
-        raise HTTPException(status_code=404, detail="收藏目标不存在。")
+        raise HTTPException(status_code=400, detail="当前用于生成个人职业成长报告的基础内容不足。")
+    favorite_payload = read_favorite_report_payload(favorite_record)
     try:
-        row = await submit_workspace_learning_milestone(
+        row = await ensure_personal_growth_base_workspace(
             db,
             user_id=current_user.id,
             favorite_id=favorite_id,
-            milestone_id=milestone_id,
-            summary_text=summary_text,
-            uploads=files or [],
         )
-    except (ValueError, LLMClientError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return PlanWorkspaceMilestoneSubmissionResponse(
-        data=build_plan_workspace_payload(
+        if row is None:
+            raise HTTPException(status_code=400, detail="当前用于生成个人职业成长报告的基础内容不足。")
+        updated_row = await regenerate_personal_growth_report(
             db,
             row=row,
-            user_id=current_user.id,
-            favorite_id=favorite_id,
+            favorite=favorite_payload,
+            overwrite_current=False,
         )
-    )
-
-
-@router.post(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}/polish",
-    response_model=PlanWorkspacePolishResponse,
-)
-def polish_goal_plan_workspace(
-    favorite_id: int,
-    body: PlanWorkspacePolishRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_standard_user),
-) -> PlanWorkspacePolishResponse:
-    favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
-    if favorite_record is None:
-        raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    row = get_plan_workspace_record(db, user_id=current_user.id, favorite_id=favorite_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="当前目标尚未生成工作台。")
-    polished_markdown, fact_guard_notice = polish_markdown(
-        body.markdown or row.edited_report_markdown or row.generated_report_markdown,
-        mode=body.mode,
-    )
-    return PlanWorkspacePolishResponse(
-        data={
-            "polished_markdown": polished_markdown,
-            "mode": body.mode,
-            "fact_guard_notice": fact_guard_notice,
-        }
-    )
-
-
-@router.post(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}/integrity-check",
-    response_model=PlanWorkspaceIntegrityCheckResponse,
-)
-def integrity_check_goal_plan_workspace(
-    favorite_id: int,
-    body: PlanWorkspaceIntegrityCheckRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_standard_user),
-) -> PlanWorkspaceIntegrityCheckResponse:
-    favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
-    if favorite_record is None:
-        raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    row = get_plan_workspace_record(db, user_id=current_user.id, favorite_id=favorite_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="当前目标尚未生成工作台。")
-    payload = build_integrity_check(body.markdown or row.edited_report_markdown or row.generated_report_markdown)
-    row.latest_integrity_check_json = json.dumps(payload.model_dump(mode="json"), ensure_ascii=False)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return PlanWorkspaceIntegrityCheckResponse(data=payload)
-
-
-@router.post(
-    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}/reviews",
-    response_model=PlanWorkspaceReviewResponse,
-)
-async def create_goal_plan_workspace_review(
-    favorite_id: int,
-    body: PlanWorkspaceReviewRequest,
-    db: Session = Depends(get_db),
-    service: CareerDevelopmentMatchService = Depends(get_career_development_match_service),
-    current_user: User = Depends(require_standard_user),
-) -> PlanWorkspaceReviewResponse:
-    favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
-    if favorite_record is None:
-        raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    try:
-        payload = await create_workspace_review(
+    except (LLMClientError, CareerDevelopmentGoalPlanningError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return PersonalGrowthReportResponse(
+        data=build_personal_growth_report_payload(
             db,
+            row=updated_row,
             user_id=current_user.id,
             favorite_id=favorite_id,
-            review_type=body.review_type,
-            match_service=service,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return PlanWorkspaceReviewResponse(data=payload)
+    )
 
 
-@router.post("/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}/export")
-def export_goal_plan_workspace(
+@router.post("/api/career-development-report/personal-growth-report/workspaces/{favorite_id}/export")
+def export_personal_growth_report_workspace(
     favorite_id: int,
-    body: PlanWorkspaceExportRequest,
+    body: PersonalGrowthReportExportRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_standard_user),
 ) -> Response:
     favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
     if favorite_record is None:
         raise HTTPException(status_code=404, detail="收藏目标不存在。")
-    favorite_payload = read_favorite_report_payload(favorite_record)
-    row = get_plan_workspace_record(db, user_id=current_user.id, favorite_id=favorite_id)
+    row = get_personal_growth_workspace_or_none(db, user_id=current_user.id, favorite_id=favorite_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="当前目标尚未生成工作台。")
-    integrity = build_integrity_check(row.edited_report_markdown or row.generated_report_markdown)
-    if body.format in {"docx", "pdf"} and integrity.blocking_count > 0 and not body.force_with_issues:
-        raise HTTPException(status_code=400, detail="当前报告仍存在阻塞缺失，暂不支持导出 DOCX/PDF。")
-
-    markdown = row.edited_report_markdown or row.generated_report_markdown
-    if body.format == "md":
-        content = export_markdown_bytes(markdown)
-        media_type = "text/markdown; charset=utf-8"
-    elif body.format == "docx":
-        content = export_docx_bytes(markdown)
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    else:
-        content = export_pdf_bytes(markdown)
-        media_type = "application/pdf"
-
-    update_workspace_export_meta(
-        db,
-        row=row,
-        export_format=body.format,
-        exported_with_issues=body.force_with_issues and integrity.blocking_count > 0,
-        blocking_count=integrity.blocking_count,
-    )
-    filename = build_export_filename(favorite_payload, body.format)
-    disposition = f"attachment; filename*=UTF-8''{quote(filename)}"
+        raise HTTPException(status_code=404, detail="当前用于生成个人职业成长报告的基础内容不足。")
+    favorite_payload = read_favorite_report_payload(favorite_record)
+    try:
+        content, media_type, disposition = export_personal_growth_report_bytes(
+            db,
+            row=row,
+            favorite=favorite_payload,
+            export_format=body.format,
+            force_with_issues=body.force_with_issues,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return Response(
         content=content,
         media_type=media_type,
         headers={"Content-Disposition": disposition},
     )
+

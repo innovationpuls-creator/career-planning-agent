@@ -183,3 +183,20 @@ def test_job_requirement_comparisons_reject_standard_user(tmp_path: Path):
 
     assert response.status_code == 403
     app.dependency_overrides.clear()
+
+
+def test_get_job_requirement_comparison_allows_standard_user(tmp_path: Path):
+    client, session_local = create_test_client(tmp_path)
+    with session_local() as session:
+        seed_data(session)
+
+    response = client.get(
+        "/api/job-requirement-comparisons/1",
+        headers=get_auth_headers(client, "user"),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["id"] == 1
+    assert payload["job_title"] == "Java"
+    app.dependency_overrides.clear()

@@ -16,6 +16,11 @@ from app.schemas.student_competency_profile import (
 )
 
 
+# ─────────────────────────────────────────────────────────────
+# Career Development Match (used by V2 snail learning path)
+# ─────────────────────────────────────────────────────────────
+
+
 class CareerDevelopmentMatchSourcePayload(BaseModel):
     workspace_conversation_id: str
     updated_at: datetime | None = None
@@ -74,9 +79,9 @@ class CareerDevelopmentMatchIndustryReport(BaseModel):
 class CareerDevelopmentMatchInitPayload(BaseModel):
     available: bool
     message: str | None = None
-    source: CareerDevelopmentMatchSourcePayload | None = None
     recommendations: list[CareerDevelopmentMatchReport] = Field(default_factory=list)
     default_report_id: str | None = None
+    source: CareerDevelopmentMatchSourcePayload | None = None
 
 
 class CareerDevelopmentMatchInitResponse(BaseModel):
@@ -103,35 +108,9 @@ class CareerDevelopmentMatchCustomResponse(BaseModel):
     data: CareerDevelopmentMatchCustomPayload
 
 
-class CareerDevelopmentFavoriteCreateRequest(BaseModel):
-    source_kind: Literal["recommendation", "custom"]
-    report: CareerDevelopmentMatchReport
-
-
-class CareerDevelopmentFavoritePayload(BaseModel):
-    favorite_id: int = Field(ge=1)
-    target_key: str
-    source_kind: Literal["recommendation", "custom"]
-    report_id: str
-    target_scope: Literal["career", "industry"]
-    target_title: str
-    canonical_job_title: str
-    representative_job_title: str | None = None
-    industry: str | None = None
-    overall_match: float = Field(ge=0, le=100)
-    report_snapshot: CareerDevelopmentMatchReport
-    created_at: datetime
-    updated_at: datetime
-
-
-class CareerDevelopmentFavoriteListResponse(BaseModel):
-    success: bool = True
-    data: list[CareerDevelopmentFavoritePayload] = Field(default_factory=list)
-
-
-class CareerDevelopmentFavoriteResponse(BaseModel):
-    success: bool = True
-    data: CareerDevelopmentFavoritePayload
+# ─────────────────────────────────────────────────────────────
+# V1 Goal Planning Schemas (still referenced by service code)
+# ─────────────────────────────────────────────────────────────
 
 
 class CareerDevelopmentGoalPathNode(BaseModel):
@@ -177,6 +156,65 @@ class CareerDevelopmentGoalPathStage(BaseModel):
     readiness_label: str = ""
     supporting_evidence: list[str] = Field(default_factory=list)
     gap_notes: list[str] = Field(default_factory=list)
+
+
+class CareerDevelopmentGoalPlanResultPayload(BaseModel):
+    favorite: CareerDevelopmentFavoritePayload
+    trend_markdown: str
+    trend_section_markdown: str = ""
+    path_section_markdown: str = ""
+    correlation_analysis: CareerDevelopmentGoalCorrelationAnalysis
+    strength_directions: list[CareerDevelopmentGoalStrengthDirectionItem] = Field(default_factory=list)
+    path_stages: list[CareerDevelopmentGoalPathStage] = Field(default_factory=list)
+    comprehensive_report_markdown: str = ""
+    path_nodes: list[CareerDevelopmentGoalPathNode] = Field(default_factory=list)
+    stage_recommendations: list[CareerDevelopmentGoalStageAdvice] = Field(default_factory=list)
+    growth_plan_phases: list[GrowthPlanPhase] = Field(default_factory=list)
+    review_framework: ReviewFramework | None = None
+    generated_report_markdown: str = ""
+    workspace_id: str | None = None
+    workspace_overview: PlanWorkspaceOverview | None = None
+
+
+# ─────────────────────────────────────────────────────────────
+# Favorites (shared)
+# ─────────────────────────────────────────────────────────────
+
+
+class CareerDevelopmentFavoriteCreateRequest(BaseModel):
+    source_kind: Literal["recommendation", "custom"]
+    report: CareerDevelopmentMatchReport
+
+
+class CareerDevelopmentFavoritePayload(BaseModel):
+    favorite_id: int = Field(ge=1)
+    target_key: str
+    source_kind: Literal["recommendation", "custom"]
+    report_id: str
+    target_scope: Literal["career", "industry"]
+    target_title: str
+    canonical_job_title: str
+    representative_job_title: str | None = None
+    industry: str | None = None
+    overall_match: float = Field(ge=0, le=100)
+    report_snapshot: CareerDevelopmentMatchReport
+    created_at: datetime
+    updated_at: datetime
+
+
+class CareerDevelopmentFavoriteListResponse(BaseModel):
+    success: bool = True
+    data: list[CareerDevelopmentFavoritePayload] = Field(default_factory=list)
+
+
+class CareerDevelopmentFavoriteResponse(BaseModel):
+    success: bool = True
+    data: CareerDevelopmentFavoritePayload
+
+
+# ─────────────────────────────────────────────────────────────
+# Growth Plan Schemas (used by V2 personal growth report + snail learning path)
+# ─────────────────────────────────────────────────────────────
 
 
 class GrowthPlanLearningResourceItem(BaseModel):
@@ -289,17 +327,6 @@ class ReviewFramework(BaseModel):
     metrics: list[GrowthPlanMetric] = Field(default_factory=list)
 
 
-class PlanWorkspaceOverview(BaseModel):
-    current_phase_key: str = ""
-    current_phase_label: str = ""
-    next_milestone_title: str = ""
-    next_review_at: datetime | None = None
-    readiness_index: float = Field(default=0, ge=0, le=100)
-    latest_review_summary: str = ""
-    gap_closure_index: float = Field(default=0, ge=0, le=100)
-    uses_latest_profile: bool = False
-
-
 class IntegrityIssue(BaseModel):
     severity: Literal["blocking", "warning", "suggestion"]
     section_key: str
@@ -350,15 +377,6 @@ class GrowthPlanPhaseFlowItem(BaseModel):
     next_hint: str = ""
 
 
-class PlanWorkspaceCurrentActionSummary(BaseModel):
-    current_phase_key: str = ""
-    current_phase_label: str = ""
-    headline: str = ""
-    support_text: str = ""
-    audit_summary: str = ""
-    next_review_at: datetime | None = None
-
-
 class PlanReviewChangeItem(BaseModel):
     title: str
     reason: str
@@ -387,63 +405,24 @@ class PlanExportMeta(BaseModel):
     last_exported_blocking_count: int = Field(default=0, ge=0)
 
 
-class CareerDevelopmentGoalPlanResultPayload(BaseModel):
-    favorite: CareerDevelopmentFavoritePayload
-    trend_markdown: str
-    trend_section_markdown: str = ""
-    path_section_markdown: str = ""
-    correlation_analysis: CareerDevelopmentGoalCorrelationAnalysis
-    strength_directions: list[CareerDevelopmentGoalStrengthDirectionItem] = Field(default_factory=list)
-    path_stages: list[CareerDevelopmentGoalPathStage] = Field(default_factory=list)
-    comprehensive_report_markdown: str = ""
-    path_nodes: list[CareerDevelopmentGoalPathNode] = Field(default_factory=list)
-    stage_recommendations: list[CareerDevelopmentGoalStageAdvice] = Field(default_factory=list)
-    growth_plan_phases: list[GrowthPlanPhase] = Field(default_factory=list)
-    review_framework: ReviewFramework | None = None
-    generated_report_markdown: str = ""
-    workspace_id: str | None = None
-    workspace_overview: PlanWorkspaceOverview | None = None
+class PlanWorkspaceCurrentActionSummary(BaseModel):
+    current_phase_key: str = ""
+    current_phase_label: str = ""
+    headline: str = ""
+    support_text: str = ""
+    audit_summary: str = ""
+    next_review_at: datetime | None = None
 
 
-class CareerDevelopmentGoalPlanTaskCreateRequest(BaseModel):
-    favorite_id: int = Field(ge=1)
-
-
-class CareerDevelopmentGoalPlanTaskSummary(BaseModel):
-    task_id: str
-    favorite_id: int = Field(ge=1)
-    status: Literal["queued", "running", "completed", "failed"]
-    progress: int = Field(ge=0, le=100)
-
-
-class CareerDevelopmentGoalPlanStatusEvent(BaseModel):
-    stage: str
-    status_text: str
-    progress: int = Field(ge=0, le=100)
-    details: dict[str, str | int | float | bool | None] | None = None
-    created_at: datetime
-
-
-class CareerDevelopmentGoalPlanTaskPayload(BaseModel):
-    task_id: str
-    favorite_id: int = Field(ge=1)
-    status: Literal["queued", "running", "completed", "failed"]
-    progress: int = Field(ge=0, le=100)
-    result: CareerDevelopmentGoalPlanResultPayload | None = None
-    latest_event: CareerDevelopmentGoalPlanStatusEvent | None = None
-    error_message: str | None = None
-    completed_at: datetime | None = None
-    updated_at: datetime
-
-
-class CareerDevelopmentGoalPlanTaskCreateResponse(BaseModel):
-    success: bool = True
-    data: CareerDevelopmentGoalPlanTaskSummary
-
-
-class CareerDevelopmentGoalPlanTaskResponse(BaseModel):
-    success: bool = True
-    data: CareerDevelopmentGoalPlanTaskPayload
+class PlanWorkspaceOverview(BaseModel):
+    current_phase_key: str = ""
+    current_phase_label: str = ""
+    next_milestone_title: str = ""
+    next_review_at: datetime | None = None
+    readiness_index: float = Field(default=0, ge=0, le=100)
+    latest_review_summary: str = ""
+    gap_closure_index: float = Field(default=0, ge=0, le=100)
+    uses_latest_profile: bool = False
 
 
 class PlanWorkspacePayload(BaseModel):
@@ -466,66 +445,128 @@ class PlanWorkspacePayload(BaseModel):
     updated_at: datetime
 
 
-class PlanWorkspaceUpdateRequest(BaseModel):
-    edited_report_markdown: str = ""
-    growth_plan_phases: list[GrowthPlanPhase] | None = None
-
-
 class PlanWorkspaceResponse(BaseModel):
     success: bool = True
     data: PlanWorkspacePayload
 
 
-class PlanWorkspacePolishRequest(BaseModel):
-    markdown: str = ""
-    mode: Literal["formal", "concise", "mentor_facing"] = "formal"
+# ─────────────────────────────────────────────────────────────
+# Personal Growth Report (V2)
+# ─────────────────────────────────────────────────────────────
 
 
-class PlanWorkspacePolishPayload(BaseModel):
-    polished_markdown: str
-    mode: Literal["formal", "concise", "mentor_facing"]
-    fact_guard_notice: str
+PersonalGrowthReportSectionKey = Literal[
+    "self_cognition",
+    "career_direction_analysis",
+    "match_assessment",
+    "development_suggestions",
+    "action_plan",
+]
 
 
-class PlanWorkspacePolishResponse(BaseModel):
+class PersonalGrowthReportSection(BaseModel):
+    key: PersonalGrowthReportSectionKey
+    title: str
+    content: str = ""
+    completed: bool = False
+
+
+class PersonalGrowthReportStoredPayload(BaseModel):
+    version: int = 1
+    sections: list[PersonalGrowthReportSection] = Field(default_factory=list)
+    source_workspace_updated_at: datetime | None = None
+
+
+class PersonalGrowthReportPayload(BaseModel):
+    workspace_id: str
+    favorite: CareerDevelopmentFavoritePayload
+    sections: list[PersonalGrowthReportSection] = Field(default_factory=list)
+    generated_markdown: str = ""
+    edited_markdown: str = ""
+    export_meta: PlanExportMeta = Field(default_factory=PlanExportMeta)
+    content_status: Literal["ready", "insufficient"] = "insufficient"
+    generation_status: Literal["not_started", "ready", "insufficient"] = "insufficient"
+    active_task: "PersonalGrowthReportTaskSummary | None" = None
+    last_generated_at: datetime | None = None
+    last_saved_at: datetime | None = None
+    updated_at: datetime
+
+
+class PersonalGrowthReportResponse(BaseModel):
     success: bool = True
-    data: PlanWorkspacePolishPayload
+    data: PersonalGrowthReportPayload
 
 
-class PlanWorkspaceIntegrityCheckRequest(BaseModel):
-    markdown: str = ""
+class PersonalGrowthReportUpdateRequest(BaseModel):
+    sections: list[PersonalGrowthReportSection] = Field(default_factory=list)
 
 
-class PlanWorkspaceIntegrityCheckResponse(BaseModel):
-    success: bool = True
-    data: IntegrityCheckPayload
+class PersonalGrowthReportRegenerateRequest(BaseModel):
+    overwrite_current: bool = False
 
 
-class PlanWorkspaceReviewRequest(BaseModel):
-    review_type: Literal["weekly", "monthly"] = "monthly"
-
-
-class PlanWorkspaceReviewResponse(BaseModel):
-    success: bool = True
-    data: PlanReviewPayload
-
-
-class PlanLearningResourceRequest(BaseModel):
-    phase_key: Literal["short_term", "mid_term", "long_term"]
-    module_id: str = Field(min_length=1)
-    force_refresh: bool = False
-
-
-class PlanLearningResourceResponse(BaseModel):
-    success: bool = True
-    data: PlanWorkspacePayload
-
-
-class PlanWorkspaceMilestoneSubmissionResponse(BaseModel):
-    success: bool = True
-    data: PlanWorkspacePayload
-
-
-class PlanWorkspaceExportRequest(BaseModel):
+class PersonalGrowthReportExportRequest(BaseModel):
     format: Literal["md", "docx", "pdf"]
     force_with_issues: bool = False
+
+
+class PersonalGrowthReportTaskCreateRequest(BaseModel):
+    favorite_id: int = Field(ge=1)
+    overwrite_current: bool = False
+
+
+class PersonalGrowthReportTaskSummary(BaseModel):
+    task_id: str
+    favorite_id: int = Field(ge=1)
+    status: Literal["queued", "running", "completed", "cancelled", "failed"]
+    progress: int = Field(ge=0, le=100)
+    overwrite_current: bool = False
+    status_text: str = ""
+    started_at: datetime
+    updated_at: datetime
+    can_cancel: bool = False
+
+
+class PersonalGrowthReportTaskEvent(BaseModel):
+    stage: str
+    status_text: str
+    progress: int = Field(ge=0, le=100)
+    details: dict[str, str | int | float | bool | None] | None = None
+    created_at: datetime
+
+
+class PersonalGrowthReportTaskResult(BaseModel):
+    workspace_id: str
+    section_count: int = Field(ge=0)
+    generated_markdown: str = ""
+    updated_at: datetime
+
+
+class PersonalGrowthReportTaskPayload(BaseModel):
+    task_id: str
+    favorite_id: int = Field(ge=1)
+    status: Literal["queued", "running", "completed", "cancelled", "failed"]
+    progress: int = Field(ge=0, le=100)
+    overwrite_current: bool = False
+    latest_event: PersonalGrowthReportTaskEvent | None = None
+    result: PersonalGrowthReportTaskResult | None = None
+    error_message: str | None = None
+    cancel_requested_at: datetime | None = None
+    completed_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class PersonalGrowthReportTaskCreateResponse(BaseModel):
+    success: bool = True
+    data: PersonalGrowthReportTaskSummary
+
+
+class PersonalGrowthReportTaskResponse(BaseModel):
+    success: bool = True
+    data: PersonalGrowthReportTaskPayload
+
+
+class PersonalGrowthReportTaskCancelResponse(BaseModel):
+    success: bool = True
+    data: PersonalGrowthReportTaskPayload

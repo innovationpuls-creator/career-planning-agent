@@ -8,10 +8,7 @@ client = TestClient(app)
 
 
 def test_get_job_title_options_returns_unique_values():
-    response = client.get(
-        "/api/job-postings/job-titles",
-        headers=get_auth_headers(client, "user"),
-    )
+    response = client.get("/api/job-postings/job-titles")
 
     assert response.status_code == 200
     payload = response.json()
@@ -149,5 +146,5 @@ def test_vertical_endpoints_reject_admin():
         headers=admin_headers,
     )
 
-    assert title_response.status_code == 403
+    assert title_response.status_code == 200
     assert graph_response.status_code == 403

@@ -23,6 +23,56 @@ from app.schemas.student_competency_profile import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JOB_PROFILE_SCHEMA_PATH = REPO_ROOT / "docs" / "job_profile_12_dimensions.schema.json"
+PROFILE_FIELD_FALLBACK_META: dict[str, dict[str, str]] = {
+    "professional_skills": {
+        "title": "专业技能",
+        "description": "梳理学生已经具备或可展示的技能、工具、技术栈与业务方法。",
+    },
+    "professional_background": {
+        "title": "专业背景",
+        "description": "概括学生的专业方向、课程背景与知识基础。",
+    },
+    "education_requirement": {
+        "title": "学历要求",
+        "description": "描述学生当前的学历层级、学位信息与毕业阶段。",
+    },
+    "teamwork": {
+        "title": "团队协作能力",
+        "description": "总结学生在团队配合、分工协同与跨角色合作方面的表现。",
+    },
+    "stress_adaptability": {
+        "title": "抗压/适应能力",
+        "description": "说明学生面对节奏变化、多任务和压力场景时的适应情况。",
+    },
+    "communication": {
+        "title": "沟通表达能力",
+        "description": "体现学生在沟通、汇报、协调和信息传递方面的能力。",
+    },
+    "work_experience": {
+        "title": "工作经验",
+        "description": "提炼学生的项目、实习、兼职或科研实践经历。",
+    },
+    "documentation_awareness": {
+        "title": "文档规范意识",
+        "description": "体现学生在记录、文档输出、流程沉淀和规范执行方面的表现。",
+    },
+    "responsibility": {
+        "title": "责任心/工作态度",
+        "description": "反映学生在任务承接、推进闭环和职业态度方面的表现。",
+    },
+    "learning_ability": {
+        "title": "学习能力",
+        "description": "总结学生对新知识、新工具和新任务的学习与吸收能力。",
+    },
+    "problem_solving": {
+        "title": "分析解决问题能力",
+        "description": "描述学生识别问题、分析原因和推动解决的能力。",
+    },
+    "other_special": {
+        "title": "其他/特殊要求",
+        "description": "补充证书、语言、出差、班次等不适合归入其他维度的信息。",
+    },
+}
 FALLBACK_OPENING_STATEMENT = (
     "上传简历、成绩材料、项目说明、图片或直接补充说明，系统会整理学生就业能力 12 维画像。"
     " 生成后可在右侧继续编辑并同步到后续对话上下文。"
@@ -132,13 +182,26 @@ def try_parse_profile_from_text(answer: str) -> JobProfile12Dimensions | None:
 
 @lru_cache(maxsize=1)
 def get_profile_field_definitions() -> list[StudentCompetencyProfileFieldMeta]:
-    data = json.loads(JOB_PROFILE_SCHEMA_PATH.read_text(encoding="utf-8"))
-    properties = data.get("properties", {})
+    properties: dict[str, Any] = {}
+    if JOB_PROFILE_SCHEMA_PATH.exists():
+        data = json.loads(JOB_PROFILE_SCHEMA_PATH.read_text(encoding="utf-8"))
+        properties = data.get("properties", {})
+
     return [
         StudentCompetencyProfileFieldMeta(
             key=field,
-            title=str(properties.get(field, {}).get("title", field)),
-            description=str(properties.get(field, {}).get("description", "")),
+            title=str(
+                properties.get(field, {}).get(
+                    "title",
+                    PROFILE_FIELD_FALLBACK_META.get(field, {}).get("title", field),
+                )
+            ),
+            description=str(
+                properties.get(field, {}).get(
+                    "description",
+                    PROFILE_FIELD_FALLBACK_META.get(field, {}).get("description", ""),
+                )
+            ),
         )
         for field in JOB_PROFILE_FIELD_ORDER
     ]
@@ -160,6 +223,7 @@ class DifyStudentCompetencyClient:
                 pool=min(request_timeout, 30.0),
             ),
             headers={"Authorization": f"Bearer {settings.dify_api_key}"},
+            trust_env=False,
         )
         self._runtime_config: DifyRuntimeConfig | None = None
 
