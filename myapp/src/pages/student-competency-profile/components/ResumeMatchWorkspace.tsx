@@ -228,7 +228,7 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
               },
               {
                 key: 'company',
-                label: '匹配公司',
+                label: '最匹配的工作',
                 children: <CompanyMatchPanel items={activeReport.evidence_cards || []} />,
               },
             ]}

@@ -23,7 +23,13 @@ export default [
     routes: [
       {
         path: '/admin',
-        redirect: '/admin/user-management',
+        redirect: '/admin/job-postings',
+      },
+      {
+        path: '/admin/profile',
+        name: 'profile',
+        component: './admin/profile',
+        hideInMenu: true,
       },
       {
         path: '/admin/user-management',
@@ -42,8 +48,8 @@ export default [
       },
       {
         path: '/admin/upload-data',
-        name: 'upload-data',
-        component: './admin/job-knowledge-base',
+        redirect: '/admin/job-postings',
+        hideInMenu: true,
       },
       {
         path: '/admin/major-distribution',
@@ -105,26 +111,18 @@ export default [
     hideInMenu: true,
   },
   {
-    path: '/job-requirement-profile',
-    name: '就业信息知识库',
+    path: '/job-competency-graph',
+    name: '岗位能力图谱',
     icon: 'profile',
     access: 'canUser',
-    routes: [
-      {
-        path: '/job-requirement-profile',
-        redirect: '/job-requirement-profile/overview',
-      },
-      {
-        path: '/job-requirement-profile/overview',
-        name: '岗位要求图谱总览',
-        component: './job-requirement-profile/overview',
-      },
-      {
-        path: '/job-requirement-profile/vertical',
-        name: '垂直岗位图谱',
-        component: './job-requirement-profile/vertical',
-      },
-    ],
+    component: './job-requirement-profile/overview',
+  },
+  {
+    path: '/same-job-cross-industry',
+    name: '同岗行业对比',
+    icon: 'profile',
+    access: 'canUser',
+    component: './job-requirement-profile/vertical',
   },
   {
     path: '*',

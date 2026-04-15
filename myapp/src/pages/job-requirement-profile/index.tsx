@@ -3,12 +3,10 @@ import {
   InfoCircleOutlined,
   NodeIndexOutlined,
   RadarChartOutlined,
-  ReloadOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Graph } from '@antv/g6';
-import { Alert, Button, Card, Col, Empty, Input, Row, Space, Spin, Statistic, Tag, Typography } from 'antd';
+import { Alert, Card, Collapse, Col, Empty, Row, Space, Spin, Statistic, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getJobRequirementProfileGraph } from '@/services/ant-design-pro/api';
@@ -112,13 +110,18 @@ const useStyles = createStyles(({ css, token }) => ({
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
   `,
   sectionTitle: css`
-    margin: 0 0 8px;
-    color: #12314d;
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: ${token.colorTextHeading};
+    letter-spacing: -0.3px;
   `,
   sectionText: css`
     max-width: 780px;
@@ -132,14 +135,11 @@ const useStyles = createStyles(({ css, token }) => ({
     gap: 12px;
     margin-bottom: 18px;
   `,
-  searchInput: css`
-    min-width: 280px;
-  `,
   graphStage: css`
     width: 100%;
     min-height: 720px;
-    border-radius: ${token.borderRadiusLG}px;
-    background: #fff;
+    border-radius: 12px;
+    background: ${token.colorBgContainer};
     border: 1px solid ${token.colorBorderSecondary};
     overflow: hidden;
   `,
@@ -151,35 +151,61 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   infoPanel: css`
     height: 100%;
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: 12px;
+    border: 1px solid ${token.colorBorderSecondary};
+    background: ${token.colorBgContainer};
+    transition: all 0.2s ease;
 
     :global(.ant-card-body) {
       padding: 20px 22px;
     }
+
+    :hover {
+      border-color: ${token.colorPrimary};
+      box-shadow: 0 4px 16px rgba(22, 119, 255, 0.1);
+    }
+  `,
+  infoPanelContent: css`
+    animation: fadeIn 0.2s ease;
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   `,
   panelTitle: css`
     margin: 0 0 8px;
-    color: #12314d;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${token.colorTextHeading};
   `,
   panelText: css`
     margin: 0 0 16px;
-    color: rgba(18, 49, 77, 0.72);
+    color: ${token.colorTextSecondary};
     line-height: 1.8;
   `,
   panelSection: css`
     margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid ${token.colorBorderSecondary};
   `,
   panelLabel: css`
     display: flex;
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
-    color: #12314d;
+    color: ${token.colorTextHeading};
     font-weight: 600;
   `,
   helperText: css`
     margin: 0 0 12px;
-    color: rgba(18, 49, 77, 0.64);
+    color: ${token.colorTextTertiary};
     font-size: 13px;
     line-height: 1.7;
   `,
@@ -188,22 +214,85 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   statHint: css`
     margin-top: 8px;
-    color: rgba(18, 49, 77, 0.62);
+    color: ${token.colorTextTertiary};
     font-size: 12px;
     line-height: 1.7;
   `,
-  legendCard: css`
-    height: 100%;
-    border-radius: ${token.borderRadius}px;
+  statValue: css`
+    transition: all 0.2s ease;
 
-    :global(.ant-card-body) {
-      padding: 18px;
+    :hover {
+      transform: scale(1.04);
+      color: ${token.colorPrimary};
     }
   `,
-  legendText: css`
-    margin: 8px 0 0;
-    color: rgba(18, 49, 77, 0.68);
+  keywordTag: css`
+    transition: all 0.2s ease;
+    animation: tagEnter 0.2s ease;
+
+    @keyframes tagEnter {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  `,
+  guideCollapse: css`
+    margin-top: 20px;
+    border-radius: 12px;
+    border: 1px solid ${token.colorBorderSecondary};
+    overflow: hidden;
+
+    :global(.ant-collapse-header) {
+      align-items: center !important;
+      padding: 14px 20px !important;
+      background: ${token.colorFillQuaternary};
+      font-weight: 600;
+    }
+
+    :global(.ant-collapse-content-box) {
+      padding: 16px 20px !important;
+    }
+  `,
+  guideItem: css`
+    padding: 12px 0;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  `,
+  guideItemTitle: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: ${token.colorTextHeading};
+  `,
+  guideItemBadge: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${token.colorPrimary};
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  `,
+  guideItemText: css`
+    margin: 0;
+    color: ${token.colorTextSecondary};
     line-height: 1.7;
+    font-size: 13px;
   `,
 }));
 
@@ -339,21 +428,11 @@ const JobRequirementProfilePage: React.FC = () => {
   const [error, setError] = useState<string>();
   const [graphPayload, setGraphPayload] = useState<API.JobRequirementGraphPayload>();
   const [activeNodeId, setActiveNodeId] = useState<string>();
-  const [searchKeyword, setSearchKeyword] = useState('');
 
   const activeNode = useMemo(
     () => graphPayload?.nodes.find((node) => node.id === activeNodeId),
     [activeNodeId, graphPayload],
   );
-
-  const matchingNodes = useMemo(() => {
-    if (!graphPayload || !searchKeyword.trim()) return graphPayload?.nodes || [];
-    const keyword = searchKeyword.trim().toLowerCase();
-    return graphPayload.nodes.filter((node) => {
-      const text = [node.title, node.description, ...(node.keywords || [])].join(' ').toLowerCase();
-      return text.includes(keyword);
-    });
-  }, [graphPayload, searchKeyword]);
 
   const dimensionNodes = useMemo(
     () => graphPayload?.nodes.filter((node) => node.type === 'Dimension') || [],
@@ -522,7 +601,7 @@ const JobRequirementProfilePage: React.FC = () => {
   }, [activeNodeId, error, graphPayload, loading]);
 
   return (
-    <PageContainer className={styles.pageContainer} title="构建就业岗位要求画像" breadcrumbRender={false}>
+    <PageContainer className={styles.pageContainer} title={false} breadcrumbRender={false}>
       <div className={styles.shell}>
         <Card className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
@@ -544,44 +623,6 @@ const JobRequirementProfilePage: React.FC = () => {
             </Space>
           </div>
 
-          <div className={styles.toolBar}>
-            <Input
-              allowClear
-              prefix={<SearchOutlined />}
-              placeholder="搜索维度、说明或招聘关键词"
-              value={searchKeyword}
-              className={styles.searchInput}
-              onChange={(event) => {
-                setSearchKeyword(event.target.value);
-              }}
-            />
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => {
-                const rootNodeId = graphPayload?.nodes.find((node) => node.type === 'ProfileRoot')?.id || '';
-                if (rootNodeId) {
-                  setSearchKeyword('');
-                  setActiveNodeId(rootNodeId);
-                }
-              }}
-            >
-              重置视图
-            </Button>
-            {searchKeyword.trim() &&
-              matchingNodes.slice(0, 6).map((node) => (
-                <Tag
-                  key={node.id}
-                  color={node.id === activeNodeId ? 'processing' : 'default'}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => {
-                    focusNode(node.id);
-                  }}
-                >
-                  {node.title}
-                </Tag>
-              ))}
-          </div>
-
           {loading ? (
             <div className={styles.graphStage}>
               <div className={styles.loadingWrap}>
@@ -598,95 +639,126 @@ const JobRequirementProfilePage: React.FC = () => {
                 </Col>
                 <Col xs={24} xl={8}>
                   <Card className={styles.infoPanel}>
-                    <Typography.Title level={3} className={styles.panelTitle}>
-                      {activeNode?.title || '岗位要求画像'}
-                    </Typography.Title>
-                    <Typography.Paragraph className={styles.panelText}>
-                      {activeNode?.description || '请选择图谱中的节点以查看详情。'}
-                    </Typography.Paragraph>
-
-                    <div className={styles.panelSection}>
-                      <Typography.Text className={styles.panelLabel}>
-                        <InfoCircleOutlined />
-                        招聘关键词
-                      </Typography.Text>
-                      <Typography.Paragraph className={styles.helperText}>
-                        以下关键词来自公司招聘信息原文的聚合提取，用来概括这个节点在真实招聘描述里最常被强调的能力或要求。
+                    <div className={styles.infoPanelContent}>
+                      <Typography.Title level={3} className={styles.panelTitle}>
+                        {activeNode?.title || '岗位要求画像'}
+                      </Typography.Title>
+                      <Typography.Paragraph className={styles.panelText}>
+                        {activeNode?.description || '请选择图谱中的节点以查看详情。'}
                       </Typography.Paragraph>
-                      <Space wrap size={[8, 8]}>
-                        {(activeNode?.keywords?.length ? activeNode.keywords : ['暂无明确招聘关键词']).map((item) => (
-                          <Tag key={item} color={item === '暂无明确招聘关键词' ? 'default' : 'blue'}>
-                            {item}
-                          </Tag>
-                        ))}
-                      </Space>
-                    </div>
 
-                    <div className={styles.panelSection}>
-                      <Typography.Text className={styles.panelLabel}>
-                        <InfoCircleOutlined />
-                        聚合统计
-                      </Typography.Text>
-                      <Typography.Paragraph className={styles.helperText}>
-                        覆盖岗位数表示这个节点在多少条岗位招聘信息中被提及；明确要求数表示去掉默认占位或未写明情况后，明确写出该要求的岗位数量。
-                      </Typography.Paragraph>
-                      <Row gutter={[12, 12]} className={styles.statGrid}>
-                        <Col span={12}>
-                          <Statistic title="覆盖岗位数" value={activeNode?.profile_count || 0} valueStyle={{ fontSize: 22 }} />
-                          <div className={styles.statHint}>有提到该节点的岗位招聘信息总数。</div>
-                        </Col>
-                        <Col span={12}>
-                          <Statistic title="明确要求数" value={activeNode?.non_default_count || 0} valueStyle={{ fontSize: 22 }} />
-                          <div className={styles.statHint}>明确写出该能力或门槛要求的岗位数。</div>
-                        </Col>
-                      </Row>
-                    </div>
+                      <div className={styles.panelSection}>
+                        <Typography.Text className={styles.panelLabel}>
+                          <InfoCircleOutlined />
+                          招聘关键词
+                        </Typography.Text>
+                        <Typography.Paragraph className={styles.helperText}>
+                          以下关键词来自公司招聘信息原文的聚合提取，用来概括这个节点在真实招聘描述里最常被强调的能力或要求。
+                        </Typography.Paragraph>
+                        <Space wrap size={[8, 8]}>
+                          {(activeNode?.keywords?.length ? activeNode.keywords : ['暂无明确招聘关键词']).map((item) => (
+                            <Tag key={item} className={styles.keywordTag} color={item === '暂无明确招聘关键词' ? 'default' : 'blue'}>
+                              {item}
+                            </Tag>
+                          ))}
+                        </Space>
+                      </div>
 
-                    <div className={styles.panelSection}>
-                      <Typography.Text className={styles.panelLabel}>
-                        <InfoCircleOutlined />
-                        覆盖度
-                      </Typography.Text>
-                      <Typography.Paragraph className={styles.helperText}>
-                        覆盖度表示在全部已聚合岗位中，有多大比例明确提到了当前节点，数值越高，说明它越像一个普遍要求。
-                      </Typography.Paragraph>
-                      <Statistic
-                        title="覆盖度"
-                        value={((activeNode?.coverage_ratio || 0) * 100).toFixed(1)}
-                        suffix="%"
-                        valueStyle={{ fontSize: 24 }}
-                      />
+                      <div className={styles.panelSection}>
+                        <Typography.Text className={styles.panelLabel}>
+                          <InfoCircleOutlined />
+                          聚合统计
+                        </Typography.Text>
+                        <Typography.Paragraph className={styles.helperText}>
+                          覆盖岗位数表示这个节点在多少条岗位招聘信息中被提及；明确要求数表示去掉默认占位或未写明情况后，明确写出该要求的岗位数量。
+                        </Typography.Paragraph>
+                        <Row gutter={[12, 12]} className={styles.statGrid}>
+                          <Col span={12}>
+                            <Statistic
+                              title="覆盖岗位数"
+                              value={activeNode?.profile_count || 0}
+                              valueStyle={{ fontSize: 22 }}
+                              className={styles.statValue}
+                            />
+                            <div className={styles.statHint}>有提到该节点的岗位招聘信息总数。</div>
+                          </Col>
+                          <Col span={12}>
+                            <Statistic
+                              title="明确要求数"
+                              value={activeNode?.non_default_count || 0}
+                              valueStyle={{ fontSize: 22 }}
+                              className={styles.statValue}
+                            />
+                            <div className={styles.statHint}>明确写出该能力或门槛要求的岗位数。</div>
+                          </Col>
+                        </Row>
+                      </div>
+
+                      <div className={styles.panelSection}>
+                        <Typography.Text className={styles.panelLabel}>
+                          <InfoCircleOutlined />
+                          覆盖度
+                        </Typography.Text>
+                        <Typography.Paragraph className={styles.helperText}>
+                          覆盖度表示在全部已聚合岗位中，有多大比例明确提到了当前节点，数值越高，说明它越像一个普遍要求。
+                        </Typography.Paragraph>
+                        <Statistic
+                          title="覆盖度"
+                          value={((activeNode?.coverage_ratio || 0) * 100).toFixed(1)}
+                          suffix="%"
+                          valueStyle={{ fontSize: 24 }}
+                          className={styles.statValue}
+                        />
+                      </div>
                     </div>
                   </Card>
                 </Col>
               </Row>
 
-              <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
-                <Col xs={24} md={8}>
-                  <Card className={styles.legendCard}>
-                    <Typography.Text strong>第 1 层：中心节点</Typography.Text>
-                    <Typography.Paragraph className={styles.legendText}>
-                      从“岗位要求画像”出发，先理解当前岗位市场最常见的能力结构。
-                    </Typography.Paragraph>
-                  </Card>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Card className={styles.legendCard}>
-                    <Typography.Text strong>第 2 层：能力分组</Typography.Text>
-                    <Typography.Paragraph className={styles.legendText}>
-                      将岗位要求拆成“专业与门槛”“协作与适应”“成长与职业素养”三个观察视角。
-                    </Typography.Paragraph>
-                  </Card>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Card className={styles.legendCard}>
-                    <Typography.Text strong>{`第 3 层：${dimensionCount} 个维度`}</Typography.Text>
-                    <Typography.Paragraph className={styles.legendText}>
-                      点击具体维度后，可以查看招聘关键词、覆盖度和岗位关注点摘要，其中也包含“其他/特殊要求”的补充入口。
-                    </Typography.Paragraph>
-                  </Card>
-                </Col>
-              </Row>
+              <Collapse
+                ghost
+                className={styles.guideCollapse}
+                items={[{
+                  key: 'guide',
+                  label: (
+                    <Space>
+                      <InfoCircleOutlined />
+                      <span>图谱阅读指南</span>
+                    </Space>
+                  ),
+                  children: (
+                    <div>
+                      <div className={styles.guideItem}>
+                        <div className={styles.guideItemTitle}>
+                          <span className={styles.guideItemBadge}>1</span>
+                          中心节点：岗位要求画像
+                        </div>
+                        <p className={styles.guideItemText}>
+                          从中心节点出发，理解当前岗位市场最常见的能力结构。点击节点可查看详情。
+                        </p>
+                      </div>
+                      <div className={styles.guideItem}>
+                        <div className={styles.guideItemTitle}>
+                          <span className={styles.guideItemBadge}>2</span>
+                          能力分组：三大维度视角
+                        </div>
+                        <p className={styles.guideItemText}>
+                          将岗位要求分为"专业与门槛""协作与适应""成长与职业素养"三个观察视角。
+                        </p>
+                      </div>
+                      <div className={styles.guideItem}>
+                        <div className={styles.guideItemTitle}>
+                          <span className={styles.guideItemBadge}>3</span>
+                          具体维度：{dimensionCount} 个能力点
+                        </div>
+                        <p className={styles.guideItemText}>
+                          点击具体维度后，可查看招聘关键词、覆盖度和岗位关注点摘要。
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                }]}
+              />
             </>
           ) : (
             <Empty description="暂无岗位要求画像图谱数据" />

@@ -1260,8 +1260,8 @@ declare namespace API {
   };
 
   type AdminUserQueryParams = {
-    current?: number;
-    pageSize?: number;
+    page?: number;
+    page_size?: number;
     username?: string;
     role?: string;
     is_active?: boolean;

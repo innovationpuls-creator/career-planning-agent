@@ -684,7 +684,7 @@ def build_comprehensive_report_markdown_content(
             "",
             "## 关联性分析",
             "### 已有基础与优势",
-            _format_highlights(correlation_analysis.foundational),
+            foundation_summary,
             "",
             "### 当前差距",
             gap_summary,
@@ -730,7 +730,7 @@ async def _emit_stage(stage_hook: StageHook | None, stage: str) -> None:
 
 class DifyCareerGoalPlanningClient:
     def __init__(self) -> None:
-        self.base_url = settings.dify_api_base_url.rstrip("/")
+        self.base_url = (settings.career_goal_dify_base_url or settings.dify_base_url).rstrip("/")
         self.api_key = settings.dify_api_key
 
     async def generate_trend_markdown(

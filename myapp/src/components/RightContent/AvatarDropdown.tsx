@@ -1,10 +1,7 @@
 import {
   LogoutOutlined,
-  SettingOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
-import type { MenuProps } from 'antd';
 import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
@@ -43,7 +40,6 @@ const useStyles = createStyles(({ token }) => {
 });
 
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
-  menu,
   children,
 }) => {
   const loginOut = async () => {
@@ -57,16 +53,11 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
 
   const { initialState, setInitialState } = useModel('@@initialState');
 
-  const onMenuClick: MenuProps['onClick'] = (event) => {
-    const { key } = event;
-    if (key === 'logout') {
-      flushSync(() => {
-        setInitialState((s) => ({ ...s, currentUser: undefined }));
-      });
-      loginOut();
-      return;
-    }
-    history.push(`/account/${key}`);
+  const onMenuClick = () => {
+    flushSync(() => {
+      setInitialState((s) => ({ ...s, currentUser: undefined }));
+    });
+    void loginOut();
   };
 
   const loading = (
@@ -92,23 +83,6 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   }
 
   const menuItems = [
-    ...(menu
-      ? [
-          {
-            key: 'center',
-            icon: <UserOutlined />,
-            label: '个人中心',
-          },
-          {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: '个人设置',
-          },
-          {
-            type: 'divider' as const,
-          },
-        ]
-      : []),
     {
       key: 'logout',
       icon: <LogoutOutlined />,

@@ -27,14 +27,31 @@ const useStyles = createStyles(({ css, token }) => ({
     margin-bottom: 10px;
     border-radius: 12px;
     overflow: hidden;
+    transition: all 0.2s ease;
+    cursor: pointer;
 
     :global(.ant-upload) {
       padding: 14px 12px !important;
       background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+      transition: background 0.2s ease;
     }
 
     :global(.ant-upload-drag-icon) {
       margin-bottom: 8px;
+      transition: transform 0.2s ease;
+    }
+
+    :hover {
+      border-color: ${token.colorPrimary};
+      box-shadow: 0 4px 16px rgba(22, 119, 255, 0.15);
+    }
+
+    :hover :global(.ant-upload-drag-icon) {
+      transform: scale(1.1);
+    }
+
+    :hover :global(.ant-upload) {
+      background: linear-gradient(180deg, #e6f4ff 0%, #f7fbff 100%);
     }
   `,
   compactUpload: css`
@@ -43,10 +60,21 @@ const useStyles = createStyles(({ css, token }) => ({
   textarea: css`
     border-radius: 10px;
     resize: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     :global(textarea) {
       min-height: 38px !important;
       padding-block: 8px;
+    }
+
+    :global(.ant-input:focus),
+    :global(.ant-input-focused) {
+      border-color: ${token.colorPrimary};
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+    }
+
+    :hover:not(:global(.ant-input-disabled)) {
+      border-color: ${token.colorPrimary};
     }
   `,
   uploadList: css`
@@ -71,10 +99,33 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   uploadButton: css`
     border-radius: 10px;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-color: ${token.colorPrimary};
+      color: ${token.colorPrimary};
+    }
+
+    :active {
+      transform: translateY(0);
+    }
   `,
   primaryButton: css`
     min-width: 120px;
     border-radius: 10px;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+    }
+
+    :active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
   `,
   helperText: css`
     font-size: 12px;

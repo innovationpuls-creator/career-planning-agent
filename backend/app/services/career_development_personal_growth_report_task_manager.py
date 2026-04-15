@@ -204,6 +204,7 @@ class CareerDevelopmentPersonalGrowthReportTaskManager:
                 )
                 if favorite_record is None:
                     raise ValueError("收藏目标不存在。")
+                favorite = read_favorite_report_payload(favorite_record)
 
                 workspace = await ensure_personal_growth_base_workspace(
                     db,

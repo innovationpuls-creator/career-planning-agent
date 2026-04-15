@@ -40,7 +40,7 @@ describe('JobPostingsPage', () => {
       expect(mockedGetJobPostings).toHaveBeenCalled();
     });
 
-    expect(await view.findByText('完整岗位数据')).toBeTruthy();
+    expect(await view.findByText('岗位列表')).toBeTruthy();
     expect(await view.findByText('Java')).toBeTruthy();
 
     fireEvent.click(await view.findByText('查看详情'));

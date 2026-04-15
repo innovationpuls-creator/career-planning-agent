@@ -2,7 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import LearningPathPage from './index';
 
-const mockGenerateSnailLearningPath = jest.fn();
+const mockGetCareerDevelopmentFavorites = jest.fn();
+const mockGetHomeV2 = jest.fn();
+const mockGetStudentCompetencyLatestAnalysis = jest.fn();
+const mockInitializeSnailLearningPathWorkspace = jest.fn();
+const mockGetCareerDevelopmentPlanWorkspace = jest.fn();
 const mockCreateSnailLearningPathReview = jest.fn();
 const mockListSnailLearningPathReviews = jest.fn();
 const mockHistoryPush = jest.fn();
@@ -18,7 +22,11 @@ jest.mock('@umijs/max', () => ({
 }));
 
 jest.mock('@/services/ant-design-pro/api', () => ({
-  generateSnailLearningPath: (...args: any[]) => mockGenerateSnailLearningPath(...args),
+  getCareerDevelopmentFavorites: (...args: any[]) => mockGetCareerDevelopmentFavorites(...args),
+  getHomeV2: (...args: any[]) => mockGetHomeV2(...args),
+  getStudentCompetencyLatestAnalysis: (...args: any[]) => mockGetStudentCompetencyLatestAnalysis(...args),
+  initializeSnailLearningPathWorkspace: (...args: any[]) => mockInitializeSnailLearningPathWorkspace(...args),
+  getCareerDevelopmentPlanWorkspace: (...args: any[]) => mockGetCareerDevelopmentPlanWorkspace(...args),
   createSnailLearningPathReview: (...args: any[]) => mockCreateSnailLearningPathReview(...args),
   listSnailLearningPathReviews: (...args: any[]) => mockListSnailLearningPathReviews(...args),
 }));
@@ -49,23 +57,25 @@ const report = {
   },
 } as API.CareerDevelopmentMatchReport;
 
+const favorite = {
+  favorite_id: 1,
+  target_key: 'frontend::internet',
+  source_kind: 'recommendation',
+  report_id: report.report_id,
+  target_scope: report.target_scope,
+  target_title: report.target_title,
+  canonical_job_title: report.canonical_job_title,
+  representative_job_title: report.representative_job_title,
+  industry: report.industry,
+  overall_match: report.overall_match,
+  report_snapshot: report,
+  created_at: '2026-04-01T00:00:00Z',
+  updated_at: '2026-04-01T00:00:00Z',
+} as API.CareerDevelopmentFavoritePayload;
+
 const workspace = {
   workspace_id: 'snail-workspace-1',
-  favorite: {
-    favorite_id: 1,
-    target_key: 'frontend::internet',
-    source_kind: 'custom',
-    report_id: report.report_id,
-    target_scope: report.target_scope,
-    target_title: report.target_title,
-    canonical_job_title: report.canonical_job_title,
-    representative_job_title: report.representative_job_title,
-    industry: report.industry,
-    overall_match: report.overall_match,
-    report_snapshot: report,
-    created_at: '2026-04-01T00:00:00Z',
-    updated_at: '2026-04-01T00:00:00Z',
-  },
+  favorite,
   generated_report_markdown: '',
   edited_report_markdown: '',
   workspace_overview: {
@@ -127,65 +137,6 @@ const workspace = {
       milestones: [],
       risk_alerts: [],
     },
-    {
-      phase_key: 'mid_term',
-      phase_label: 'Mid Term',
-      time_horizon: '3-6 months',
-      goal_statement: 'Turn learning into portfolio evidence',
-      why_now: 'Convert study into visible projects',
-      learning_modules: [
-        {
-          module_id: 'm2',
-          topic: 'Portfolio Projects',
-          learning_content: 'Organize project write-ups and breakdowns.',
-          priority: 'medium',
-          suggested_resource_types: [],
-          resource_recommendations: [
-            {
-              title: 'Frontend Mentor',
-              url: 'https://www.frontendmentor.io/',
-              reason: 'Real project practice',
-              step_label: 'Complete one challenge',
-              why_first: 'Close to real-world task structure.',
-              expected_output: 'Ship one portfolio-ready project.',
-            },
-          ],
-          resource_status: 'ready',
-          resource_error_message: '',
-        },
-      ],
-      practice_actions: [],
-      deliverables: [],
-      entry_gate: [],
-      exit_gate: [],
-      milestones: [],
-      risk_alerts: [],
-    },
-    {
-      phase_key: 'long_term',
-      phase_label: 'Long Term',
-      time_horizon: '6-12 months',
-      goal_statement: 'Prepare for interviews',
-      why_now: 'Consolidate for job search',
-      learning_modules: [
-        {
-          module_id: 'm3',
-          topic: 'Interview Sprint',
-          learning_content: 'Prepare interview stories and project presentation.',
-          priority: 'high',
-          suggested_resource_types: [],
-          resource_recommendations: [],
-          resource_status: 'failed',
-          resource_error_message: 'No Dify resources available yet',
-        },
-      ],
-      practice_actions: [],
-      deliverables: [],
-      entry_gate: [],
-      exit_gate: [],
-      milestones: [],
-      risk_alerts: [],
-    },
   ],
   review_framework: {
     weekly_review_cycle: 'weekly',
@@ -209,64 +160,116 @@ const workspace = {
   updated_at: '2026-04-01T00:00:00Z',
 } as API.PlanWorkspacePayload;
 
-const createMemoryStorage = () => {
-  const store: Record<string, string> = {};
-  return {
-    getItem: jest.fn((key: string) => (key in store ? store[key] : null)),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      Object.keys(store).forEach((key) => delete store[key]);
-    }),
-  };
-};
-
 describe('LearningPathPage', () => {
   beforeEach(() => {
-    const localStorageMock = createMemoryStorage();
-    const sessionStorageMock = createMemoryStorage();
-    Object.defineProperty(window, 'localStorage', { value: localStorageMock, configurable: true });
-    Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock, configurable: true });
-    window.sessionStorage.setItem('snail_pending_report', JSON.stringify(report));
-    mockGenerateSnailLearningPath.mockReset();
+    mockGetCareerDevelopmentFavorites.mockReset();
+    mockGetHomeV2.mockReset();
+    mockGetStudentCompetencyLatestAnalysis.mockReset();
+    mockInitializeSnailLearningPathWorkspace.mockReset();
+    mockGetCareerDevelopmentPlanWorkspace.mockReset();
     mockCreateSnailLearningPathReview.mockReset();
     mockListSnailLearningPathReviews.mockReset();
-    mockGenerateSnailLearningPath.mockResolvedValue({ data: workspace });
+    mockHistoryPush.mockReset();
+    mockGetHomeV2.mockResolvedValue({ data: { onboarding_completed: true, profile: { full_name: 'A' } } });
+    mockGetStudentCompetencyLatestAnalysis.mockResolvedValue({ data: { available: true, comparison_dimensions: [], chart_series: [], strength_dimensions: [], priority_gap_dimensions: [], recommended_keywords: {}, action_advices: [] } });
+    mockGetCareerDevelopmentFavorites.mockResolvedValue({ data: [favorite] });
+    mockInitializeSnailLearningPathWorkspace.mockResolvedValue({ data: workspace });
+    mockGetCareerDevelopmentPlanWorkspace.mockResolvedValue({ data: workspace });
     mockCreateSnailLearningPathReview.mockResolvedValue({ data: {} });
     mockListSnailLearningPathReviews.mockResolvedValue({ data: [] });
-    mockHistoryPush.mockReset();
+    window.history.pushState({}, '', '/snail-learning-path?favorite_id=1');
     window.HTMLElement.prototype.scrollIntoView = jest.fn();
   });
 
-  it('renders the workspace and Dify resource cards', async () => {
+  it('renders saved workspace for the selected favorite', async () => {
     render(React.createElement(LearningPathPage));
 
     expect(await screen.findByText('React Docs')).toBeTruthy();
     expect(screen.getByText('Frontend Engineer')).toBeTruthy();
-    expect(screen.getByText('Build a small showcase page')).toBeTruthy();
+    expect(mockGetCareerDevelopmentPlanWorkspace).toHaveBeenCalledWith(1, expect.any(Object));
+    expect(mockInitializeSnailLearningPathWorkspace).not.toHaveBeenCalled();
   });
 
   it('shows skeleton while loading workspace data', async () => {
     let resolveWorkspace: ((value: { data: API.PlanWorkspacePayload }) => void) | undefined;
-    mockGenerateSnailLearningPath.mockReturnValueOnce(
+    mockGetCareerDevelopmentPlanWorkspace.mockReturnValueOnce(
       new Promise((resolve) => {
         resolveWorkspace = resolve;
       }),
     );
 
     render(React.createElement(LearningPathPage));
-
     expect(screen.getByTestId('learning-path-skeleton')).toBeTruthy();
 
     resolveWorkspace?.({ data: workspace });
     expect(await screen.findByText('React Docs')).toBeTruthy();
   });
 
+  it('initializes workspace by favorite id when saved workspace is missing', async () => {
+    mockGetCareerDevelopmentPlanWorkspace.mockRejectedValueOnce({ response: { status: 404 }, message: '404' });
+
+    render(React.createElement(LearningPathPage));
+
+    expect(await screen.findByText('React Docs')).toBeTruthy();
+    expect(mockInitializeSnailLearningPathWorkspace).toHaveBeenCalledWith(1, expect.any(Object));
+  });
+
+  it('shows guidance when favorite id is missing', async () => {
+    window.history.pushState({}, '', '/snail-learning-path');
+
+    render(React.createElement(LearningPathPage));
+
+    await waitFor(() => {
+      expect(mockGetHomeV2).toHaveBeenCalled();
+    });
+    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    expect(mockInitializeSnailLearningPathWorkspace).not.toHaveBeenCalled();
+    expect(mockGetCareerDevelopmentPlanWorkspace).not.toHaveBeenCalled();
+  });
+
+  it('shows prerequisite guidance when latest analysis is missing', async () => {
+    mockGetStudentCompetencyLatestAnalysis.mockResolvedValueOnce({ data: { available: false, comparison_dimensions: [], chart_series: [], strength_dimensions: [], priority_gap_dimensions: [], recommended_keywords: {}, action_advices: [] } });
+
+    render(React.createElement(LearningPathPage));
+
+    await waitFor(() => {
+      expect(mockGetStudentCompetencyLatestAnalysis).toHaveBeenCalled();
+    });
+    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    expect(mockInitializeSnailLearningPathWorkspace).not.toHaveBeenCalled();
+  });
+
   it('switches phase and refreshes review scope', async () => {
+    const multiPhaseWorkspace = {
+      ...workspace,
+      growth_plan_phases: [
+        workspace.growth_plan_phases[0],
+        {
+          ...workspace.growth_plan_phases[0],
+          phase_key: 'mid_term',
+          phase_label: 'Mid Term',
+          learning_modules: [
+            {
+              ...workspace.growth_plan_phases[0].learning_modules[0],
+              module_id: 'm2',
+              topic: 'Portfolio Projects',
+              resource_recommendations: [
+                {
+                  title: 'Frontend Mentor',
+                  url: 'https://www.frontendmentor.io/',
+                  reason: 'Real project practice',
+                  step_label: 'Complete one challenge',
+                  why_first: 'Close to real-world task structure.',
+                  expected_output: 'Ship one portfolio-ready project.',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as API.PlanWorkspacePayload;
+    mockGetCareerDevelopmentPlanWorkspace.mockResolvedValueOnce({ data: multiPhaseWorkspace });
+
     render(React.createElement(LearningPathPage));
 
     expect(await screen.findByText('Build a small showcase page')).toBeTruthy();
@@ -281,25 +284,5 @@ describe('LearningPathPage', () => {
       expect.objectContaining({ phase_key: 'mid_term' }),
       expect.any(Object),
     );
-  });
-
-  it('shows module-level empty state instead of fallback resources', async () => {
-    render(React.createElement(LearningPathPage));
-
-    fireEvent.click(await screen.findByText('Long Term'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('resource-empty-m3')).toBeTruthy();
-    });
-
-    expect(screen.queryByText('Coursera')).toBeNull();
-  });
-
-  it('shows empty guidance when report is missing', async () => {
-    window.sessionStorage.clear();
-    render(React.createElement(LearningPathPage));
-
-    expect(await screen.findByRole('button')).toBeTruthy();
-    expect(mockGenerateSnailLearningPath).not.toHaveBeenCalled();
   });
 });

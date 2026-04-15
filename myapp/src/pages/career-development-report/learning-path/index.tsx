@@ -29,7 +29,11 @@ import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createSnailLearningPathReview,
-  generateSnailLearningPath,
+  getCareerDevelopmentFavorites,
+  getCareerDevelopmentPlanWorkspace,
+  getHomeV2,
+  getStudentCompetencyLatestAnalysis,
+  initializeSnailLearningPathWorkspace,
   listSnailLearningPathReviews,
 } from '@/services/ant-design-pro/api';
 import {
@@ -49,10 +53,13 @@ import {
   getOverallProgress,
   getPhaseProgress,
   getResourceCompletionId,
+  loadActivePhaseKey,
   loadCompletedResources,
-  loadPendingReport,
+  loadFavoriteId,
+  saveActivePhaseKey,
   saveCompletedModules,
   saveCompletedResources,
+  saveFavoriteId,
   type LearningPathPhaseKey,
 } from './learningPathUtils';
 
@@ -60,6 +67,12 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 type ReviewFormValues = { summary: string };
+type PreparationState = {
+  hasFavorite: boolean;
+  hasProfile: boolean;
+  hasLatestAnalysis: boolean;
+  hasWorkspace: boolean;
+};
 
 const MONTHLY_RECOMMENDATION_LABELS: Record<API.SnailMonthlyReviewReport['recommendation'], string> = {
   continue: '继续当前阶段',
@@ -89,8 +102,6 @@ const useStyles = createStyles(({ css, token }) => ({
     margin-top: 16px;
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
-    } else {
-      setLoading(false);
     }
   `,
   summaryPrimary: css`
@@ -230,10 +241,15 @@ const useStyles = createStyles(({ css, token }) => ({
 
 const LearningPathPage: React.FC = () => {
   const { styles, cx } = useStyles();
-  const [loading, setLoading] = useState(() => !!loadPendingReport());
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
   const [workspace, setWorkspace] = useState<API.PlanWorkspacePayload>();
-  const [report, setReport] = useState<API.CareerDevelopmentMatchReport | null>(() => loadPendingReport());
+  const [preparation, setPreparation] = useState<PreparationState>({
+    hasFavorite: false,
+    hasProfile: false,
+    hasLatestAnalysis: false,
+    hasWorkspace: false,
+  });
   const [resourceCompletedSet, setResourceCompletedSet] = useState<Set<string>>(new Set());
   const [activePhaseKey, setActivePhaseKey] = useState<LearningPathPhaseKey>();
   const [reviewHistory, setReviewHistory] = useState<API.SnailLearningPathReviewPayload[]>([]);
@@ -246,34 +262,104 @@ const LearningPathPage: React.FC = () => {
   const [weeklyForm] = Form.useForm<ReviewFormValues>();
   const [monthlyForm] = Form.useForm<ReviewFormValues>();
   const learningRouteRef = useRef<HTMLDivElement | null>(null);
-  // Track the last report_id to detect when user navigates from resume parsing with a new report
-  const lastReportIdRef = useRef<string | undefined>(undefined);
+  const favoriteId = useMemo(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const favoriteIdValue = Number(searchParams.get('favorite_id'));
+    if (Number.isInteger(favoriteIdValue) && favoriteIdValue > 0) return favoriteIdValue;
+    // URL 无参数时，fallback 到 localStorage（tab 切换后 URL 可能丢失参数）
+    return loadFavoriteId();
+  }, []);
+  // 每次有有效 favoriteId 时同步到 localStorage
+  useEffect(() => {
+    if (favoriteId) saveFavoriteId(favoriteId);
+  }, [favoriteId]);
+  const report = useMemo(() => {
+    const snapshot = workspace?.favorite?.report_snapshot;
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    const s = snapshot as API.CareerDevelopmentMatchReport;
+    // 关键字段全部为空时视为数据缺失，由 error state 统一处理
+    if (
+      !s.report_id &&
+      !s.target_title &&
+      (!s.comparison_dimensions || s.comparison_dimensions.length === 0)
+    ) {
+      return null;
+    }
+    return s;
+  }, [workspace]);
 
   useEffect(() => {
-    const currentReport = loadPendingReport();
-    setReport(currentReport);
-
-    if (!currentReport) {
-      setLoadError('缺少职业匹配结果。');
-      setWorkspace(undefined);
-      setLoading(false);
-      lastReportIdRef.current = undefined;
-      return;
-    }
-
-    // report_id changed → user came from resume parsing with a new report; reload workspace
-    if (lastReportIdRef.current !== currentReport.report_id) {
-      lastReportIdRef.current = currentReport.report_id;
-      setWorkspace(undefined); // clear stale workspace before showing loading
+    const loadWorkspace = async () => {
       setLoading(true);
       setLoadError(undefined);
-      generateSnailLearningPath(currentReport, { skipErrorHandler: true })
-        .then((response) => setWorkspace(response?.data))
-        .catch((error: any) => setLoadError(error?.message || '学习路径加载失败。'))
-        .finally(() => setLoading(false));
-    }
-    // If report_id unchanged, keep current workspace state (e.g. client-side nav back without new report)
-  }, []);
+      try {
+        const [homeRes, analysisRes, favoritesRes] = await Promise.all([
+          getHomeV2({ skipErrorHandler: true }),
+          getStudentCompetencyLatestAnalysis({ skipErrorHandler: true }),
+          getCareerDevelopmentFavorites({ skipErrorHandler: true }),
+        ]);
+        const favorites = favoritesRes?.data || [];
+        const matchedFavorite = favoriteId
+          ? favorites.find((item) => item.favorite_id === favoriteId)
+          : undefined;
+        const nextPreparation: PreparationState = {
+          hasFavorite: favoriteId ? Boolean(matchedFavorite) : favorites.length > 0,
+          hasProfile: Boolean(homeRes?.data?.onboarding_completed && homeRes.data.profile),
+          hasLatestAnalysis: Boolean(analysisRes?.data?.available),
+          hasWorkspace: false,
+        };
+        setPreparation(nextPreparation);
+
+        if (!favoriteId) {
+          setWorkspace(undefined);
+          setLoadError('请先在"职业匹配"中选择并收藏目标岗位，再进入蜗牛学习路径。');
+          return;
+        }
+        if (!matchedFavorite) {
+          setWorkspace(undefined);
+          setLoadError('当前目标岗位不存在或不属于当前账号，请先在"职业匹配"中重新收藏目标岗位。');
+          return;
+        }
+        if (!nextPreparation.hasProfile) {
+          setWorkspace(undefined);
+          setLoadError('请先前往"首页"补充我的资料，再生成蜗牛学习路径。');
+          return;
+        }
+        if (!nextPreparation.hasLatestAnalysis) {
+          setWorkspace(undefined);
+          setLoadError('请先前往"简历解析"完成 12 维解析，再生成蜗牛学习路径。');
+          return;
+        }
+
+        try {
+          const response = await getCareerDevelopmentPlanWorkspace(favoriteId, {
+            skipErrorHandler: true,
+          });
+          if (response?.data) {
+            setWorkspace(response.data);
+            setPreparation((current) => ({ ...current, hasWorkspace: true }));
+            return;
+          }
+        } catch (error: any) {
+          const statusCode = error?.response?.status;
+          if (statusCode !== 404 && !String(error?.message || '').includes('404')) {
+            throw error;
+          }
+        }
+
+        const created = await initializeSnailLearningPathWorkspace(favoriteId, {
+          skipErrorHandler: true,
+        });
+        setWorkspace(created?.data);
+        setPreparation((current) => ({ ...current, hasWorkspace: Boolean(created?.data) }));
+      } catch (error: any) {
+        setWorkspace(undefined);
+        setLoadError(error?.message || '加载蜗牛学习路径失败。');
+      }
+    };
+
+    void loadWorkspace().finally(() => setLoading(false));
+  }, [favoriteId]);
 
   const storageKey = useMemo(() => buildWorkspaceStorageKey(workspace, report), [workspace, report]);
   useEffect(() => {
@@ -286,13 +372,18 @@ const LearningPathPage: React.FC = () => {
   const currentPhaseKey = useMemo(() => getCurrentPhaseKey(phases, completedSet), [phases, completedSet]);
   const currentPhaseIndex = useMemo(() => phases.findIndex((item) => item.phase_key === currentPhaseKey), [phases, currentPhaseKey]);
 
+  // 恢复 activePhaseKey：每次 workspace 加载完成后，从 localStorage 恢复用户上次选中的阶段
   useEffect(() => {
-    if (!phases.length) return;
+    if (!workspace || !phases.length) return;
     setActivePhaseKey((previous) => {
       if (previous && phases.some((item) => item.phase_key === previous)) return previous;
+      const saved = loadActivePhaseKey(storageKey);
+      if (saved && phases.some((item) => item.phase_key === saved)) {
+        return saved;
+      }
       return currentPhaseKey;
     });
-  }, [phases, currentPhaseKey]);
+  }, [workspace, phases, currentPhaseKey, storageKey]);
 
   const activePhase = useMemo(
     () => phases.find((item) => item.phase_key === activePhaseKey) || phases[currentPhaseIndex] || phases[0],
@@ -343,6 +434,7 @@ const LearningPathPage: React.FC = () => {
     const phase = phases[nextIndex];
     if (!phase) return;
     setActivePhaseKey(phase.phase_key);
+    saveActivePhaseKey(storageKey, phase.phase_key);
     setReviewDrawerOpen(false);
   };
 
@@ -629,7 +721,7 @@ const LearningPathPage: React.FC = () => {
         <Card size="small" title={isWeekly ? '最新周检查' : '最新月评'}>
           {reviewLoading ? <Spin /> : isWeekly ? renderWeeklyReport(latest) : renderMonthlyReport(latest)}
         </Card>
-        <Card size="small" title={isWeekly ? `周检查历史（${historyList.length}）` : `月评历史（${historyList.length}）`}>
+        <Card size="small" title={isWeekly ? `周检查历史(${historyList.length})` : `月评历史(${historyList.length})`}>
           {reviewLoading ? (
             <Spin />
           ) : !historyList.length ? (
@@ -676,20 +768,81 @@ const LearningPathPage: React.FC = () => {
     setReviewDrawerOpen(true);
   };
 
-  if (loadError || !report) {
-    return (
-      <PageContainer title={false}>
-        <div className={styles.page}>
-          <Result
-            status="info"
-            title="蜗牛学习路径"
-            subTitle={loadError || '暂无可用结果。'}
-            extra={<Button type="primary" onClick={() => history.push('/student-competency-profile')}>返回职业匹配</Button>}
-          />
-        </div>
-      </PageContainer>
-    );
-  }
+  const preparationItems = [
+    {
+      key: 'favorite',
+      label: '已选择并收藏目标岗位',
+      ready: preparation.hasFavorite,
+      description: preparation.hasFavorite
+        ? '当前目标岗位已绑定到本次学习路径。'
+        : '请先前往"职业匹配"选择推荐岗位并完成收藏。',
+      actionText: '前往职业匹配',
+      actionPath: '/student-competency-profile',
+    },
+    {
+      key: 'profile',
+      label: '已完善我的资料',
+      ready: preparation.hasProfile,
+      description: preparation.hasProfile
+        ? '我的资料已补充完成。'
+        : '请先前往"首页"完善姓名、学校、专业、学历、年级和目标岗位。',
+      actionText: '前往首页',
+      actionPath: '/',
+    },
+    {
+      key: 'analysis',
+      label: '已生成 12 维解析',
+      ready: preparation.hasLatestAnalysis,
+      description: preparation.hasLatestAnalysis
+        ? '已读取最新的 12 维解析结果。'
+        : '请先前往"简历解析"完成 12 维解析。',
+      actionText: '前往简历解析',
+      actionPath: '/student-competency-profile',
+    },
+    {
+      key: 'workspace',
+      label: '已生成蜗牛学习路径工作台',
+      ready: preparation.hasWorkspace,
+      description: preparation.hasWorkspace
+        ? '当前目标岗位已生成专属学习路径工作台。'
+        : '满足前置条件后，系统会自动初始化蜗牛学习路径工作台。',
+      actionText: '返回职业匹配',
+      actionPath: '/student-competency-profile',
+    },
+  ];
+  const primaryGuidancePath = !preparation.hasFavorite
+    ? '/student-competency-profile'
+    : !preparation.hasProfile
+      ? '/'
+      : '/student-competency-profile';
+  const primaryGuidanceText = !preparation.hasFavorite
+    ? '前往职业匹配'
+    : !preparation.hasProfile
+      ? '前往首页'
+      : '前往简历解析';
+  const preparationCard = (
+    <Card className={styles.introCard} title="开始前准备">
+      <List
+        dataSource={preparationItems}
+        renderItem={(item) => (
+          <List.Item
+            actions={
+              item.ready
+                ? [<Tag color="success" key={`${item.key}-ready`}>已就绪</Tag>]
+                : [
+                    <Button key={`${item.key}-action`} type="link" onClick={() => history.push(item.actionPath)}>
+                      {item.actionText}
+                    </Button>,
+                  ]
+            }
+          >
+            <List.Item.Meta title={item.label} description={item.description} />
+          </List.Item>
+        )}
+      />
+    </Card>
+  );
+
   if (loading) {
     return (
       <PageContainer title={false}>
@@ -737,6 +890,39 @@ const LearningPathPage: React.FC = () => {
       </PageContainer>
     );
   }
+
+  if (loadError || !favoriteId || !report) {
+    return (
+      <PageContainer title={false}>
+        <div className={styles.page}>
+          {preparationCard}
+          <Result
+            status="info"
+            title="蜗牛学习路径"
+            subTitle={
+              loadError ||
+              (!favoriteId
+                ? '请先在"职业匹配"中选择并收藏目标岗位，再进入蜗牛学习路径。'
+                : !report
+                  ? '报告数据缺失，请重新在"职业匹配"中收藏目标岗位。'
+                  : '当前还不能生成学习路径，请先完成上面的前置条件。')
+            }
+            extra={
+              <Space wrap>
+                <Button type="primary" onClick={() => history.push(primaryGuidancePath)}>
+                  {primaryGuidanceText}
+                </Button>
+                <Button onClick={() => history.push('/student-competency-profile')}>
+                  返回职业匹配
+                </Button>
+              </Space>
+            }
+          />
+        </div>
+      </PageContainer>
+    );
+  }
+
   if (!workspace || !activePhase) {
     return <PageContainer title={false}><div className={styles.page}><Empty description="暂无学习路径" /></div></PageContainer>;
   }
@@ -752,6 +938,7 @@ const LearningPathPage: React.FC = () => {
   return (
     <PageContainer title={false}>
       <div className={styles.page}>
+        {preparationCard}
         <Card className={styles.introCard}>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <div className={styles.introHeader}>

@@ -96,7 +96,7 @@ describe('VerticalJobProfilePage', () => {
                 {
                   industry: '互联网',
                   company_name: '甲公司',
-                  salary_sort_label: '3,000–8,000 元/月',
+                  salary_sort_label: '3,000-8,000 元/月',
                   salary_sort_value: 8000,
                 },
               ],
@@ -131,6 +131,6 @@ describe('VerticalJobProfilePage', () => {
     expect(await screen.findByTestId('vertical-tier-comparison')).toBeTruthy();
     expect(screen.getAllByText('低级').length).toBeGreaterThan(0);
     expect(screen.getByText('甲公司')).toBeTruthy();
-    expect(screen.getByText('3,000–8,000 元/月')).toBeTruthy();
+    expect(screen.getByText('3,000-8,000 元/月')).toBeTruthy();
   });
 });

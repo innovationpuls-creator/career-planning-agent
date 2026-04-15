@@ -15,6 +15,10 @@ from app.models.career_development_personal_growth_report_task import (
 from app.models.career_development_plan_workspace import CareerDevelopmentPlanWorkspace
 from app.schemas.career_development_report import (
     CareerDevelopmentFavoritePayload,
+    CareerDevelopmentGoalCorrelationAnalysis,
+    CareerDevelopmentGoalInsightCard,
+    CareerDevelopmentGoalPlanResultPayload,
+    CareerDevelopmentGoalStrengthDirectionItem,
     GrowthPlanCurrentLearningStep,
     GrowthPlanPhase,
     GrowthPlanPhaseFlowItem,
@@ -29,7 +33,6 @@ from app.schemas.career_development_report import (
     PlanWorkspacePayload,
 )
 from app.services.career_development_goal_planning import (
-    build_goal_plan_result,
     get_favorite_report_record,
     list_favorite_report_records,
     read_favorite_report_payload,
@@ -38,6 +41,8 @@ from app.services.career_development_learning_resources import (
     generate_learning_resources_for_phases,
 )
 from app.services.career_development_plan_workspace import (
+    build_default_review_framework,
+    build_growth_plan_phases,
     build_plan_workspace_payload,
     export_docx_bytes,
     export_markdown_bytes,
@@ -892,6 +897,74 @@ async def regenerate_personal_growth_report(
     return row
 
 
+def _build_personal_growth_base_goal_plan_result(
+    *,
+    favorite: CareerDevelopmentFavoritePayload,
+    growth_plan_phases: list[GrowthPlanPhase],
+) -> CareerDevelopmentGoalPlanResultPayload:
+    report = favorite.report_snapshot
+    strengths = [item for item in (report.strength_dimensions or []) if _normalize_text(item)]
+    gaps = [item for item in (report.priority_gap_dimensions or []) if _normalize_text(item)]
+
+    strength_directions = [
+        CareerDevelopmentGoalStrengthDirectionItem(
+            title=title,
+            summary=f"当前画像在“{title}”上已有一定基础，可继续转化为目标岗位证据。",
+            supporting_dimensions=[title],
+            matched_keywords=[],
+            evidence_companies=[],
+            supporting_metrics=[f"当前岗位匹配度 {favorite.overall_match:.2f}%"],
+            reasoning=f"该方向已体现在当前职业匹配结果中，可作为后续成长规划的支撑点。",
+        )
+        for title in strengths[:3]
+    ]
+
+    trend_lines = [
+        f"目标岗位：{favorite.canonical_job_title}",
+        f"目标方向：{favorite.target_title}",
+        f"目标行业：{favorite.industry}" if favorite.industry else "",
+        f"当前匹配度：{favorite.overall_match:.2f}%",
+    ]
+    path_lines = []
+    for phase in growth_plan_phases:
+        path_lines.extend(
+            [
+                f"## {phase.phase_label}",
+                f"- 时间范围：{phase.time_horizon}",
+                f"- 阶段目标：{phase.goal_statement}",
+            ]
+        )
+
+    return CareerDevelopmentGoalPlanResultPayload(
+        favorite=favorite,
+        trend_markdown="\n".join(line for line in trend_lines if line),
+        trend_section_markdown="\n".join(line for line in trend_lines if line),
+        path_section_markdown="\n".join(path_lines).strip(),
+        correlation_analysis=CareerDevelopmentGoalCorrelationAnalysis(
+            foundation=CareerDevelopmentGoalInsightCard(
+                summary="已具备与目标岗位相关的基础能力。",
+                highlights=strengths[:3],
+            ),
+            gaps=CareerDevelopmentGoalInsightCard(
+                summary="仍存在需要持续补齐的关键差距。",
+                highlights=gaps[:3],
+            ),
+            path_impact=CareerDevelopmentGoalInsightCard(
+                summary="建议围绕现有学习路径逐步推进，优先补强关键短板。",
+                highlights=[phase.phase_label for phase in growth_plan_phases[:3]],
+            ),
+        ),
+        strength_directions=strength_directions,
+        path_stages=[],
+        comprehensive_report_markdown="",
+        path_nodes=[],
+        stage_recommendations=[],
+        growth_plan_phases=growth_plan_phases,
+        review_framework=build_default_review_framework(),
+        generated_report_markdown="",
+    )
+
+
 async def ensure_personal_growth_base_workspace(
     db: Session,
     *,
@@ -902,18 +975,22 @@ async def ensure_personal_growth_base_workspace(
     if row is not None:
         return row
 
-    result, _ = await build_goal_plan_result(
-        db,
+    favorite_record = get_favorite_report_record(db, user_id=user_id, favorite_id=favorite_id)
+    if favorite_record is None:
+        return None
+    favorite = read_favorite_report_payload(favorite_record)
+    base_phases = build_growth_plan_phases(favorite)
+    enriched_phases = await generate_learning_resources_for_phases(
+        favorite=favorite,
+        phases=base_phases,
         user_id=user_id,
         favorite_id=favorite_id,
+    )
+    result = _build_personal_growth_base_goal_plan_result(
+        favorite=favorite,
+        growth_plan_phases=enriched_phases,
     )
     normalized_result = normalize_goal_plan_result(result)
-    enriched_phases = await generate_learning_resources_for_phases(
-        favorite=normalized_result.favorite,
-        phases=normalized_result.growth_plan_phases,
-        user_id=user_id,
-        favorite_id=favorite_id,
-    )
     normalized_result = normalize_goal_plan_result(
         normalized_result.model_copy(update={"growth_plan_phases": enriched_phases})
     )

@@ -84,6 +84,13 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 10px 12px;
     border-radius: 10px;
     background: ${token.colorFillQuaternary};
+    transition: all 0.2s ease;
+    cursor: default;
+
+    :hover {
+      background: ${token.colorFillSecondary};
+      transform: scale(1.02);
+    }
   `,
   metricLabel: css`
     display: block;
@@ -115,6 +122,17 @@ const useStyles = createStyles(({ css, token }) => ({
   primaryAction: css`
     flex: 0 0 auto;
     align-self: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+    }
+
+    :active {
+      transform: translateY(0);
+    }
   `,
   comparisonBody: css`
     display: grid;
@@ -144,10 +162,23 @@ const useStyles = createStyles(({ css, token }) => ({
     background: ${token.colorBgContainer};
     text-align: left;
     cursor: pointer;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-2px);
+      border-color: ${token.colorPrimary};
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+    }
+
+    :active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
   `,
   gapButtonActive: css`
-    border-color: #91caff;
+    border-color: ${token.colorPrimary};
     background: #f5f9ff;
+    transition: all 0.2s ease;
   `,
   gapTop: css`
     display: flex;
@@ -172,6 +203,14 @@ const useStyles = createStyles(({ css, token }) => ({
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+  `,
+  strengthTag: css`
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+    }
   `,
   adviceLayout: css`
     display: grid;
@@ -198,6 +237,17 @@ const useStyles = createStyles(({ css, token }) => ({
     background: ${token.colorBgContainer};
     text-align: left;
     cursor: pointer;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-2px);
+      border-color: ${token.colorPrimary};
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+    }
+
+    :active {
+      transform: translateY(0);
+    }
   `,
   adviceDetail: css`
     display: grid;
@@ -226,6 +276,18 @@ const useStyles = createStyles(({ css, token }) => ({
       padding-inline: 0 !important;
       padding-bottom: 0 !important;
       padding-top: 6px !important;
+    }
+  `,
+  copyButton: css`
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    :active {
+      transform: translateY(0);
     }
   `,
 }));
@@ -545,7 +607,7 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
           <div className={styles.strengthsCompact}>
             {viewModel.strengthGroups.flatMap((group) =>
               group.tags.map((tag) => (
-                <Tag key={`${group.key}-${tag}`} color="success" style={{ marginInlineEnd: 0 }}>
+                <Tag key={`${group.key}-${tag}`} color="success" className={styles.strengthTag} style={{ marginInlineEnd: 0 }}>
                   {tag}
                 </Tag>
               )),
@@ -640,6 +702,7 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                   <Button
                     size="small"
                     icon={<CopyOutlined />}
+                    className={styles.copyButton}
                     onClick={async () => {
                       if (!copyCandidates.length) return;
                       await copyText(copyCandidates.join('\n'));

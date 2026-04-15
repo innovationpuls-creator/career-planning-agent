@@ -104,13 +104,10 @@ describe('JobRequirementProfilePage', () => {
 
     render(React.createElement(JobRequirementProfilePage));
 
-    expect(screen.getByText('构建就业岗位要求画像')).toBeTruthy();
-    expect(screen.getByText('重置视图')).toBeTruthy();
-    expect(screen.getByText('点击节点查看右侧详情')).toBeTruthy();
-    expect(screen.queryByText('全局聚合总览')).toBeNull();
-    expect(screen.getByText('12 个维度：')).toBeTruthy();
-    expect(screen.getByText('3 个分组：')).toBeTruthy();
-    expect(screen.getByText('阅读方式：')).toBeTruthy();
+    expect(screen.queryByText('构建就业岗位要求画像')).toBeNull();
+    expect(screen.queryByText('重置视图')).toBeNull();
+    expect(screen.queryByText('点击节点查看右侧详情')).toBeNull();
+    expect(screen.getByText('图谱阅读指南')).toBeTruthy();
 
     await waitFor(() => {
       expect(mockedGetJobRequirementProfileGraph).toHaveBeenCalled();

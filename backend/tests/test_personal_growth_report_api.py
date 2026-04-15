@@ -1,9 +1,14 @@
 ﻿from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
+from io import BytesIO
+from pathlib import Path
 from uuid import uuid4
+from zipfile import ZipFile
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -32,7 +37,12 @@ from app.services.career_development_goal_planning import read_favorite_report_p
 from app.services.career_development_personal_growth_report import (
     build_personal_growth_generation_context,
 )
-from app.services.career_development_plan_workspace import upsert_workspace_from_goal_plan_result
+from app.services.career_development_plan_workspace import (
+    _docx_document_xml,
+    export_docx_bytes,
+    export_pdf_bytes,
+    upsert_workspace_from_goal_plan_result,
+)
 from tests.helpers import unique_username
 
 CareerDevelopmentFavoriteReport.__table__.create(bind=engine, checkfirst=True)
@@ -43,6 +53,32 @@ StudentProfile.__table__.create(bind=engine, checkfirst=True)
 
 client = TestClient(app)
 UTC = timezone.utc
+
+
+class FakePersonalGrowthLLMClient:
+    async def chat_completion(self, messages, *, temperature=0.0):
+        del messages, temperature
+        return (
+            "# 个人职业成长报告\n\n"
+            "## 自我认知\n"
+            "具备基础开发能力，执行力较稳定。\n\n"
+            "## 职业方向分析\n"
+            "适合从前端工程方向切入，逐步扩展工程化能力。\n\n"
+            "## 匹配度判断\n"
+            "基础能力有一定匹配，但项目证据和协作经历仍需补强。\n\n"
+            "## 发展建议\n"
+            "优先补齐项目实践、作品表达和跨团队协作证据。\n\n"
+            "## 行动计划\n"
+            "### 短期行动（0-3个月）\n"
+            "- 完成一个组件化项目\n\n"
+            "### 中期行动（3-9个月）\n"
+            "- 沉淀作品集与项目复盘\n\n"
+            "### 长期行动（9-24个月）\n"
+            "- 完成求职准备并持续投递\n"
+        )
+
+    async def aclose(self):
+        return None
 
 
 def _register_and_login() -> tuple[dict[str, str], int]:
@@ -292,6 +328,62 @@ def _seed_favorite_and_workspace(user_id: int) -> int:
         return favorite.id
 
 
+def _seed_favorite_only(user_id: int) -> int:
+    report = CareerDevelopmentMatchReport(
+        report_id="career:frontend:no-workspace",
+        target_scope="career",
+        target_title="前端工程师",
+        canonical_job_title="前端工程师",
+        representative_job_title="前端开发",
+        industry="互联网",
+        overall_match=76.66,
+        strength_dimension_count=1,
+        priority_gap_dimension_count=1,
+        group_summaries=[],
+        comparison_dimensions=[
+            StudentCompetencyComparisonDimensionItem(
+                key="communication",
+                title="沟通表达",
+                user_values=["可以清晰描述项目职责"],
+                market_keywords=["跨团队协作", "需求澄清"],
+                market_weight=0.8,
+                normalized_weight=0.8,
+                market_target=78,
+                user_readiness=62,
+                gap=16,
+                presence=1,
+                richness=0.7,
+                status_label="需补强",
+                matched_market_keywords=["需求澄清"],
+                missing_market_keywords=["跨团队协作"],
+                coverage_score=0.65,
+                alignment_score=0.6,
+            )
+        ],
+        priority_gap_dimensions=["communication"],
+        action_advices=[],
+    )
+    with SessionLocal() as db:
+        favorite = CareerDevelopmentFavoriteReport(
+            user_id=user_id,
+            source_kind="recommendation",
+            report_id=report.report_id,
+            target_scope=report.target_scope,
+            target_title=report.target_title,
+            canonical_job_title=report.canonical_job_title,
+            normalized_canonical_job_title=report.canonical_job_title,
+            representative_job_title=report.representative_job_title,
+            industry=report.industry,
+            normalized_industry=report.industry or "",
+            overall_match=report.overall_match,
+            report_snapshot_json=json.dumps(report.model_dump(mode="json"), ensure_ascii=False),
+        )
+        db.add(favorite)
+        db.commit()
+        db.refresh(favorite)
+        return favorite.id
+
+
 def test_workspace_get_includes_active_task_summary():
     headers, user_id = _register_and_login()
     _seed_student_profile(user_id)
@@ -327,6 +419,27 @@ def test_workspace_get_includes_active_task_summary():
     payload = response.json()["data"]
     assert payload["active_task"]["status"] == "running"
     assert payload["active_task"]["progress"] == 36
+
+
+def test_goal_plan_workspace_endpoint_returns_saved_learning_path():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    response = client.get(
+        f"/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["favorite"]["favorite_id"] == favorite_id
+    assert [phase["phase_key"] for phase in payload["growth_plan_phases"]] == [
+        "short_term",
+        "mid_term",
+        "long_term",
+    ]
 
 
 def test_create_personal_growth_task_endpoint_requires_profile_and_latest_analysis(monkeypatch):
@@ -410,3 +523,159 @@ def test_generation_context_includes_required_sources():
     assert "职业匹配与目标差距文本" in sources
     assert "当前目标岗位" in sources
     assert "蜗牛学习路径" in sources
+
+
+def test_create_personal_growth_task_runs_to_completion(monkeypatch):
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    monkeypatch.setattr(
+        "app.services.career_development_personal_growth_report.OpenAICompatibleLLMClient.from_settings",
+        classmethod(lambda cls: FakePersonalGrowthLLMClient()),
+    )
+
+    create_response = client.post(
+        "/api/career-development-report/personal-growth-report/tasks",
+        headers=headers,
+        json={"favorite_id": favorite_id, "overwrite_current": True},
+    )
+    assert create_response.status_code == 200
+    task_id = create_response.json()["data"]["task_id"]
+
+    snapshot = None
+    for _ in range(30):
+        response = client.get(
+            f"/api/career-development-report/personal-growth-report/tasks/{task_id}",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        snapshot = response.json()["data"]
+        if snapshot["status"] in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(0.1)
+
+    assert snapshot is not None
+    assert snapshot["status"] == "completed", snapshot
+
+    workspace_response = client.get(
+        f"/api/career-development-report/personal-growth-report/workspaces/{favorite_id}",
+        headers=headers,
+    )
+    assert workspace_response.status_code == 200
+    payload = workspace_response.json()["data"]
+    assert payload["generated_markdown"]
+    assert any(section["completed"] for section in payload["sections"])
+
+
+def test_create_personal_growth_task_can_bootstrap_workspace_without_goal_plan(monkeypatch):
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_only(user_id)
+
+    async def fake_generate_learning_resources_for_phases(**kwargs):
+        return kwargs["phases"]
+
+    monkeypatch.setattr(
+        "app.services.career_development_personal_growth_report.OpenAICompatibleLLMClient.from_settings",
+        classmethod(lambda cls: FakePersonalGrowthLLMClient()),
+    )
+    monkeypatch.setattr(
+        "app.services.career_development_personal_growth_report.generate_learning_resources_for_phases",
+        fake_generate_learning_resources_for_phases,
+    )
+
+    create_response = client.post(
+        "/api/career-development-report/personal-growth-report/tasks",
+        headers=headers,
+        json={"favorite_id": favorite_id, "overwrite_current": True},
+    )
+    assert create_response.status_code == 200
+    task_id = create_response.json()["data"]["task_id"]
+
+    snapshot = None
+    for _ in range(30):
+        response = client.get(
+            f"/api/career-development-report/personal-growth-report/tasks/{task_id}",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        snapshot = response.json()["data"]
+        if snapshot["status"] in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(0.1)
+
+    assert snapshot is not None
+    assert snapshot["status"] == "completed", snapshot
+
+
+def test_export_pdf_bytes_supports_chinese_content():
+    content = export_pdf_bytes(
+        "# 个人职业成长报告\n\n## 自我认知\n具备基础开发能力。\n\n### 短期行动（0-3个月）\n- 完成一个项目"
+    )
+
+    assert content.startswith(b"%PDF")
+    assert len(content) > 1000
+
+
+def test_docx_document_xml_renders_structured_content_without_raw_markdown_markers():
+    xml = _docx_document_xml(
+        "# 个人职业成长报告\n\n## 自我认知\n具备**基础开发能力**。\n\n- 完成一个项目\n1. 沉淀项目复盘"
+    )
+
+    assert "# 个人职业成长报告" not in xml
+    assert "## 自我认知" not in xml
+    assert "**基础开发能力**" not in xml
+    assert "• " in xml
+    assert "1. " in xml
+    assert 'w:pStyle w:val="Title"' in xml
+    assert 'w:pStyle w:val="Heading1"' in xml
+    assert "<w:b/>" in xml
+
+
+def test_export_docx_bytes_returns_readable_wordprocessingml():
+    content = export_docx_bytes(
+        "# 个人职业成长报告\n\n## 发展建议\n- 完成一个项目\n- 整理一次复盘\n\n具备**稳定执行力**。"
+    )
+
+    assert len(content) > 1000
+    with ZipFile(BytesIO(content)) as archive:
+        document_xml = archive.read("word/document.xml").decode("utf-8")
+        styles_xml = archive.read("word/styles.xml").decode("utf-8")
+
+    assert "## 发展建议" not in document_xml
+    assert "- 完成一个项目" not in document_xml
+    assert "**稳定执行力**" not in document_xml
+    assert "• " in document_xml
+    assert "<w:b/>" in document_xml
+    assert "Heading1" in styles_xml
+
+
+def test_export_pdf_bytes_raises_when_font_missing(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.career_development_plan_workspace.PDF_FONT_PATH",
+        Path("missing-font.ttf"),
+    )
+
+    with pytest.raises(ValueError, match="PDF"):
+        export_pdf_bytes("# 个人职业成长报告")
+
+
+def test_export_personal_growth_report_pdf_endpoint_returns_pdf():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    response = client.post(
+        f"/api/career-development-report/personal-growth-report/workspaces/{favorite_id}/export",
+        headers=headers,
+        json={"format": "pdf", "force_with_issues": False},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert "attachment;" in response.headers["content-disposition"]
+    assert response.content.startswith(b"%PDF")

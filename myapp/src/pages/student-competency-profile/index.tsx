@@ -571,8 +571,11 @@ const StudentCompetencyProfilePage: React.FC = () => {
   };
 
   const handleGenerateCareerPlan = () => {
-    if (!activeRecommendation) return;
-    goToSnailLearningPath(activeRecommendation);
+    if (!activeRecommendationFavorite) {
+      message.warning('请先收藏当前目标岗位，再生成蜗牛学习路径。');
+      return;
+    }
+    goToSnailLearningPath(activeRecommendationFavorite.favorite_id);
   };
 
   const careerWorkspace = (

@@ -225,19 +225,15 @@ const requestWith404Fallback = async <T>(
   }
 };
 
-export async function generateSnailLearningPath(
-  report: API.CareerDevelopmentMatchReport,
+export async function initializeSnailLearningPathWorkspace(
+  favoriteId: number,
   options?: { [key: string]: any },
 ) {
   return requestWith404Fallback<API.PlanWorkspaceResponse>(
-    '/api/career-development-report/snail-learning-path/workspaces',
-    '/api/snail-learning-path/workspaces',
+    `/api/career-development-report/snail-learning-path/workspaces/${favoriteId}`,
+    `/api/snail-learning-path/workspaces/${favoriteId}`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: report,
       ...(options || {}),
     },
   );

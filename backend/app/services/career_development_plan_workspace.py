@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-import textwrap
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -13,6 +14,14 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from reportlab.lib.colors import HexColor
+from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.models.career_development_plan_workspace import CareerDevelopmentPlanWorkspace
 from app.core.config import DATA_DIR
@@ -48,6 +57,11 @@ from app.services.career_development_learning_resources import (
     normalize_learning_resource_url,
     parse_learning_resource_recommendations,
 )
+from app.services.snail_learning_resource_library import attach_prebuilt_learning_resources
+from app.services.student_competency_latest_analysis import (
+    get_student_competency_latest_profile_record,
+    read_student_competency_latest_analysis,
+)
 from app.services.career_development_goal_planning import (
     build_comprehensive_report_markdown_content,
     get_favorite_report_record,
@@ -57,6 +71,8 @@ from app.services.llm import LLMClientError
 
 
 UTC = timezone.utc
+PDF_FONT_NAME = "FeatureMapChinese"
+PDF_FONT_PATH = DATA_DIR / "fonts" / "simhei.ttf"
 
 PHASE_BLUEPRINTS = [
     {
@@ -1568,6 +1584,77 @@ def get_or_create_plan_workspace(
     return get_plan_workspace_record(db, user_id=user_id, favorite_id=favorite_id)
 
 
+def initialize_plan_workspace(
+    db: Session,
+    *,
+    user_id: int,
+    favorite_id: int,
+) -> CareerDevelopmentPlanWorkspace:
+    favorite_record = get_favorite_report_record(db, user_id=user_id, favorite_id=favorite_id)
+    if favorite_record is None:
+        raise ValueError("收藏目标不存在或无权访问。")
+    favorite = read_favorite_report_payload(favorite_record)
+
+    # ── 注入最新分析数据（与 build_plan_workspace_payload 保持一致）────────
+    latest_record = get_student_competency_latest_profile_record(db, user_id=user_id)
+    latest = read_student_competency_latest_analysis(latest_record)
+    if latest.available and latest.comparison_dimensions:
+        favorite.report_snapshot.comparison_dimensions = latest.comparison_dimensions
+        if latest.strength_dimensions:
+            favorite.report_snapshot.strength_dimensions = latest.strength_dimensions
+        if latest.priority_gap_dimensions:
+            favorite.report_snapshot.priority_gap_dimensions = latest.priority_gap_dimensions
+        if latest.chart_series:
+            favorite.report_snapshot.chart_series = latest.chart_series
+        if latest.action_advices:
+            favorite.report_snapshot.action_advices = latest.action_advices
+        if latest.narrative:
+            favorite.report_snapshot.narrative = latest.narrative
+    # ── 注入结束 ──────────────────────────────────────────────────────
+
+    phases = attach_prebuilt_learning_resources(
+        db,
+        favorite=favorite,
+        phases=build_growth_plan_phases(favorite),
+    )
+    review_framework = build_default_review_framework()
+    generated_payload = {
+        "growth_plan_phases": [item.model_dump(mode="json") for item in phases],
+        "review_framework": review_framework.model_dump(mode="json"),
+        "comprehensive_report_markdown": "",
+        "trend_section_markdown": "",
+        "path_section_markdown": "",
+    }
+
+    row = get_plan_workspace_record(db, user_id=user_id, favorite_id=favorite_id)
+    if row is None:
+        row = CareerDevelopmentPlanWorkspace(user_id=user_id, favorite_id=favorite_id)
+
+    generated_markdown = build_generated_report_markdown(
+        favorite,
+        growth_plan_phases=phases,
+        review_framework=review_framework,
+        comprehensive_report_markdown="",
+        trend_section_markdown="",
+        path_section_markdown="",
+    )
+    row.generated_plan_json = _json_dumps(generated_payload)
+    row.current_plan_json = _json_dumps(generated_payload)
+    row.generated_report_markdown = generated_markdown
+    if not (row.edited_report_markdown or "").strip():
+        row.edited_report_markdown = generated_markdown
+    row.latest_integrity_check_json = _json_dumps(
+        build_integrity_check(row.edited_report_markdown).model_dump(mode="json")
+    )
+    if not row.export_meta_json:
+        row.export_meta_json = _json_dumps(PlanExportMeta().model_dump(mode="json"))
+
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 def build_plan_workspace_payload(
     db: Session,
     *,
@@ -1579,6 +1666,28 @@ def build_plan_workspace_payload(
     if favorite_record is None:
         raise ValueError("收藏目标不存在或无权访问。")
     favorite = read_favorite_report_payload(favorite_record)
+
+    # ── 注入最新分析数据 ──────────────────────────────────────────────
+    # report_snapshot 是在收藏时保存的；用户重新做简历分析后它就变旧了。
+    # 这里取最新 competency analysis，用它的 competency 字段覆盖 snapshot，
+    # 保证学习路径始终反映用户当前最新能力画像。
+    latest_analysis_record = get_student_competency_latest_profile_record(db, user_id=user_id)
+    latest = read_student_competency_latest_analysis(latest_analysis_record)
+    if latest.available and latest.comparison_dimensions:
+        # comparison_dimensions 是学习模块内容的核心依据，必须用最新数据
+        favorite.report_snapshot.comparison_dimensions = latest.comparison_dimensions
+        if latest.strength_dimensions:
+            favorite.report_snapshot.strength_dimensions = latest.strength_dimensions
+        if latest.priority_gap_dimensions:
+            favorite.report_snapshot.priority_gap_dimensions = latest.priority_gap_dimensions
+        if latest.chart_series:
+            favorite.report_snapshot.chart_series = latest.chart_series
+        if latest.action_advices:
+            favorite.report_snapshot.action_advices = latest.action_advices
+        if latest.narrative:
+            favorite.report_snapshot.narrative = latest.narrative
+    # ── 注入结束 ──────────────────────────────────────────────────────
+
     generated_payload = _load_workspace_generated_payload(row)
     current_payload = _load_workspace_current_payload(row)
     phases = _parse_phases(current_payload) or _parse_phases(generated_payload) or build_growth_plan_phases(favorite)
@@ -1809,15 +1918,265 @@ async def generate_learning_resources_for_workspace(
     return row
 
 
+@dataclass
+class MarkdownRun:
+    text: str
+    bold: bool = False
+    italic: bool = False
+    code: bool = False
+
+
+@dataclass
+class MarkdownBlock:
+    kind: str
+    runs: list[MarkdownRun] = field(default_factory=list)
+    level: int = 0
+    ordered: bool = False
+    number: int | None = None
+
+
+INLINE_MARKDOWN_PATTERN = re.compile(r"(\*\*.+?\*\*|`.+?`|\*.+?\*)")
+UNORDERED_LIST_PATTERN = re.compile(r"^(?P<indent>\s*)[-*+]\s+(?P<content>.+)$")
+ORDERED_LIST_PATTERN = re.compile(r"^(?P<indent>\s*)(?P<number>\d+)\.\s+(?P<content>.+)$")
+
+
+def _parse_inline_markdown(text: str) -> list[MarkdownRun]:
+    content = (text or "").strip()
+    if not content:
+        return [MarkdownRun(text=" ")]
+
+    runs: list[MarkdownRun] = []
+    cursor = 0
+    for match in INLINE_MARKDOWN_PATTERN.finditer(content):
+        start, end = match.span()
+        if start > cursor:
+            runs.append(MarkdownRun(text=content[cursor:start]))
+
+        token = match.group(0)
+        if token.startswith("**") and token.endswith("**") and len(token) > 4:
+            runs.append(MarkdownRun(text=token[2:-2], bold=True))
+        elif token.startswith("*") and token.endswith("*") and len(token) > 2:
+            runs.append(MarkdownRun(text=token[1:-1], italic=True))
+        elif token.startswith("`") and token.endswith("`") and len(token) > 2:
+            runs.append(MarkdownRun(text=token[1:-1], code=True))
+        else:
+            runs.append(MarkdownRun(text=token))
+        cursor = end
+
+    if cursor < len(content):
+        runs.append(MarkdownRun(text=content[cursor:]))
+
+    return [run for run in runs if run.text] or [MarkdownRun(text=content)]
+
+
+def _parse_markdown_blocks(markdown: str) -> list[MarkdownBlock]:
+    blocks: list[MarkdownBlock] = []
+    paragraph_lines: list[str] = []
+
+    def flush_paragraph() -> None:
+        nonlocal paragraph_lines
+        if not paragraph_lines:
+            return
+        text = " ".join(line.strip() for line in paragraph_lines if line.strip())
+        if text:
+            blocks.append(MarkdownBlock(kind="paragraph", runs=_parse_inline_markdown(text)))
+        paragraph_lines = []
+
+    for raw_line in (markdown or "").splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped:
+            flush_paragraph()
+            continue
+
+        if stripped.startswith("# "):
+            flush_paragraph()
+            blocks.append(MarkdownBlock(kind="title", runs=_parse_inline_markdown(stripped[2:].strip())))
+            continue
+        if stripped.startswith("## "):
+            flush_paragraph()
+            blocks.append(MarkdownBlock(kind="heading2", runs=_parse_inline_markdown(stripped[3:].strip())))
+            continue
+        if stripped.startswith("### "):
+            flush_paragraph()
+            blocks.append(MarkdownBlock(kind="heading3", runs=_parse_inline_markdown(stripped[4:].strip())))
+            continue
+
+        unordered_match = UNORDERED_LIST_PATTERN.match(line)
+        if unordered_match:
+            flush_paragraph()
+            indent = len(unordered_match.group("indent").replace("\t", "    "))
+            blocks.append(
+                MarkdownBlock(
+                    kind="list_item",
+                    runs=_parse_inline_markdown(unordered_match.group("content")),
+                    level=indent // 4,
+                    ordered=False,
+                )
+            )
+            continue
+
+        ordered_match = ORDERED_LIST_PATTERN.match(line)
+        if ordered_match:
+            flush_paragraph()
+            indent = len(ordered_match.group("indent").replace("\t", "    "))
+            blocks.append(
+                MarkdownBlock(
+                    kind="list_item",
+                    runs=_parse_inline_markdown(ordered_match.group("content")),
+                    level=indent // 4,
+                    ordered=True,
+                    number=int(ordered_match.group("number")),
+                )
+            )
+            continue
+
+        paragraph_lines.append(stripped)
+
+    flush_paragraph()
+    return blocks
+
+
+def _docx_runs_xml(runs: list[MarkdownRun]) -> str:
+    run_parts: list[str] = []
+    for run in runs or [MarkdownRun(text=" ")]:
+        properties: list[str] = []
+        if run.bold:
+            properties.append("<w:b/>")
+        if run.italic:
+            properties.append("<w:i/>")
+        if run.code:
+            properties.append('<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Microsoft YaHei"/>')
+        run_pr = f"<w:rPr>{''.join(properties)}</w:rPr>" if properties else ""
+        run_parts.append(
+            "<w:r>"
+            + run_pr
+            + '<w:t xml:space="preserve">'
+            + xml_escape(run.text or " ")
+            + "</w:t></w:r>"
+        )
+    return "".join(run_parts)
+
+
+def _docx_paragraph_xml(
+    *,
+    runs: list[MarkdownRun],
+    style: str | None = None,
+    left_indent: int | None = None,
+    hanging: int | None = None,
+    prefix: str | None = None,
+) -> str:
+    ppr_parts: list[str] = []
+    if style:
+        ppr_parts.append(f'<w:pStyle w:val="{style}"/>')
+    ppr_parts.append('<w:spacing w:after="120" w:line="360" w:lineRule="auto"/>')
+    if left_indent is not None:
+        hanging_attr = f' w:hanging="{hanging}"' if hanging is not None else ""
+        ppr_parts.append(f'<w:ind w:left="{left_indent}"{hanging_attr}/>')
+
+    run_xml = ""
+    if prefix:
+        run_xml += _docx_runs_xml([MarkdownRun(text=prefix)])
+    run_xml += _docx_runs_xml(runs)
+    return f"<w:p><w:pPr>{''.join(ppr_parts)}</w:pPr>{run_xml}</w:p>"
+
+
+def _docx_styles_xml() -> str:
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei"/>
+        <w:sz w:val="22"/>
+        <w:szCs w:val="22"/>
+      </w:rPr>
+    </w:rPrDefault>
+    <w:pPrDefault>
+      <w:pPr>
+        <w:spacing w:after="120" w:line="360" w:lineRule="auto"/>
+      </w:pPr>
+    </w:pPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title"/>
+    <w:basedOn w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:spacing w:before="120" w:after="220"/>
+    </w:pPr>
+    <w:rPr>
+      <w:b/>
+      <w:sz w:val="36"/>
+      <w:szCs w:val="36"/>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="heading 1"/>
+    <w:basedOn w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:spacing w:before="180" w:after="120"/>
+    </w:pPr>
+    <w:rPr>
+      <w:b/>
+      <w:sz w:val="30"/>
+      <w:szCs w:val="30"/>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="heading 2"/>
+    <w:basedOn w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:spacing w:before="120" w:after="80"/>
+    </w:pPr>
+    <w:rPr>
+      <w:b/>
+      <w:sz w:val="24"/>
+      <w:szCs w:val="24"/>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei"/>
+    </w:rPr>
+  </w:style>
+</w:styles>"""
+
+
 def _docx_document_xml(markdown: str) -> str:
     body_parts: list[str] = []
-    for raw_line in (markdown or "").splitlines() or [""]:
-        text = raw_line or " "
-        body_parts.append(
-            "<w:p><w:r><w:t xml:space=\"preserve\">"
-            + xml_escape(text)
-            + "</w:t></w:r></w:p>"
-        )
+    blocks = _parse_markdown_blocks(markdown)
+
+    for block in blocks:
+        if block.kind == "title":
+            body_parts.append(_docx_paragraph_xml(runs=block.runs, style="Title"))
+            continue
+        if block.kind == "heading2":
+            body_parts.append(_docx_paragraph_xml(runs=block.runs, style="Heading1"))
+            continue
+        if block.kind == "heading3":
+            body_parts.append(_docx_paragraph_xml(runs=block.runs, style="Heading2"))
+            continue
+        if block.kind == "list_item":
+            left_indent = 720 + (block.level * 360)
+            prefix = f"{block.number}. " if block.ordered and block.number is not None else "• "
+            body_parts.append(
+                _docx_paragraph_xml(
+                    runs=block.runs,
+                    left_indent=left_indent,
+                    hanging=360,
+                    prefix=prefix,
+                )
+            )
+            continue
+        body_parts.append(_docx_paragraph_xml(runs=block.runs))
+
+    if not body_parts:
+        body_parts.append(_docx_paragraph_xml(runs=[MarkdownRun(text="个人职业成长报告")], style="Title"))
+
     body_parts.append(
         "<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1440\" w:right=\"1440\" w:bottom=\"1440\" w:left=\"1440\"/></w:sectPr>"
     )
@@ -1854,6 +2213,7 @@ def export_docx_bytes(markdown: str) -> bytes:
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>""",
         )
         archive.writestr(
@@ -1866,84 +2226,144 @@ def export_docx_bytes(markdown: str) -> bytes:
         archive.writestr(
             "word/_rels/document.xml.rels",
             """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>""",
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>""",
         )
+        archive.writestr("word/styles.xml", _docx_styles_xml())
         archive.writestr("word/document.xml", _docx_document_xml(markdown))
     return buffer.getvalue()
 
 
-def _pdf_hex_text(text: str) -> str:
-    return text.encode("utf-16-be").hex().upper()
+def _resolve_pdf_font_path() -> Path:
+    if PDF_FONT_PATH.exists():
+        return PDF_FONT_PATH
+    raise ValueError(f"PDF 中文字体缺失：{PDF_FONT_PATH}")
+
+
+def _ensure_pdf_font_registered() -> str:
+    font_path = _resolve_pdf_font_path()
+    if PDF_FONT_NAME not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont(PDF_FONT_NAME, str(font_path)))
+    return PDF_FONT_NAME
+
+
+def _normalize_pdf_text(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\t", "    ")
+    )
+
+
+def _runs_to_pdf_markup(runs: list[MarkdownRun]) -> str:
+    parts: list[str] = []
+    for run in runs or [MarkdownRun(text=" ")]:
+        text = _normalize_pdf_text(run.text or " ")
+        if run.code:
+            text = f"<font face=\"{PDF_FONT_NAME}\">{text}</font>"
+        if run.italic:
+            text = f"<i>{text}</i>"
+        if run.bold:
+            text = f"<b>{text}</b>"
+        parts.append(text)
+    return "".join(parts) or " "
+
+
+def _build_pdf_story(markdown: str, *, font_name: str) -> list[Any]:
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "FeatureMapPdfTitle",
+        parent=styles["Title"],
+        fontName=font_name,
+        fontSize=20,
+        leading=26,
+        textColor=HexColor("#262626"),
+        alignment=TA_LEFT,
+        spaceAfter=8,
+    )
+    heading2_style = ParagraphStyle(
+        "FeatureMapPdfHeading2",
+        parent=styles["Heading2"],
+        fontName=font_name,
+        fontSize=15,
+        leading=22,
+        textColor=HexColor("#262626"),
+        spaceBefore=10,
+        spaceAfter=4,
+    )
+    heading3_style = ParagraphStyle(
+        "FeatureMapPdfHeading3",
+        parent=styles["Heading3"],
+        fontName=font_name,
+        fontSize=12,
+        leading=18,
+        textColor=HexColor("#434343"),
+        spaceBefore=6,
+        spaceAfter=2,
+    )
+    body_style = ParagraphStyle(
+        "FeatureMapPdfBody",
+        parent=styles["BodyText"],
+        fontName=font_name,
+        fontSize=10.5,
+        leading=17,
+        textColor=HexColor("#262626"),
+        spaceAfter=4,
+    )
+    story: list[Any] = []
+    blocks = _parse_markdown_blocks(markdown)
+    list_styles: dict[int, ParagraphStyle] = {}
+
+    def list_style(level: int) -> ParagraphStyle:
+        if level not in list_styles:
+            list_styles[level] = ParagraphStyle(
+                f"FeatureMapPdfList{level}",
+                parent=body_style,
+                leftIndent=12 + (level * 12),
+                firstLineIndent=-10,
+                spaceAfter=2,
+            )
+        return list_styles[level]
+
+    for block in blocks:
+        if block.kind == "title":
+            story.append(Paragraph(_runs_to_pdf_markup(block.runs), title_style))
+            story.append(Spacer(1, 2 * mm))
+            continue
+        if block.kind == "heading2":
+            story.append(Paragraph(_runs_to_pdf_markup(block.runs), heading2_style))
+            continue
+        if block.kind == "heading3":
+            story.append(Paragraph(_runs_to_pdf_markup(block.runs), heading3_style))
+            continue
+        if block.kind == "list_item":
+            prefix = f"{block.number}. " if block.ordered and block.number is not None else "• "
+            story.append(Paragraph(_normalize_pdf_text(prefix) + _runs_to_pdf_markup(block.runs), list_style(block.level)))
+            continue
+        story.append(Paragraph(_runs_to_pdf_markup(block.runs), body_style))
+
+    if not story:
+        story.append(Paragraph("个人职业成长报告", title_style))
+    return story
 
 
 def export_pdf_bytes(markdown: str) -> bytes:
-    wrapped_lines: list[str] = []
-    for raw_line in (markdown or "").splitlines():
-        if not raw_line.strip():
-            wrapped_lines.append("")
-            continue
-        wrapped_lines.extend(textwrap.wrap(raw_line, width=28) or [""])
-    page_lines = [wrapped_lines[index : index + 34] for index in range(0, max(len(wrapped_lines), 1), 34)] or [[""]]
-    objects: list[bytes] = []
-
-    def append_object(content: bytes) -> int:
-        objects.append(content)
-        return len(objects)
-
-    catalog_id = append_object(b"<< /Type /Catalog /Pages 2 0 R >>")
-    pages_id = append_object(b"<< /Type /Pages /Count 0 /Kids [] >>")
-    font_id = append_object(
-        b"<< /Type /Font /Subtype /Type0 /BaseFont /STSong-Light /Encoding /UniGB-UCS2-H /DescendantFonts [4 0 R] >>"
+    font_name = _ensure_pdf_font_registered()
+    buffer = BytesIO()
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm,
+        title="Personal Growth Report",
+        author="Feature Map",
     )
-    append_object(
-        b"<< /Type /Font /Subtype /CIDFontType0 /BaseFont /STSong-Light /CIDSystemInfo << /Registry (Adobe) /Ordering (GB1) /Supplement 4 >> /DW 1000 >>"
-    )
-
-    page_object_ids: list[int] = []
-    for lines in page_lines:
-        commands = ["BT", "/F1 10 Tf", "50 790 Td", "18 TL"]
-        first_line = True
-        for line in lines:
-            if not first_line:
-                commands.append("T*")
-            commands.append(f"<{_pdf_hex_text(line)}> Tj")
-            first_line = False
-        commands.append("ET")
-        stream = "\n".join(commands).encode("ascii")
-        content_id = append_object(
-            b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream"
-        )
-        page_id = append_object(
-            (
-                f"<< /Type /Page /Parent {pages_id} 0 R /MediaBox [0 0 595 842] "
-                f"/Resources << /Font << /F1 {font_id} 0 R >> >> /Contents {content_id} 0 R >>"
-            ).encode("ascii")
-        )
-        page_object_ids.append(page_id)
-
-    objects[pages_id - 1] = (
-        f"<< /Type /Pages /Count {len(page_object_ids)} /Kids [{' '.join(f'{item} 0 R' for item in page_object_ids)}] >>"
-    ).encode("ascii")
-
-    output = BytesIO()
-    output.write(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
-    offsets = [0]
-    for index, content in enumerate(objects, start=1):
-        offsets.append(output.tell())
-        output.write(f"{index} 0 obj\n".encode("ascii"))
-        output.write(content)
-        output.write(b"\nendobj\n")
-    xref_offset = output.tell()
-    output.write(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
-    output.write(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        output.write(f"{offset:010d} 00000 n \n".encode("ascii"))
-    output.write(
-        (
-            f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\nstartxref\n{xref_offset}\n%%EOF"
-        ).encode("ascii")
-    )
-    return output.getvalue()
+    document.build(_build_pdf_story(markdown, font_name=font_name))
+    return buffer.getvalue()
 
 
 def export_markdown_bytes(markdown: str) -> bytes:

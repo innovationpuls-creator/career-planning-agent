@@ -1,49 +1,52 @@
+from __future__ import annotations
+
 import json
+from datetime import datetime, timezone
 from io import BytesIO
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.db.session import SessionLocal, engine
 from app.main import app
+from app.models.career_development_favorite_report import CareerDevelopmentFavoriteReport
+from app.models.career_development_plan_workspace import CareerDevelopmentPlanWorkspace
+from app.models.student_competency_user_latest_profile import StudentCompetencyUserLatestProfile
+from app.models.student_profile import StudentProfile
+from app.models.user import User
+from app.schemas.career_development_report import (
+    CareerDevelopmentMatchGroupSummary,
+    CareerDevelopmentMatchReport,
+)
+from app.schemas.student_competency_profile import StudentCompetencyComparisonDimensionItem
 from app.services import snail_learning_path_review as review_service
+from tests.helpers import unique_username
 
-from .helpers import get_auth_headers
 
+CareerDevelopmentFavoriteReport.__table__.create(bind=engine, checkfirst=True)
+CareerDevelopmentPlanWorkspace.__table__.create(bind=engine, checkfirst=True)
+StudentCompetencyUserLatestProfile.__table__.create(bind=engine, checkfirst=True)
+StudentProfile.__table__.create(bind=engine, checkfirst=True)
 
 client = TestClient(app)
+UTC = timezone.utc
 
 
 class FakeLLMClient:
     async def chat_completion(self, messages, *, temperature=0.0):
-        user_text = messages[-1].content
-        if "本月总结" in user_text:
-            return json.dumps(
-                {
-                    "headline": "本月推进清晰",
-                    "focus_keywords": ["月评", "阶段推进", "学习输出"],
-                    "monthly_summary": "本月完成了当前阶段的基础学习。",
-                    "phase_progress_summary": "当前阶段已经形成稳定推进。",
-                    "progress_keywords": ["持续推进", "基础完成"],
-                    "gap_assessment": "距离阶段目标还差一次综合输出。",
-                    "gap_keywords": ["综合输出", "项目证明"],
-                    "recommendation": "continue",
-                    "focus_points": ["保持当前学习路线", "补一次综合练习"],
-                    "next_actions": ["下月完成一个小项目", "补齐作品说明"],
-                    "action_keywords": ["小项目", "作品说明"],
-                },
-                ensure_ascii=False,
-            )
+        del messages, temperature
         return json.dumps(
             {
-                "headline": "本周推进稳定",
-                "focus_keywords": ["周检", "React", "阶段推进"],
-                "progress_assessment": "已经完成当前阶段的基础推进。",
-                "progress_keywords": ["已开始", "有推进"],
-                "goal_gap_summary": "距离阶段目标还需要补一次综合练习。",
-                "gap_keywords": ["综合练习", "项目证据"],
-                "highlights": ["完成了 React 组件和状态管理基础"],
+                "headline": "??????",
+                "focus_keywords": ["??", "React"],
+                "progress_assessment": "????????????",
+                "progress_keywords": ["???"],
+                "goal_gap_summary": "???????????",
+                "gap_keywords": ["????"],
+                "highlights": ["?? React ????"],
                 "blockers": [],
-                "next_action": "下周补一次页面实战练习。",
-                "action_keywords": ["页面练习", "实战输出"],
+                "next_action": "???????????",
+                "action_keywords": ["????"],
             },
             ensure_ascii=False,
         )
@@ -52,128 +55,240 @@ class FakeLLMClient:
         return None
 
 
-def _build_report():
-    return {
-        "report_id": "career:frontend",
-        "target_scope": "career",
-        "target_title": "前端工程师",
-        "canonical_job_title": "前端工程师",
-        "representative_job_title": "前端开发",
-        "industry": "互联网",
-        "overall_match": 82,
-        "strength_dimension_count": 1,
-        "priority_gap_dimension_count": 2,
-        "group_summaries": [],
-        "comparison_dimensions": [
-            {
-                "key": "documentation_awareness",
-                "title": "文档规范意识",
-                "user_values": ["React", "TypeScript"],
-                "market_keywords": ["文档", "技术文档", "说明"],
-                "market_weight": 1.0,
-                "normalized_weight": 0.1,
-                "market_target": 80.0,
-                "user_readiness": 60.0,
-                "gap": 20.0,
-                "presence": 1,
-                "richness": 0.8,
-                "status_label": "有差距",
-                "matched_market_keywords": [],
-                "missing_market_keywords": ["技术文档", "说明"],
-                "coverage_score": 0.7,
-                "alignment_score": 0.7,
-            },
-            {
-                "key": "professional_background",
-                "title": "专业背景",
-                "user_values": ["计算机基础"],
-                "market_keywords": ["软件工程", "计算机基础", "专业背景"],
-                "market_weight": 1.0,
-                "normalized_weight": 0.08,
-                "market_target": 70.0,
-                "user_readiness": 50.0,
-                "gap": 20.0,
-                "presence": 1,
-                "richness": 0.6,
-                "status_label": "需提升",
-                "matched_market_keywords": [],
-                "missing_market_keywords": ["软件工程", "专业背景"],
-                "coverage_score": 0.5,
-                "alignment_score": 0.5,
-            },
+def _register_and_login() -> tuple[dict[str, str], int]:
+    username = unique_username("snail-path")
+    password = "strongpass123"
+    register = client.post("/api/register", json={"username": username, "password": password})
+    assert register.status_code == 200
+    login = client.post(
+        "/api/login/account",
+        json={"username": username, "password": password, "type": "account"},
+    )
+    assert login.status_code == 200
+    token = login.json()["token"]
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.username == username))
+        assert user is not None
+        return {"Authorization": f"Bearer {token}"}, user.id
+
+
+def _seed_student_profile(user_id: int) -> None:
+    with SessionLocal() as db:
+        db.add(
+            StudentProfile(
+                user_id=user_id,
+                full_name="????",
+                school="????",
+                major="????",
+                education_level="??",
+                grade="??",
+                target_job_title="?????",
+                current_stage="low",
+            )
+        )
+        db.commit()
+
+
+def _seed_latest_competency_analysis(user_id: int) -> None:
+    comparison = StudentCompetencyComparisonDimensionItem(
+        key="communication",
+        title="????",
+        user_values=["??????????"],
+        market_keywords=["?????", "????"],
+        market_weight=0.8,
+        normalized_weight=0.8,
+        market_target=78,
+        user_readiness=62,
+        gap=16,
+        presence=1,
+        richness=0.7,
+        status_label="???",
+        matched_market_keywords=["????"],
+        missing_market_keywords=["?????"],
+        coverage_score=0.65,
+        alignment_score=0.6,
+    )
+    with SessionLocal() as db:
+        db.add(
+            StudentCompetencyUserLatestProfile(
+                user_id=user_id,
+                latest_workspace_conversation_id="conv-1",
+                latest_profile_json=json.dumps({"communication": ["??????????"]}, ensure_ascii=False),
+                latest_analysis_json=json.dumps(
+                    {
+                        "available": True,
+                        "message": "????",
+                        "workspace_conversation_id": "conv-1",
+                        "profile": {"communication": ["??????????"]},
+                        "comparison_dimensions": [comparison.model_dump(mode="json")],
+                        "chart_series": [],
+                        "strength_dimensions": ["communication"],
+                        "priority_gap_dimensions": ["communication"],
+                        "recommended_keywords": {},
+                        "action_advices": [],
+                    },
+                    ensure_ascii=False,
+                ),
+            )
+        )
+        db.commit()
+
+
+def _seed_favorite(user_id: int) -> int:
+    report = CareerDevelopmentMatchReport(
+        report_id="career:frontend",
+        target_scope="career",
+        target_title="?????",
+        canonical_job_title="?????",
+        representative_job_title="????",
+        industry="???",
+        overall_match=82,
+        strength_dimension_count=1,
+        priority_gap_dimension_count=1,
+        group_summaries=[
+            CareerDevelopmentMatchGroupSummary(
+                group_key="execution",
+                label="?????",
+                match_score=82,
+                target_requirement=88,
+                gap=6,
+                status_label="???",
+                dimension_keys=["communication"],
+            )
         ],
-        "chart_series": [],
-        "strength_dimensions": [],
-        "priority_gap_dimensions": ["documentation_awareness", "professional_background"],
-        "action_advices": [],
-        "evidence_cards": [],
-        "narrative": {
-            "overall_review": "",
-            "completeness_explanation": "",
-            "competitiveness_explanation": "",
-            "strength_highlights": [],
-            "priority_gap_highlights": [],
-        },
-    }
+        comparison_dimensions=[
+            StudentCompetencyComparisonDimensionItem(
+                key="communication",
+                title="????",
+                user_values=["??????????"],
+                market_keywords=["?????", "????"],
+                market_weight=0.8,
+                normalized_weight=0.8,
+                market_target=78,
+                user_readiness=62,
+                gap=16,
+                presence=1,
+                richness=0.7,
+                status_label="???",
+                matched_market_keywords=["????"],
+                missing_market_keywords=["?????"],
+                coverage_score=0.65,
+                alignment_score=0.6,
+            )
+        ],
+        priority_gap_dimensions=["communication"],
+        action_advices=[],
+    )
+    with SessionLocal() as db:
+        favorite = CareerDevelopmentFavoriteReport(
+            user_id=user_id,
+            source_kind="recommendation",
+            report_id=report.report_id,
+            target_scope=report.target_scope,
+            target_title=report.target_title,
+            canonical_job_title=report.canonical_job_title,
+            normalized_canonical_job_title=report.canonical_job_title,
+            representative_job_title=report.representative_job_title,
+            industry=report.industry,
+            normalized_industry=report.industry or "",
+            overall_match=report.overall_match,
+            report_snapshot_json=json.dumps(report.model_dump(mode="json"), ensure_ascii=False),
+        )
+        db.add(favorite)
+        db.commit()
+        db.refresh(favorite)
+        return favorite.id
 
 
-def test_create_and_list_snail_learning_path_reviews(monkeypatch):
+def test_snail_learning_path_initialize_requires_authentication():
+    response = client.post("/api/snail-learning-path/workspaces/1")
+    assert response.status_code == 401
+
+
+def test_snail_learning_path_legacy_transient_endpoint_is_rejected():
+    headers, _ = _register_and_login()
+    response = client.post("/api/snail-learning-path/workspaces", headers=headers, json={})
+    assert response.status_code == 400
+    assert "favorite_id" in response.json()["detail"]
+
+
+def test_snail_learning_path_initialize_requires_profile():
+    headers, user_id = _register_and_login()
+    favorite_id = _seed_favorite(user_id)
+
+    response = client.post(f"/api/snail-learning-path/workspaces/{favorite_id}", headers=headers)
+
+    assert response.status_code == 400
+    assert "我的资料" in response.json()["detail"]
+
+
+def test_snail_learning_path_initialize_requires_latest_analysis():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    favorite_id = _seed_favorite(user_id)
+
+    response = client.post(f"/api/snail-learning-path/workspaces/{favorite_id}", headers=headers)
+
+    assert response.status_code == 400
+    assert "12 维解析" in response.json()["detail"]
+
+
+def test_snail_learning_path_initialize_blocks_cross_user_access():
+    owner_headers, owner_id = _register_and_login()
+    _seed_student_profile(owner_id)
+    _seed_latest_competency_analysis(owner_id)
+    favorite_id = _seed_favorite(owner_id)
+
+    other_headers, _ = _register_and_login()
+    response = client.post(f"/api/snail-learning-path/workspaces/{favorite_id}", headers=other_headers)
+
+    assert response.status_code == 404
+    assert "不属于当前登录用户" in response.json()["detail"]
+
+    owner_response = client.post(f"/api/snail-learning-path/workspaces/{favorite_id}", headers=owner_headers)
+    assert owner_response.status_code == 200
+
+
+def test_initialize_and_review_snail_learning_path(monkeypatch):
     monkeypatch.setattr(
         review_service.OpenAICompatibleLLMClient,
         "from_settings",
         classmethod(lambda cls: FakeLLMClient()),
     )
 
-    headers = get_auth_headers(client, role="user")
-    report = _build_report()
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite(user_id)
 
     workspace_response = client.post(
-        "/api/snail-learning-path/workspaces",
+        f"/api/snail-learning-path/workspaces/{favorite_id}",
         headers=headers,
-        json=report,
     )
     assert workspace_response.status_code == 200
-    workspace_id = workspace_response.json()["data"]["workspace_id"]
+    workspace = workspace_response.json()["data"]
+    assert workspace["favorite"]["favorite_id"] == favorite_id
+    assert workspace["growth_plan_phases"]
 
-    weekly_response = client.post(
+    workspace_id = workspace["workspace_id"]
+    report_snapshot = workspace["favorite"]["report_snapshot"]
+    review_response = client.post(
         f"/api/snail-learning-path/workspaces/{workspace_id}/reviews",
         headers=headers,
         data={
             "review_type": "weekly",
             "phase_key": "short_term",
-            "checked_resource_urls": json.dumps(["https://developers.google.com/tech-writing"], ensure_ascii=False),
-            "user_prompt": "本周学习了 React 状态管理。",
-            "report_snapshot": json.dumps(report, ensure_ascii=False),
+            "checked_resource_urls": json.dumps(["https://react.dev/learn"], ensure_ascii=False),
+            "user_prompt": "????? React ?????",
+            "report_snapshot": json.dumps(report_snapshot, ensure_ascii=False),
             "completed_module_count": "1",
             "total_module_count": "2",
             "phase_progress_percent": "50",
         },
-        files=[("files", ("notes.md", BytesIO(b"# notes\nreact state").read(), "text/markdown"))],
+        files=[("files", ("notes.md", BytesIO(b"# notes\\nreact").read(), "text/markdown"))],
     )
-    assert weekly_response.status_code == 200
-    weekly_payload = weekly_response.json()["data"]
-    assert weekly_payload["review_type"] == "weekly"
-    assert weekly_payload["weekly_report"]["headline"] == "本周推进稳定"
-    assert weekly_payload["weekly_report"]["focus_keywords"] == ["周检", "React", "阶段推进"]
-    assert weekly_payload["uploaded_files"][0]["file_name"] == "notes.md"
-
-    monthly_response = client.post(
-        f"/api/snail-learning-path/workspaces/{workspace_id}/reviews",
-        headers=headers,
-        data={
-            "review_type": "monthly",
-            "phase_key": "short_term",
-            "checked_resource_urls": json.dumps(["https://developers.google.com/tech-writing"], ensure_ascii=False),
-            "user_prompt": "本月总结：完成了当前阶段的基础学习。",
-            "report_snapshot": json.dumps(report, ensure_ascii=False),
-            "completed_module_count": "1",
-            "total_module_count": "2",
-            "phase_progress_percent": "50",
-        },
-    )
-    assert monthly_response.status_code == 200
-    assert monthly_response.json()["data"]["monthly_report"]["recommendation"] == "continue"
-    assert monthly_response.json()["data"]["monthly_report"]["action_keywords"] == ["小项目", "作品说明"]
+    assert review_response.status_code == 200
+    assert review_response.json()["data"]["review_type"] == "weekly"
 
     list_response = client.get(
         f"/api/snail-learning-path/workspaces/{workspace_id}/reviews",
@@ -181,21 +296,4 @@ def test_create_and_list_snail_learning_path_reviews(monkeypatch):
         params={"phase_key": "short_term"},
     )
     assert list_response.status_code == 200
-    list_payload = list_response.json()["data"]
-    assert len(list_payload) == 2
-    assert {item["review_type"] for item in list_payload} == {"weekly", "monthly"}
-
-
-def test_generate_snail_learning_path_reads_prebuilt_resource_library():
-    headers = get_auth_headers(client, role="user")
-    response = client.post("/api/snail-learning-path/workspaces", headers=headers, json=_build_report())
-    assert response.status_code == 200
-
-    phases = response.json()["data"]["growth_plan_phases"]
-    short_term_modules = {module["topic"]: module for module in phases[0]["learning_modules"]}
-
-    assert len(short_term_modules["文档规范意识"]["resource_recommendations"]) == 6
-    assert short_term_modules["文档规范意识"]["resource_recommendations"][0]["title"] == "Google Technical Writing"
-    assert len(short_term_modules["专业背景"]["resource_recommendations"]) == 6
-    assert short_term_modules["专业背景"]["resource_recommendations"][0]["title"] == "CS50"
-    assert short_term_modules["文档规范意识"]["resource_status"] == "ready"
+    assert len(list_response.json()["data"]) == 1

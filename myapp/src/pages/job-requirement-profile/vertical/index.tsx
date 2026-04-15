@@ -19,25 +19,48 @@ const useStyles = createStyles(({ css, token }) => ({
   shell: css`
     min-height: calc(100vh - 112px);
     padding: 24px;
-    background: ${token.colorBgLayout};
+    background: linear-gradient(160deg, ${token.colorBgLayout} 0%, ${token.colorBgContainer} 100%);
   `,
   header: css`
     margin-bottom: 20px;
   `,
-  subtitle: css`
-    color: ${token.colorTextSecondary};
-  `,
   filterCard: css`
-    margin-bottom: 16px;
-    border-radius: ${token.borderRadiusLG}px;
+    margin-bottom: 20px;
+    border-radius: 16px;
+    border: 1px solid ${token.colorBorderSecondary};
+    background: ${token.colorBgContainer};
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
+    :global(.ant-card-head) {
+      border-bottom-color: ${token.colorBorderSecondary};
+    }
   `,
   resultCard: css`
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: 16px;
+    border: 1px solid ${token.colorBorderSecondary};
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
+    :global(.ant-card-head) {
+      border-bottom-color: ${token.colorBorderSecondary};
+    }
   `,
   loading: css`
     display: flex;
     justify-content: center;
     padding: 48px 0;
+  `,
+  industrySelect: css`
+    width: 100%;
+
+    :global(.ant-select-selection-overflow-item) {
+      max-width: 100%;
+    }
+
+    :global(.ant-select-selection-item) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   `,
 }));
 
@@ -93,10 +116,9 @@ const VerticalJobProfilePage: React.FC = () => {
     <PageContainer className={styles.pageContainer} title={false} breadcrumbRender={false}>
       <div className={styles.shell}>
         <div className={styles.header}>
-          <Typography.Title level={2} style={{ marginBottom: 4 }}>
+          <Typography.Title level={2} style={{ marginBottom: 0 }}>
             垂直岗位图谱
           </Typography.Title>
-          <Typography.Text className={styles.subtitle}>查看不同阶段的岗位层级与对应样本</Typography.Text>
         </div>
         <Card title="筛选条件" className={styles.filterCard}>
           <Row gutter={[16, 16]} align="bottom">
@@ -123,6 +145,7 @@ const VerticalJobProfilePage: React.FC = () => {
                   value={industries}
                   loading={industryLoading}
                   onChange={(value) => setIndustries(value)}
+                  className={styles.industrySelect}
                 />
               </Space>
             </Col>

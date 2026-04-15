@@ -32,7 +32,7 @@ import ProcessTimelinePanel from './ProcessTimelinePanel';
 import ResumeComposer from './ResumeComposer';
 import ResumeResultEditor from './ResumeResultEditor';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ css, token }) => ({
   container: css`
     :global(.ant-pro-page-container-children-container) {
       padding-block: 0;
@@ -49,8 +49,20 @@ const useStyles = createStyles(({ css }) => ({
     gap: 16px;
     width: 100%;
   `,
+  workspaceContainer: css`
+    min-height: 600px;
+    transition: opacity 0.2s ease;
+  `,
   moduleSwitch: css`
     width: fit-content;
+
+    :global(.ant-segmented-item):hover {
+      color: ${token.colorPrimary};
+    }
+
+    :global(.ant-segmented-item-selected) {
+      background-color: ${token.colorPrimary} !important;
+    }
   `,
   pageHead: css`
     display: flex;
@@ -87,6 +99,7 @@ const useStyles = createStyles(({ css }) => ({
   rightCard: css`
     width: 100%;
     min-width: 0;
+    transition: box-shadow 0.2s ease;
 
     :global(.ant-card-body) {
       display: flex;
@@ -99,14 +112,66 @@ const useStyles = createStyles(({ css }) => ({
     width: 100%;
     min-width: 0;
     flex-shrink: 0;
+    transition: all 0.2s ease;
 
     :global(.ant-tabs-nav) {
       margin-bottom: 0;
+    }
+
+    :global(.ant-tabs-tab) {
+      transition: all 0.2s ease;
+    }
+
+    :global(.ant-tabs-tab:hover) {
+      color: ${token.colorPrimary};
+    }
+
+    :global(.ant-tabs-tab-active) {
+      color: ${token.colorPrimary};
     }
   `,
   tabPane: css`
     padding-top: 12px;
     padding-bottom: 4px;
+    animation: fadeIn 0.2s ease;
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `,
+  actionButton: css`
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    :active {
+      transform: translateY(0);
+    }
+  `,
+  primaryActionButton: css`
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+    }
+
+    :active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
   `,
 }));
 
@@ -348,6 +413,7 @@ const ResumeParsingWorkspace: React.FC<Props> = ({
               className={styles.moduleSwitch}
               value={activeModule}
               onChange={(value) => onModuleChange(value as ModuleKey)}
+              motion={{ duration: 0.2 }}
               options={[
                 { label: '简历解析', value: 'resume' },
                 { label: '职业匹配', value: 'career' },
@@ -359,68 +425,77 @@ const ResumeParsingWorkspace: React.FC<Props> = ({
             </Typography.Title>
           </div>
 
-          {activeModule === 'career' ? (
-            careerWorkspace
-          ) : (
-            <Row gutter={[16, 16]} className={styles.workspaceRow} wrap={false}>
-              <Col xs={24} xl={undefined} flex="320px" style={{ width: '320px', maxWidth: '320px' }}>
-                <div className={styles.leftRail}>
-                  <div className={styles.leftSummary}>
-                    <ProcessTimelinePanel
-                      stage={stage}
-                      viewState={viewState}
-                      expanded={false}
-                      conversation={conversation}
-                      composerUploads={composerUploads}
-                      messagesViewportRef={messagesViewportRef}
-                      summaryOnly
-                    />
+          <div className={styles.workspaceContainer}>
+            {activeModule === 'career' ? (
+              careerWorkspace
+            ) : (
+              <Row gutter={[16, 16]} className={styles.workspaceRow} wrap={false}>
+                <Col xs={24} xl={undefined} flex="320px" style={{ width: '320px', maxWidth: '320px' }}>
+                  <div className={styles.leftRail}>
+                    <div className={styles.leftSummary}>
+                      <ProcessTimelinePanel
+                        stage={stage}
+                        viewState={viewState}
+                        expanded={false}
+                        conversation={conversation}
+                        composerUploads={composerUploads}
+                        messagesViewportRef={messagesViewportRef}
+                        summaryOnly
+                      />
+                    </div>
+                    <div className={styles.leftPrimary}>{leftPrimary}</div>
+                    <div className={styles.leftSecondary}>{leftSecondary}</div>
                   </div>
-                  <div className={styles.leftPrimary}>{leftPrimary}</div>
-                  <div className={styles.leftSecondary}>{leftSecondary}</div>
-                </div>
-              </Col>
+                </Col>
 
-              <Col
-                xs={24}
-                xl={undefined}
-                flex="auto"
-                style={{
-                  minWidth: 0,
-                  width: 'auto',
-                  maxWidth: 'none',
-                  flexBasis: 0,
-                }}
-              >
-                <Card
-                  className={styles.rightCard}
-                  extra={
-                    editing ? (
-                      <Space>
-                        <Button data-testid="cancel-edit-button" onClick={onCancelEdit}>
-                          取消编辑
-                        </Button>
-                        <Button data-testid="save-result-button" type="primary" icon={<SaveOutlined />} onClick={onSave}>
-                          保存结果
-                        </Button>
-                      </Space>
-                    ) : (
-                      <Button data-testid="edit-result-button" icon={<EditOutlined />} onClick={onEdit}>
-                        编辑结果
-                      </Button>
-                    )
-                  }
+                <Col
+                  xs={24}
+                  xl={undefined}
+                  flex="auto"
+                  style={{
+                    minWidth: 0,
+                    width: 'auto',
+                    maxWidth: 'none',
+                    flexBasis: 0,
+                  }}
                 >
-                  <Tabs
-                    className={styles.tabs}
-                    activeKey={activeResultTab}
-                    onChange={(key) => onResultTabChange(key as ResultTabKey)}
-                    items={tabItems}
-                  />
-                </Card>
-              </Col>
-            </Row>
-          )}
+                  <Card
+                    className={styles.rightCard}
+                    extra={
+                      editing ? (
+                        <Space>
+                          <Button data-testid="cancel-edit-button" className={styles.actionButton} onClick={onCancelEdit}>
+                            取消编辑
+                          </Button>
+                          <Button
+                            data-testid="save-result-button"
+                            type="primary"
+                            icon={<SaveOutlined />}
+                            className={styles.primaryActionButton}
+                            onClick={onSave}
+                          >
+                            保存结果
+                          </Button>
+                        </Space>
+                      ) : (
+                        <Button data-testid="edit-result-button" icon={<EditOutlined />} className={styles.actionButton} onClick={onEdit}>
+                          编辑结果
+                        </Button>
+                      )
+                    }
+                  >
+                    <Tabs
+                      className={styles.tabs}
+                      activeKey={activeResultTab}
+                      onChange={(key) => onResultTabChange(key as ResultTabKey)}
+                      animated={{ inkBar: true, tabPane: true }}
+                      items={tabItems}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            )}
+          </div>
         </div>
       </div>
     </PageContainer>

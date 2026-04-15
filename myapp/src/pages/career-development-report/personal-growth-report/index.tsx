@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Descriptions,
+  Drawer,
   Empty,
   Flex,
   Input,
@@ -73,20 +74,35 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   overviewGrid: css`
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(0, 1.8fr) 360px;
     gap: 16px;
 
     @media (max-width: 992px) {
       grid-template-columns: 1fr;
     }
   `,
-  sideGrid: css`
+  compactSummaryCard: css`
     display: grid;
     gap: 16px;
   `,
+  compactStatusRow: css`
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  `,
+  compactStatusItem: css`
+    padding: 12px 14px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: ${token.borderRadius}px;
+    background: ${token.colorBgContainer};
+  `,
   targetHero: css`
     display: grid;
-    gap: 16px;
+    gap: 12px;
   `,
   summaryRow: css`
     display: grid;
@@ -103,6 +119,9 @@ const useStyles = createStyles(({ css, token }) => ({
       gap: 16px;
     }
   `,
+  fullWidthEditor: css`
+    width: 100%;
+  `,
   editorToolbar: css`
     display: flex;
     justify-content: space-between;
@@ -115,13 +134,13 @@ const useStyles = createStyles(({ css, token }) => ({
     gap: 16px;
   `,
   editorTextarea: css`
-    min-height: 520px !important;
+    min-height: calc(100vh - 320px) !important;
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
     font-size: 13px;
     line-height: 1.7;
   `,
   markdownBody: css`
-    min-height: 520px;
+    min-height: calc(100vh - 320px);
     padding: 20px 24px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: ${token.borderRadiusLG}px;
@@ -161,8 +180,25 @@ const useStyles = createStyles(({ css, token }) => ({
   prerequisiteItem: css`
     padding: 12px 14px;
     border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: ${token.borderRadius}px;
     background: ${token.colorBgContainer};
+  `,
+  compactPrerequisiteList: css`
+    display: grid;
+    gap: 8px;
+  `,
+  compactPrerequisiteItem: css`
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
   `,
   phaseList: css`
     display: grid;
@@ -171,7 +207,17 @@ const useStyles = createStyles(({ css, token }) => ({
   phaseItem: css`
     padding: 12px 14px;
     border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: ${token.borderRadius}px;
+  `,
+  drawerSection: css`
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+  `,
+  tagGroup: css`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
   `,
 }));
 
@@ -228,6 +274,7 @@ const PersonalGrowthReportPage: React.FC = () => {
   const [exportingFormat, setExportingFormat] = useState<'docx' | 'pdf'>();
   const [creatingTask, setCreatingTask] = useState(false);
   const [cancellingTask, setCancellingTask] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
 
   const favoriteId = activeFavorite?.favorite_id;
   const savedMarkdown = useMemo(() => normalizeReportMarkdown(reportWorkspace), [reportWorkspace]);
@@ -246,6 +293,7 @@ const PersonalGrowthReportPage: React.FC = () => {
         profile?.target_job_title,
     );
     const phases = goalWorkspace?.growth_plan_phases || [];
+    const hasLearningPathWorkspace = phases.length > 0;
 
     return [
       {
@@ -279,18 +327,20 @@ const PersonalGrowthReportPage: React.FC = () => {
           latestAnalysis.available && latestAnalysis.comparison_dimensions?.length
             ? `已生成 ${latestAnalysis.comparison_dimensions.length} 个维度的对标结果。`
             : latestAnalysis.message || '暂无最新解析结果。',
-        prompt: '请先在“简历解析”页面完成一次最新的 12 维解析。',
+        prompt: '请先在"简历解析"页面完成一次最新的 12 维解析。',
       },
       {
         key: 'learning_path',
         label: '蜗牛学习路径',
-        ready: phases.length >= 3,
+        ready: true,
         blocking: false,
         description:
-          phases.length >= 3
-            ? `已具备短期 / 中期 / 长期 ${phases.length} 个阶段计划。`
-            : '当前尚未形成完整的短期 / 中期 / 长期计划。',
-        prompt: '建议先生成蜗牛学习路径，报告中的行动计划会更完整。',
+          hasLearningPathWorkspace
+            ? `已读取到 ${phases.length} 个学习路径阶段。`
+            : '当前页未读取到已保存的学习路径时，系统会在生成报告时自动补齐行动计划。',
+        prompt: hasLearningPathWorkspace
+          ? '已可直接用于生成行动计划。'
+          : '如果你已在蜗牛学习路径页生成过内容，不会阻塞当前报告生成。',
       },
     ];
   }, [activeFavorite, goalWorkspace?.growth_plan_phases, homePayload?.profile, latestAnalysis]);
@@ -415,6 +465,15 @@ const PersonalGrowthReportPage: React.FC = () => {
       const snapshot = response?.data;
       setTaskSnapshot(snapshot);
       if (!snapshot) return;
+      if (snapshot.status === 'failed') {
+        setActionError(snapshot.error_message || snapshot.latest_event?.status_text || '个人职业成长报告生成失败。');
+        clearPersonalGrowthTaskId(targetFavoriteId);
+        return;
+      }
+      if (snapshot.status === 'cancelled' || snapshot.status === 'completed') {
+        clearPersonalGrowthTaskId(targetFavoriteId);
+        return;
+      }
       if (snapshot.status === 'queued' || snapshot.status === 'running') {
         savePersonalGrowthTaskId(targetFavoriteId, snapshot.task_id);
         stopTaskStream();
@@ -444,7 +503,7 @@ const PersonalGrowthReportPage: React.FC = () => {
             );
           }
 
-          const terminalStage = ['completed', 'task_cancelled', 'error'].includes(event.stage);
+          const terminalStage = ['completed', 'task_cancelled', 'error', 'failed'].includes(event.stage);
           if (!terminalStage) continue;
 
           await refreshPageData(targetFavoriteId);
@@ -456,18 +515,16 @@ const PersonalGrowthReportPage: React.FC = () => {
             message.info('已取消个人职业成长报告生成。');
             clearPersonalGrowthTaskId(targetFavoriteId);
           }
-          if (event.stage === 'error' || event.status === 'failed') {
+          if (event.stage === 'error' || event.stage === 'failed' || event.status === 'failed') {
             setActionError(event.status_text || '个人职业成长报告生成失败。');
             clearPersonalGrowthTaskId(targetFavoriteId);
           }
           break;
         }
-      } else {
-        clearPersonalGrowthTaskId(targetFavoriteId);
       }
-    } catch {
+    } catch (error: any) {
       clearPersonalGrowthTaskId(targetFavoriteId);
-      setTaskSnapshot(undefined);
+      setActionError(getRequestErrorMessage(error, '个人职业成长报告任务状态恢复失败。'));
     }
   };
 
@@ -583,6 +640,105 @@ const PersonalGrowthReportPage: React.FC = () => {
 
   const profile = homePayload?.profile;
   const phases = goalWorkspace?.growth_plan_phases || [];
+  const latestSavedText = formatPersonalGrowthDateTime(reportWorkspace?.last_saved_at);
+
+  const detailDrawer = (
+    <Drawer
+      title="报告详情"
+      placement="right"
+      width={420}
+      open={detailDrawerOpen}
+      onClose={() => setDetailDrawerOpen(false)}
+      destroyOnClose={false}
+    >
+      <div className={styles.drawerSection}>
+        <Text strong>前置条件</Text>
+        <div className={styles.prerequisiteList}>
+          {prerequisiteItems.map((item) => (
+            <div key={item.key} className={styles.prerequisiteItem}>
+              <Flex justify="space-between" align="center">
+                <Text strong>{item.label}</Text>
+                <Tag color={item.ready ? 'success' : item.blocking ? 'error' : 'warning'}>
+                  {item.ready ? '已就绪' : item.blocking ? '缺失' : '建议补充'}
+                </Tag>
+              </Flex>
+              <Text>{item.description}</Text>
+              {!item.ready ? <Text type="secondary">{item.prompt}</Text> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.drawerSection}>
+        <Text strong>我的资料</Text>
+        <Descriptions size="small" column={1}>
+          <Descriptions.Item label="姓名">{profile?.full_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="学校">{profile?.school || '-'}</Descriptions.Item>
+          <Descriptions.Item label="专业">{profile?.major || '-'}</Descriptions.Item>
+          <Descriptions.Item label="学历">{profile?.education_level || '-'}</Descriptions.Item>
+          <Descriptions.Item label="年级">{profile?.grade || '-'}</Descriptions.Item>
+          <Descriptions.Item label="目标岗位">{profile?.target_job_title || '-'}</Descriptions.Item>
+        </Descriptions>
+      </div>
+
+      <div className={styles.drawerSection}>
+        <Text strong>12维解析摘要</Text>
+        {latestAnalysis.available ? (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <div className={styles.summaryRow}>
+              <div className={styles.compactStatusItem}>
+                <Statistic title="综合评分" value={Math.round(latestAnalysis.score?.overall || 0)} suffix="%" />
+              </div>
+              <div className={styles.compactStatusItem}>
+                <Statistic title="优势维度" value={latestAnalysis.strength_dimensions?.length || 0} />
+              </div>
+              <div className={styles.compactStatusItem}>
+                <Statistic title="优先差距" value={latestAnalysis.priority_gap_dimensions?.length || 0} />
+              </div>
+            </div>
+            <div>
+              <Text strong>优势</Text>
+              <div className={styles.tagGroup}>
+                {topStrengths.length ? topStrengths.map((item) => <Tag key={item}>{item}</Tag>) : <Text type="secondary">暂无</Text>}
+              </div>
+            </div>
+            <div>
+              <Text strong>优先差距</Text>
+              <div className={styles.tagGroup}>
+                {topGaps.length ? topGaps.map((item) => <Tag key={item} color="orange">{item}</Tag>) : <Text type="secondary">暂无</Text>}
+              </div>
+            </div>
+          </Space>
+        ) : (
+          <Alert type="warning" showIcon message={latestAnalysis.message || '暂无最新解析结果。'} />
+        )}
+      </div>
+
+      <div className={styles.drawerSection}>
+        <Text strong>蜗牛学习路径</Text>
+        {phases.length ? (
+          <div className={styles.phaseList}>
+            {phases.slice(0, 3).map((phase) => (
+              <div key={phase.phase_key} className={styles.phaseItem}>
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Text strong>{phase.phase_label}</Text>
+                  <Text type="secondary">{phase.time_horizon}</Text>
+                  <Text>{phase.goal_statement}</Text>
+                </Space>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Alert
+            type="info"
+            showIcon
+            message="当前页未读取到已保存的蜗牛学习路径。"
+            description="这不会阻塞个人职业成长报告生成，系统会结合目标岗位、职业匹配结果和已有工作台内容自动补齐行动计划。"
+          />
+        )}
+      </div>
+    </Drawer>
+  );
 
   return (
     <PageContainer className={styles.page} title={false} breadcrumbRender={false}>
@@ -596,179 +752,171 @@ const PersonalGrowthReportPage: React.FC = () => {
           </Card>
         ) : (
           <>
-            <div className={styles.overviewGrid}>
-              <Card loading={pageLoading}>
-                <div className={styles.targetHero}>
-                  <Space wrap>
-                    <Tag color="blue">目标岗位</Tag>
-                    {activeFavorite?.industry ? <Tag>{activeFavorite.industry}</Tag> : null}
-                    {activeFavorite?.overall_match !== undefined ? (
-                      <Tag color="geekblue">匹配度 {Math.round(activeFavorite.overall_match)}%</Tag>
-                    ) : null}
-                  </Space>
-
-                  <div>
-                    <Title level={2} style={{ marginBottom: 8 }}>
-                      {activeFavorite?.canonical_job_title || '个人职业成长报告'}
-                    </Title>
-                    <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                      初始化页聚焦当前目标岗位，系统会综合“我的资料”、12 维解析、职业匹配差距和蜗牛学习路径生成可编辑的 Markdown 报告。
-                    </Paragraph>
-                  </div>
-
-                  <div className={styles.summaryRow}>
-                    <Card size="small">
-                      <Statistic title="目标方向" value={activeFavorite?.target_title || '-'} />
-                    </Card>
-                    <Card size="small">
-                      <Statistic title="最近保存" value={formatPersonalGrowthDateTime(reportWorkspace?.last_saved_at)} />
-                    </Card>
-                    <Card size="small">
-                      <Statistic
-                        title="生成状态"
-                        value={generating ? '生成中' : hasReportContent ? '已生成' : '未开始'}
-                      />
-                    </Card>
-                  </div>
-
-                  {blockingMissingItems.length ? (
-                    <Alert
-                      type="warning"
-                      showIcon
-                      message="开始分析前仍有必填信息缺失"
-                      description={blockingMissingItems.map((item) => `${item.label}：${item.prompt}`).join('；')}
-                    />
-                  ) : null}
-
-                  {generating ? (
-                    <Card size="small">
-                      <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                        <Flex justify="space-between" align="center">
-                          <Text strong>报告生成进度</Text>
-                          <Text type="secondary">{taskSnapshot?.progress || 0}%</Text>
-                        </Flex>
-                        <Progress percent={taskSnapshot?.progress || 0} status="active" />
-                        <Text type="secondary">
-                          {taskSnapshot?.latest_event?.status_text || '正在准备个人职业成长报告。'}
-                        </Text>
-                        <div>
-                          <Button danger onClick={() => void handleCancelTask()} loading={cancellingTask}>
-                            取消生成
-                          </Button>
-                        </div>
-                      </Space>
-                    </Card>
-                  ) : (
+            {!hasReportContent ? (
+              <div className={styles.overviewGrid}>
+                <Card loading={pageLoading}>
+                  <div className={styles.targetHero}>
                     <Space wrap>
-                      <Button type="primary" size="large" onClick={() => void handleStartAnalysis()}>
-                        {hasReportContent ? '重新生成报告' : '开始分析'}
-                      </Button>
-                      {hasReportContent ? (
-                        <>
-                          <Button onClick={() => setViewMode('edit')}>进入编辑</Button>
-                          <Button onClick={() => void handleExport('docx')} loading={exportingFormat === 'docx'}>
-                            导出 Word
-                          </Button>
-                          <Button onClick={() => void handleExport('pdf')} loading={exportingFormat === 'pdf'}>
-                            导出 PDF
-                          </Button>
-                        </>
+                      <Tag color="blue">目标岗位</Tag>
+                      {activeFavorite?.industry ? <Tag>{activeFavorite.industry}</Tag> : null}
+                      {activeFavorite?.overall_match !== undefined ? (
+                        <Tag color="geekblue">匹配度 {Math.round(activeFavorite.overall_match)}%</Tag>
                       ) : null}
                     </Space>
-                  )}
-                </div>
-              </Card>
 
-              <div className={styles.sideGrid}>
-                <Card title="前置条件" loading={pageLoading}>
-                  <div className={styles.prerequisiteList}>
+                    <div>
+                      <Title level={2} style={{ marginBottom: 8 }}>
+                        {activeFavorite?.canonical_job_title || '个人职业成长报告'}
+                      </Title>
+                      <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                        系统会基于我的资料、12维解析、职业匹配差距和蜗牛学习路径生成可编辑 Markdown 报告。
+                      </Paragraph>
+                    </div>
+
+                    <div className={styles.compactStatusRow}>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="目标方向" value={activeFavorite?.target_title || '-'} />
+                      </div>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="最近保存" value={latestSavedText} />
+                      </div>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="生成状态" value={generating ? '生成中' : '未开始'} />
+                      </div>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="学习阶段" value={phases.length || 0} />
+                      </div>
+                    </div>
+
+                    {blockingMissingItems.length ? (
+                      <Alert
+                        type="warning"
+                        showIcon
+                        message="开始分析前仍有必填信息缺失"
+                        description={blockingMissingItems.map((item) => `${item.label}：${item.prompt}`).join('；')}
+                      />
+                    ) : null}
+
+                    {generating ? (
+                      <Card size="small">
+                        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                          <Flex justify="space-between" align="center">
+                            <Text strong>报告生成进度</Text>
+                            <Text type="secondary">{taskSnapshot?.progress || 0}%</Text>
+                          </Flex>
+                          <Progress percent={taskSnapshot?.progress || 0} status="active" />
+                          <Text type="secondary">
+                            {taskSnapshot?.latest_event?.status_text || '正在准备个人职业成长报告。'}
+                          </Text>
+                          <div>
+                            <Button danger onClick={() => void handleCancelTask()} loading={cancellingTask}>
+                              取消生成
+                            </Button>
+                          </div>
+                        </Space>
+                      </Card>
+                    ) : (
+                      <Space wrap>
+                        <Button type="primary" size="large" onClick={() => void handleStartAnalysis()}>
+                          开始分析
+                        </Button>
+                        <Button onClick={() => setDetailDrawerOpen(true)}>查看详情</Button>
+                      </Space>
+                    )}
+                  </div>
+                </Card>
+
+                <Card title="前置条件总览" loading={pageLoading} className={styles.compactSummaryCard}>
+                  <div className={styles.compactPrerequisiteList}>
                     {prerequisiteItems.map((item) => (
-                      <div key={item.key} className={styles.prerequisiteItem}>
-                        <Flex justify="space-between" align="center">
-                          <Text strong>{item.label}</Text>
-                          <Tag color={item.ready ? 'success' : item.blocking ? 'error' : 'warning'}>
-                            {item.ready ? '已就绪' : item.blocking ? '缺失' : '建议补充'}
-                          </Tag>
-                        </Flex>
+                      <div key={item.key} className={styles.compactPrerequisiteItem}>
                         <div>
-                          <Text>{item.description}</Text>
+                          <Text strong>{item.label}</Text>
+                          <div>
+                            <Text type="secondary">{item.description}</Text>
+                          </div>
                         </div>
-                        {!item.ready ? <Text type="secondary">{item.prompt}</Text> : null}
+                        <Tag color={item.ready ? 'success' : item.blocking ? 'error' : 'warning'}>
+                          {item.ready ? '已就绪' : item.blocking ? '缺失' : '建议补充'}
+                        </Tag>
                       </div>
                     ))}
                   </div>
-                </Card>
-
-                <Card title="我的资料" loading={pageLoading}>
-                  <Descriptions size="small" column={1}>
-                    <Descriptions.Item label="姓名">{profile?.full_name || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="学校">{profile?.school || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="专业">{profile?.major || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="学历">{profile?.education_level || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="年级">{profile?.grade || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="目标岗位">{profile?.target_job_title || '-'}</Descriptions.Item>
-                  </Descriptions>
-                </Card>
-
-                <Card title="12维解析摘要" loading={pageLoading}>
-                  {latestAnalysis.available ? (
-                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                      <div className={styles.summaryRow}>
-                        <Card size="small">
-                          <Statistic title="综合评分" value={Math.round(latestAnalysis.score?.overall || 0)} suffix="%" />
-                        </Card>
-                        <Card size="small">
-                          <Statistic title="优势维度" value={latestAnalysis.strength_dimensions?.length || 0} />
-                        </Card>
-                        <Card size="small">
-                          <Statistic title="优先差距" value={latestAnalysis.priority_gap_dimensions?.length || 0} />
-                        </Card>
-                      </div>
-                      <div>
-                        <Text strong>优势</Text>
-                        <div>
-                          {topStrengths.length ? topStrengths.map((item) => <Tag key={item}>{item}</Tag>) : <Text type="secondary">暂无</Text>}
-                        </div>
-                      </div>
-                      <div>
-                        <Text strong>优先差距</Text>
-                        <div>
-                          {topGaps.length ? topGaps.map((item) => <Tag key={item} color="orange">{item}</Tag>) : <Text type="secondary">暂无</Text>}
-                        </div>
-                      </div>
-                    </Space>
-                  ) : (
-                    <Alert type="warning" showIcon message={latestAnalysis.message || '暂无最新解析结果。'} />
-                  )}
-                </Card>
-
-                <Card title="蜗牛学习路径" loading={pageLoading}>
-                  {phases.length ? (
-                    <div className={styles.phaseList}>
-                      {phases.slice(0, 3).map((phase) => (
-                        <div key={phase.phase_key} className={styles.phaseItem}>
-                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                            <Text strong>{phase.phase_label}</Text>
-                            <Text type="secondary">{phase.time_horizon}</Text>
-                            <Text>{phase.goal_statement}</Text>
-                          </Space>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <Alert
-                      type="info"
-                      showIcon
-                      message="当前尚未形成完整的短期 / 中期 / 长期计划。"
-                      description="开始分析后，系统会结合目标岗位和已有职业规划工作台内容生成行动计划。"
-                    />
-                  )}
+                  <Button onClick={() => setDetailDrawerOpen(true)}>查看详情</Button>
                 </Card>
               </div>
-            </div>
+            ) : (
+              <>
+                <Card loading={pageLoading}>
+                  <div className={styles.targetHero}>
+                    <Flex justify="space-between" align="flex-start" gap={16} wrap="wrap">
+                      <div>
+                        <Space wrap>
+                          <Tag color="blue">目标岗位</Tag>
+                          {activeFavorite?.industry ? <Tag>{activeFavorite.industry}</Tag> : null}
+                          {activeFavorite?.overall_match !== undefined ? (
+                            <Tag color="geekblue">匹配度 {Math.round(activeFavorite.overall_match)}%</Tag>
+                          ) : null}
+                        </Space>
+                        <Title level={2} style={{ margin: '8px 0 4px' }}>
+                          {activeFavorite?.canonical_job_title || '个人职业成长报告'}
+                        </Title>
+                        <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                          编辑区优先展示，详情信息已收纳到右侧抽屉。
+                        </Paragraph>
+                      </div>
+                      <Space wrap>
+                        <Button type="primary" onClick={() => void handleStartAnalysis()}>
+                          重新生成报告
+                        </Button>
+                        <Button onClick={() => setDetailDrawerOpen(true)}>查看详情</Button>
+                        <Button onClick={() => void handleExport('docx')} loading={exportingFormat === 'docx'}>
+                          导出 Word
+                        </Button>
+                        <Button onClick={() => void handleExport('pdf')} loading={exportingFormat === 'pdf'}>
+                          导出 PDF
+                        </Button>
+                      </Space>
+                    </Flex>
 
-            {hasReportContent ? (
-              <Card title="报告编辑" className={styles.editorCard}>
+                    <div className={styles.compactStatusRow}>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="目标方向" value={activeFavorite?.target_title || '-'} />
+                      </div>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="最近保存" value={latestSavedText} />
+                      </div>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="生成状态" value={generating ? '生成中' : '已生成'} />
+                      </div>
+                      <div className={styles.compactStatusItem}>
+                        <Statistic title="学习阶段" value={phases.length || 0} />
+                      </div>
+                    </div>
+
+                    {generating ? (
+                      <Card size="small">
+                        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                          <Flex justify="space-between" align="center">
+                            <Text strong>报告生成进度</Text>
+                            <Text type="secondary">{taskSnapshot?.progress || 0}%</Text>
+                          </Flex>
+                          <Progress percent={taskSnapshot?.progress || 0} status="active" />
+                          <Text type="secondary">
+                            {taskSnapshot?.latest_event?.status_text || '正在准备个人职业成长报告。'}
+                          </Text>
+                          <div>
+                            <Button danger onClick={() => void handleCancelTask()} loading={cancellingTask}>
+                              取消生成
+                            </Button>
+                          </div>
+                        </Space>
+                      </Card>
+                    ) : null}
+                  </div>
+                </Card>
+
+                <Card title="报告编辑" className={`${styles.editorCard} ${styles.fullWidthEditor}`}>
                 <div className={styles.editorToolbar}>
                   <Space wrap>
                     <Button type={viewMode === 'edit' ? 'primary' : 'default'} onClick={() => setViewMode('edit')}>
@@ -780,6 +928,7 @@ const PersonalGrowthReportPage: React.FC = () => {
                     <Button onClick={() => setEditorMarkdown(createPersonalGrowthReportTemplate(reportWorkspace?.sections))}>
                       恢复结构模板
                     </Button>
+                    <Button onClick={() => setDetailDrawerOpen(true)}>查看详情</Button>
                   </Space>
                   <Space wrap>
                     <Button onClick={() => void handleExport('docx')} loading={exportingFormat === 'docx'}>
@@ -793,15 +942,6 @@ const PersonalGrowthReportPage: React.FC = () => {
                     </Button>
                   </Space>
                 </div>
-
-                <Alert
-                  type="info"
-                  showIcon
-                  message="请保留 5 个二级标题：自我认知、职业方向分析、匹配度判断、发展建议、行动计划。"
-                  description={`“行动计划”建议继续保留短期 / 中期 / 长期三级标题。最后保存时间：${formatPersonalGrowthDateTime(
-                    reportWorkspace?.last_saved_at,
-                  )}`}
-                />
 
                 <div className={styles.editorShell}>
                   {viewMode === 'edit' ? (
@@ -817,8 +957,10 @@ const PersonalGrowthReportPage: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </Card>
-            ) : null}
+                </Card>
+              </>
+            )}
+            {detailDrawer}
           </>
         )}
       </div>

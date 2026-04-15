@@ -13,6 +13,7 @@ const mockedCreatePersonalGrowthReportTask = jest.fn();
 const mockedGetPersonalGrowthReportTask = jest.fn();
 const mockedCancelPersonalGrowthReportTask = jest.fn();
 const mockedStreamPersonalGrowthReportTask = jest.fn();
+const mockedSetActionError = jest.fn();
 
 jest.mock('@ant-design/pro-components', () => ({
   PageContainer: ({ children }: any) => <div>{children}</div>,
@@ -196,7 +197,7 @@ beforeEach(() => {
     favoritesLoading: false,
     pageError: undefined,
     actionError: undefined,
-    setActionError: jest.fn(),
+    setActionError: mockedSetActionError,
   });
   mockedGetHomeV2.mockResolvedValue({ data: homePayload });
   mockedGetStudentCompetencyLatestAnalysis.mockResolvedValue({ data: latestAnalysis });
@@ -243,7 +244,9 @@ describe('PersonalGrowthReportPage', () => {
 
     expect(await screen.findByRole('heading', { name: '前端工程师' })).toBeTruthy();
     expect(screen.getByText('开始分析')).toBeTruthy();
-    expect(screen.getByText('前置条件')).toBeTruthy();
+    expect(screen.getByText('前置条件总览')).toBeTruthy();
+    expect(screen.queryByText('报告编辑')).toBeNull();
+    expect(screen.getAllByRole('button', { name: '查看详情' }).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: '开始分析' }));
 
@@ -255,12 +258,61 @@ describe('PersonalGrowthReportPage', () => {
     );
   });
 
+  it('shows backend failure when task creation succeeds but task immediately fails', async () => {
+    mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({ data: emptyWorkspace });
+    mockedCreatePersonalGrowthReportTask.mockResolvedValue({
+      data: {
+        task_id: 'task-2',
+        favorite_id: 1,
+        status: 'queued',
+        progress: 0,
+        overwrite_current: false,
+        status_text: '已开始准备个人职业成长报告生成任务。',
+        started_at: '2026-04-14T10:00:00Z',
+        updated_at: '2026-04-14T10:00:00Z',
+        can_cancel: true,
+      },
+    });
+    mockedGetPersonalGrowthReportTask.mockResolvedValue({
+      data: {
+        task_id: 'task-2',
+        favorite_id: 1,
+        status: 'failed',
+        progress: 100,
+        overwrite_current: false,
+        error_message: '个人职业成长报告生成失败：收藏目标不存在。',
+        latest_event: {
+          stage: 'failed',
+          status_text: '个人职业成长报告生成失败：收藏目标不存在。',
+          progress: 100,
+          created_at: '2026-04-14T10:00:01Z',
+        },
+        created_at: '2026-04-14T10:00:00Z',
+        updated_at: '2026-04-14T10:00:01Z',
+      },
+    });
+
+    render(<PersonalGrowthReportPage />);
+    fireEvent.click(await screen.findByRole('button', { name: '开始分析' }));
+
+    await waitFor(() =>
+      expect(mockedSetActionError).toHaveBeenCalledWith('个人职业成长报告生成失败：收藏目标不存在。'),
+    );
+  });
+
   it('allows editing markdown and saves parsed sections', async () => {
     mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
 
     render(<PersonalGrowthReportPage />);
 
     expect(await screen.findByText('报告编辑')).toBeTruthy();
+    expect(screen.queryByText('请保留 5 个二级标题：自我认知、职业方向分析、匹配度判断、发展建议、行动计划。')).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: '查看详情' })[0]);
+    expect(await screen.findByText('报告详情')).toBeTruthy();
+    expect(screen.getAllByText('我的资料').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('12维解析摘要').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('蜗牛学习路径').length).toBeGreaterThan(0);
+
     fireEvent.click(screen.getByRole('button', { name: 'Markdown 编辑' }));
 
     const textarea = screen.getByRole('textbox');

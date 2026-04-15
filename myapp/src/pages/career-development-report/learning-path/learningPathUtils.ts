@@ -4,6 +4,8 @@ export const SNAIL_REPORT_KEY = 'snail_pending_report';
 const COMPLETION_STORAGE_PREFIX = 'snail_completion_workspace_';
 const REVIEW_STORAGE_PREFIX = 'snail_review_workspace_';
 const RESOURCE_STORAGE_PREFIX = 'snail_resource_workspace_';
+const ACTIVE_PHASE_STORAGE_PREFIX = 'snail_active_phase_workspace_';
+const FAVORITE_ID_STORAGE_KEY = 'snail_favorite_id';
 
 export type LearningPathPhaseKey = 'short_term' | 'mid_term' | 'long_term';
 
@@ -329,14 +331,12 @@ const canUseStorage = () =>
   typeof window.localStorage !== 'undefined' &&
   typeof window.sessionStorage !== 'undefined';
 
-export const persistPendingReport = (report: API.CareerDevelopmentMatchReport) => {
-  if (!canUseStorage()) return;
-  window.sessionStorage.setItem(SNAIL_REPORT_KEY, JSON.stringify(report));
+export const persistPendingReport = (_report: API.CareerDevelopmentMatchReport) => {
+  // Legacy no-op: snail learning path now only opens via favorite_id.
 };
 
-export const goToSnailLearningPath = (report: API.CareerDevelopmentMatchReport) => {
-  persistPendingReport(report);
-  history.push('/snail-learning-path');
+export const goToSnailLearningPath = (favoriteId: number) => {
+  history.push(`/snail-learning-path?favorite_id=${favoriteId}`);
 };
 
 export const loadPendingReport = (): API.CareerDevelopmentMatchReport | null => {
@@ -423,6 +423,37 @@ export const loadReviewStore = (storageKey: string): ReviewStore => {
 export const saveReviewStore = (storageKey: string, reviewStore: ReviewStore) => {
   if (!canUseStorage()) return;
   window.localStorage.setItem(`${REVIEW_STORAGE_PREFIX}${storageKey}`, JSON.stringify(reviewStore));
+};
+
+export const loadActivePhaseKey = (storageKey: string): LearningPathPhaseKey | undefined => {
+  if (!canUseStorage()) return undefined;
+  try {
+    return window.localStorage.getItem(`${ACTIVE_PHASE_STORAGE_PREFIX}${storageKey}`) as LearningPathPhaseKey | undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+export const saveActivePhaseKey = (storageKey: string, phaseKey: LearningPathPhaseKey) => {
+  if (!canUseStorage()) return;
+  window.localStorage.setItem(`${ACTIVE_PHASE_STORAGE_PREFIX}${storageKey}`, phaseKey);
+};
+
+export const loadFavoriteId = (): number | undefined => {
+  if (!canUseStorage()) return undefined;
+  try {
+    const raw = window.localStorage.getItem(FAVORITE_ID_STORAGE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'number' && parsed > 0 ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+export const saveFavoriteId = (favoriteId: number) => {
+  if (!canUseStorage()) return;
+  window.localStorage.setItem(FAVORITE_ID_STORAGE_KEY, JSON.stringify(favoriteId));
 };
 
 export const getModuleDisplayTitle = (module: API.GrowthPlanLearningModule) =>

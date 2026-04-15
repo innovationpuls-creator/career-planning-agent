@@ -1,6 +1,18 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { Card, Col, Drawer, Row, Space, Tag, Typography } from 'antd';
+import {
+  Alert,
+  Card,
+  Col,
+  Drawer,
+  Empty,
+  Row,
+  Space,
+  Spin,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import React, { useRef, useState } from 'react';
 import {
   getJobRequirementComparison,
@@ -12,23 +24,35 @@ const DIMENSION_LABELS: Array<{
   key: keyof API.JobRequirementComparisonDetailItem;
   label: string;
 }> = [
-  { key: 'professional_skills', label: '专业技能/技术栈' },
+  { key: 'professional_skills', label: '专业技能 / 技术栈' },
   { key: 'professional_background', label: '专业背景' },
   { key: 'education_requirement', label: '学历要求' },
   { key: 'teamwork', label: '团队协作能力' },
-  { key: 'stress_adaptability', label: '抗压/适应能力' },
+  { key: 'stress_adaptability', label: '抗压 / 适应能力' },
   { key: 'communication', label: '沟通表达能力' },
   { key: 'work_experience', label: '工作经验' },
   { key: 'documentation_awareness', label: '文档规范意识' },
-  { key: 'responsibility', label: '责任心/工作态度' },
+  { key: 'responsibility', label: '责任心 / 工作态度' },
   { key: 'learning_ability', label: '学习能力' },
   { key: 'problem_solving', label: '分析解决问题能力' },
-  { key: 'other_special', label: '其他/特殊要求' },
+  { key: 'other_special', label: '其他 / 特殊要求' },
 ];
 
 const DEFAULT_VALUE = '无明确要求';
 
 const textFallback = (value?: string | null) => value || '暂无原文';
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === 'object') {
+    return (
+      (error as any)?.response?.data?.detail ||
+      (error as any)?.info?.errorMessage ||
+      (error as any)?.message ||
+      fallback
+    );
+  }
+  return fallback;
+};
 
 const isDefaultDimension = (value?: string[]) =>
   !value || (value.length === 1 && value[0] === DEFAULT_VALUE);
@@ -58,9 +82,12 @@ const JobRequirementComparisonsPage: React.FC = () => {
   const openDetail = async (id: number) => {
     setDetailOpen(true);
     setDetailLoading(true);
+    setCurrentDetail(undefined);
     try {
       const response = await getJobRequirementComparison(id);
       setCurrentDetail(response.data);
+    } catch (error) {
+      message.error(getErrorMessage(error, '获取岗位要求对比详情失败'));
     } finally {
       setDetailLoading(false);
     }
@@ -128,7 +155,7 @@ const JobRequirementComparisonsPage: React.FC = () => {
       valueType: 'option',
       search: false,
       render: (_, record) => [
-        <Typography.Link key="compare" onClick={() => void openDetail(record.id)}>
+        <Typography.Link key="detail" onClick={() => void openDetail(record.id)}>
           查看对比
         </Typography.Link>,
       ],
@@ -138,56 +165,76 @@ const JobRequirementComparisonsPage: React.FC = () => {
   return (
     <PageContainer
       header={{
-        title: '岗位画像对比',
-        subTitle: '核验岗位原文与 12 维画像提取结果是否一致',
+        title: '岗位要求对比',
+        subTitle: '核验岗位原文和 12 维画像提取结果，便于检查抽取质量。',
       }}
     >
-      <ProTable<
-        API.JobRequirementComparisonListItem,
-        API.JobRequirementComparisonQueryParams
-      >
-        actionRef={actionRef}
-        rowKey="id"
-        size="middle"
-        headerTitle="岗位画像对比列表"
-        search={{
-          labelWidth: 92,
-          defaultCollapsed: false,
-        }}
-        pagination={{
-          pageSize: 20,
-          showSizeChanger: true,
-        }}
-        columns={columns}
-        request={async (params) => {
-          const response = await getJobRequirementComparisons({
-            current: params.current,
-            pageSize: params.pageSize,
-            industry: params.industry,
-            job_title: params.job_title,
-            company_name: params.company_name,
-          });
+      <Space direction="vertical" size={16} style={{ display: 'flex' }}>
+        <Alert
+          showIcon
+          type="info"
+          message="当前页面用于质量核验"
+          description="列表展示岗位原文聚合情况，抽屉内可逐维检查提取结果是否与原文一致。"
+        />
 
-          return {
-            data: response.data || [],
-            success: response.success ?? true,
-            total: response.total || 0,
-          };
-        }}
-      />
+        <ProTable<
+          API.JobRequirementComparisonListItem,
+          API.JobRequirementComparisonQueryParams
+        >
+          actionRef={actionRef}
+          rowKey="id"
+          size="middle"
+          scroll={{ x: 960 }}
+          headerTitle="对比列表"
+          search={{
+            labelWidth: 92,
+            defaultCollapsed: false,
+          }}
+          pagination={{
+            pageSize: 20,
+            showSizeChanger: true,
+          }}
+          columns={columns}
+          request={async (params) => {
+            try {
+              const response = await getJobRequirementComparisons({
+                current: params.current,
+                pageSize: params.pageSize,
+                industry: params.industry,
+                job_title: params.job_title,
+                company_name: params.company_name,
+              });
+
+              return {
+                data: response.data || [],
+                success: response.success ?? true,
+                total: response.total || 0,
+              };
+            } catch (error) {
+              message.error(getErrorMessage(error, '获取岗位要求对比列表失败'));
+              return {
+                data: [],
+                success: false,
+                total: 0,
+              };
+            }
+          }}
+        />
+      </Space>
 
       <Drawer
-        title="岗位画像对比"
+        title="岗位要求对比详情"
         width={1200}
         open={detailOpen}
         destroyOnClose
-        loading={detailLoading}
         onClose={() => {
           setDetailOpen(false);
           setCurrentDetail(undefined);
         }}
       >
-        {currentDetail ? (
+        {detailLoading ? (
+          <Spin />
+        ) : currentDetail ? (
           <Row gutter={16}>
             <Col span={12}>
               <Card
@@ -216,7 +263,9 @@ const JobRequirementComparisonsPage: React.FC = () => {
               </Card>
             </Col>
           </Row>
-        ) : null}
+        ) : (
+          <Empty description="未获取到岗位要求对比详情" />
+        )}
       </Drawer>
     </PageContainer>
   );

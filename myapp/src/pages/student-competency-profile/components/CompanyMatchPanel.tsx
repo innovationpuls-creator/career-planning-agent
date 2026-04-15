@@ -122,7 +122,7 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
   };
 
   if (!items.length) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前暂无匹配公司" />;
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前暂无匹配职位" />;
   }
 
   return (
@@ -135,7 +135,7 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
             title={
               <Space size={8}>
                 <BankOutlined />
-                <span>{item.company_name}</span>
+                <span>{item.job_title}</span>
               </Space>
             }
             extra={<Tag color="gold">{Math.round(item.match_score)}%</Tag>}
@@ -143,7 +143,7 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
             <div className={styles.summary}>
               <div className={styles.metaRow}>
                 <Tag color="blue">{item.industry}</Tag>
-                <Tag>{item.job_title}</Tag>
+                <Tag color="green">{item.company_name}</Tag>
               </div>
               <Text type="secondary">标准职业：{item.career_title}</Text>
               <Text type="secondary">
@@ -161,7 +161,7 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
       </div>
 
       <Drawer
-        title="匹配公司详情"
+        title="匹配职位详情"
         width={960}
         open={drawerOpen}
         destroyOnClose

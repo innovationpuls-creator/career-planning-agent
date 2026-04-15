@@ -62,7 +62,7 @@ describe('JobRequirementComparisonsPage', () => {
       expect(mockedGetJobRequirementComparisons).toHaveBeenCalled();
     });
 
-    expect(await view.findByText('岗位画像对比列表')).toBeTruthy();
+    expect(await view.findByText('对比列表')).toBeTruthy();
     expect(await view.findByText('Java')).toBeTruthy();
     expect(await view.findByText('8/12')).toBeTruthy();
 
@@ -77,7 +77,7 @@ describe('JobRequirementComparisonsPage', () => {
     expect(
       await view.findByText((content) => content.includes('熟练使用 Java') && content.includes('本科及以上学历')),
     ).toBeTruthy();
-    expect(await view.findByText('其他/特殊要求')).toBeTruthy();
+    expect(await view.findByText('其他 / 特殊要求')).toBeTruthy();
     expect(await view.findByText('英语读写能力')).toBeTruthy();
     expect((await view.findAllByText('无明确要求')).length).toBeGreaterThan(0);
   });

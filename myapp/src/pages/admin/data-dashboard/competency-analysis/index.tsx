@@ -1,5 +1,7 @@
-import { Card, Col, Row, Spin, Table } from 'antd';
-import { Radar, Column } from '@ant-design/charts';
+import { Column, Radar } from '@ant-design/charts';
+import { PageContainer } from '@ant-design/pro-components';
+import type { ColumnsType } from 'antd/es/table';
+import { Card, Col, Empty, Result, Row, Space, Statistic, Table } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getCompetencyAnalysis } from '@/services/ant-design-pro/api';
 
@@ -18,118 +20,185 @@ const DIMENSION_LABELS: Record<string, string> = {
   other_special: '其他特长',
 };
 
+type TopStudentTableItem = API.TopStudentItem & { key: number };
+
 const CompetencyAnalysisPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
   const [data, setData] = useState<API.CompetencyAnalysisResponse | null>(null);
 
   useEffect(() => {
-    getCompetencyAnalysis()
-      .then((res) => {
-        if (res.success) {
-          setData(res as API.CompetencyAnalysisResponse);
+    const loadData = async () => {
+      try {
+        const response = await getCompetencyAnalysis();
+        if (response.success) {
+          setData(response as API.CompetencyAnalysisResponse);
+          return;
         }
-      })
-      .finally(() => {
+        setError('未获取到能力评估数据');
+      } catch (requestError: unknown) {
+        setError(
+          (requestError as any)?.response?.data?.detail ||
+            (requestError as any)?.message ||
+            '获取能力评估数据失败',
+        );
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    void loadData();
   }, []);
 
-  // Radar chart data
-  const radarData = data
-    ? Object.entries(data.average_scores).map(([key, value]) => ({
-        name: DIMENSION_LABELS[key] || key,
-        value,
-      }))
-    : [];
+  if (error) {
+    return (
+      <PageContainer title="能力评估分析">
+        <Result status="error" title="数据加载失败" subTitle={error} />
+      </PageContainer>
+    );
+  }
 
-  const radarConfig = {
-    data: radarData,
-    xField: 'name',
-    yField: 'value',
-    meta: { name: { alias: '维度' }, value: { alias: '平均得分' } },
-    area: { style: { fillOpacity: 0.3 } },
-    scale: { y: { domainMin: 0, domainMax: 1 } },
-    theme: { color10: '#5B8FF9' },
-  };
+  const radarData =
+    data
+      ? Object.entries(data.average_scores).map(([key, value]) => ({
+          dimension: DIMENSION_LABELS[key] || key,
+          value,
+        }))
+      : [];
 
-  // Distribution stacked column data
-  const distData =
-    data?.score_distribution.map((d) => ({
-      dimension: DIMENSION_LABELS[d.dimension] || d.dimension,
-      高分段: d.high,
-      中分段: d.medium,
-      低分段: d.low,
-    })) || [];
+  const scoreDistributionData =
+    data?.score_distribution.flatMap((item) => [
+      {
+        dimension: DIMENSION_LABELS[item.dimension] || item.dimension,
+        level: '高分段',
+        count: item.high,
+      },
+      {
+        dimension: DIMENSION_LABELS[item.dimension] || item.dimension,
+        level: '中分段',
+        count: item.medium,
+      },
+      {
+        dimension: DIMENSION_LABELS[item.dimension] || item.dimension,
+        level: '低分段',
+        count: item.low,
+      },
+    ]) || [];
 
-  const columnConfig = {
-    data: distData,
-    xField: 'dimension',
-    yField: '高分段',
-    stack: true,
-    theme: { color10: ['#52c41a', '#faad14', '#ff4d4f'] },
-    label: { position: 'top' as const },
-    height: 280,
-  };
+  const topStudentData: TopStudentTableItem[] =
+    data?.top_students.map((item) => ({ ...item, key: item.user_id })) || [];
 
-  const topStudentColumns = [
-    { title: '排名', dataIndex: 'rank', width: 60, render: (_: unknown, __: unknown, i: number) => i + 1 },
-    { title: '用户', dataIndex: 'display_name', ellipsis: true },
+  const topStudentColumns: ColumnsType<TopStudentTableItem> = [
+    {
+      title: '排名',
+      dataIndex: 'rank',
+      width: 72,
+      render: (_value, _record, index) => index + 1,
+    },
+    {
+      title: '用户',
+      dataIndex: 'display_name',
+      ellipsis: true,
+    },
     {
       title: '综合评分',
       dataIndex: 'overall_score',
-      render: (v: number) => (v * 100).toFixed(0) + '分',
+      render: (value: number) => `${Math.round(value * 100)} 分`,
     },
   ];
 
-  const topStudentData =
-    data?.top_students.map((s) => ({ ...s, key: s.user_id })) || [];
+  const hasData = Boolean(
+    data &&
+      (data.total_assessments > 0 ||
+        radarData.length > 0 ||
+        scoreDistributionData.length > 0 ||
+        topStudentData.length > 0),
+  );
 
   return (
-    <Spin spinning={loading}>
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <h2 style={{ marginBottom: 16 }}>能力评估分析</h2>
-        </Col>
+    <PageContainer
+      loading={loading}
+      header={{
+        title: '能力评估分析',
+        subTitle: '汇总 12 维能力平均分、分段分布和学生排行。',
+      }}
+    >
+      {!hasData ? (
+        <Empty description="暂无能力评估数据" />
+      ) : (
+        <Space direction="vertical" size={16} style={{ display: 'flex' }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={8}>
+              <Card>
+                <Statistic title="已完成评估人数" value={data?.total_assessments ?? 0} />
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card>
+                <Statistic title="覆盖维度数" value={radarData.length} />
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card>
+                <Statistic title="排行榜展示人数" value={topStudentData.length} />
+              </Card>
+            </Col>
+          </Row>
 
-        {/* 数字卡片 */}
-        <Col xs={24} sm={8}>
-          <Card>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 14, color: '#999', marginBottom: 8 }}>已完成评估人数</div>
-              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}>
-                {data?.total_assessments ?? 0}
-              </div>
-            </div>
-          </Card>
-        </Col>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={14}>
+              <Card title="12 维能力雷达图">
+                {radarData.length > 0 ? (
+                  <Radar
+                    data={radarData}
+                    xField="dimension"
+                    yField="value"
+                    meta={{
+                      dimension: { alias: '维度' },
+                      value: { alias: '平均得分' },
+                    }}
+                    area={{ style: { fillOpacity: 0.25 } }}
+                    scale={{ y: { domainMin: 0, domainMax: 1 } }}
+                    height={320}
+                  />
+                ) : (
+                  <Empty description="暂无雷达图数据" />
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} lg={10}>
+              <Card title="TOP 10 学生能力排名">
+                <Table
+                  columns={topStudentColumns}
+                  dataSource={topStudentData}
+                  pagination={false}
+                  size="small"
+                  locale={{ emptyText: '暂无排行数据' }}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-        {/* 雷达图 */}
-        <Col xs={24} md={14}>
-          <Card title="12维度能力雷达图">
-            {data && radarData.length > 0 && <Radar {...radarConfig} height={320} />}
+          <Card title="各维度得分分布">
+            {scoreDistributionData.length > 0 ? (
+              <Column
+                data={scoreDistributionData}
+                xField="dimension"
+                yField="count"
+                seriesField="level"
+                isStack
+                label={{ position: 'middle' as const }}
+                legend={{ position: 'top' as const }}
+                color={['#52c41a', '#faad14', '#ff4d4f']}
+                height={320}
+              />
+            ) : (
+              <Empty description="暂无分段分布数据" />
+            )}
           </Card>
-        </Col>
-
-        {/* TOP10 表格 */}
-        <Col xs={24} md={10}>
-          <Card title="TOP10 学生能力排名">
-            <Table
-              columns={topStudentColumns}
-              dataSource={topStudentData}
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-
-        {/* 维度分布柱状图 */}
-        <Col span={24}>
-          <Card title="各维度得分分布（高/中/低分段人数）">
-            {data && <Column {...columnConfig} seriesField="type" />}
-          </Card>
-        </Col>
-      </Row>
-    </Spin>
+        </Space>
+      )}
+    </PageContainer>
   );
 };
 

@@ -225,10 +225,10 @@ describe('StudentCompetencyProfilePage', () => {
     fireEvent.click(screen.getByText('职业匹配'));
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: '匹配公司' })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: '最匹配的工作' })).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('tab', { name: '匹配公司' }));
+    fireEvent.click(screen.getByRole('tab', { name: '最匹配的工作' }));
 
     await waitFor(() => {
       expect(screen.getByText('示例科技')).toBeTruthy();
@@ -237,21 +237,42 @@ describe('StudentCompetencyProfilePage', () => {
     fireEvent.click(screen.getByText('查看具体信息'));
 
     await waitFor(() => {
-      expect(screen.getByText('匹配公司详情')).toBeTruthy();
+      expect(screen.getByText('匹配职位详情')).toBeTruthy();
       expect(screen.getByText('负责前端页面开发与交互优化。')).toBeTruthy();
     });
   });
 
   it('starts snail learning path from student career match workspace', async () => {
+    mockGetCareerFavorites.mockResolvedValueOnce({
+      data: [
+        {
+          favorite_id: 99,
+          target_key: 'frontend::internet',
+          source_kind: 'recommendation',
+          report_id: recommendationReportWithCompany.report_id,
+          target_scope: recommendationReportWithCompany.target_scope,
+          target_title: recommendationReportWithCompany.target_title,
+          canonical_job_title: recommendationReportWithCompany.canonical_job_title,
+          representative_job_title: recommendationReportWithCompany.representative_job_title,
+          industry: recommendationReportWithCompany.industry,
+          overall_match: recommendationReportWithCompany.overall_match,
+          report_snapshot: recommendationReportWithCompany,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+    });
     render(React.createElement(StudentCompetencyProfilePage));
 
     fireEvent.click(screen.getByText('职业匹配'));
 
+    let actionButton: HTMLElement | undefined;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '生成计划' })).toBeTruthy();
+      actionButton = screen.getAllByRole('button').find((item) => item.textContent?.includes('计划'));
+      expect(actionButton).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '生成计划' }));
-    expect(mockGoToSnailLearningPath).toHaveBeenCalledWith(recommendationReportWithCompany);
+    fireEvent.click(actionButton as HTMLElement);
+    expect(mockGoToSnailLearningPath).toHaveBeenCalledWith(99);
   });
 });

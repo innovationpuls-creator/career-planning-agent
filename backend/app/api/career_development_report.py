@@ -16,6 +16,7 @@ from app.schemas.career_development_report import (
     CareerDevelopmentMatchCustomResponse,
     CareerDevelopmentMatchInitResponse,
     CareerDevelopmentMatchReportRequest,
+    PlanWorkspaceResponse,
     PersonalGrowthReportExportRequest,
     PersonalGrowthReportRegenerateRequest,
     PersonalGrowthReportResponse,
@@ -42,6 +43,10 @@ from app.services.career_development_personal_growth_report import (
     get_personal_growth_workspace_or_none,
     regenerate_personal_growth_report,
     update_personal_growth_report_workspace,
+)
+from app.services.career_development_plan_workspace import (
+    build_plan_workspace_payload,
+    get_plan_workspace_record,
 )
 from app.services.career_development_personal_growth_report_task_manager import (
     career_development_personal_growth_report_task_manager,
@@ -152,6 +157,33 @@ def remove_career_development_favorite(
     if not deleted:
         raise HTTPException(status_code=404, detail="收藏目标不存在。")
     return Response(status_code=204)
+
+
+@router.get(
+    "/api/career-development-report/goal-setting-path-planning/workspaces/{favorite_id}",
+    response_model=PlanWorkspaceResponse,
+)
+def get_career_development_plan_workspace(
+    favorite_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_standard_user),
+) -> PlanWorkspaceResponse:
+    favorite_record = get_favorite_report_record(db, user_id=current_user.id, favorite_id=favorite_id)
+    if favorite_record is None:
+        raise HTTPException(status_code=404, detail="收藏目标不存在。")
+
+    row = get_plan_workspace_record(db, user_id=current_user.id, favorite_id=favorite_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="目标岗位规划工作台不存在。")
+
+    return PlanWorkspaceResponse(
+        data=build_plan_workspace_payload(
+            db,
+            row=row,
+            user_id=current_user.id,
+            favorite_id=favorite_id,
+        )
+    )
 
 
 @router.post(
