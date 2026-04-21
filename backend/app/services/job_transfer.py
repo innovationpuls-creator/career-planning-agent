@@ -1,3 +1,27 @@
+"""
+职业迁移路径分析服务（Job Transfer Analysis）
+
+模块职责：
+    基于 Qdrant 向量数据库，计算用户当前画像与目标岗位之间的相似度，
+    找出最匹配的 Top-3 迁移目标，并生成"桥梁技能"推荐。
+
+核心流程：
+    ① 获取源画像的职业迁移组嵌入（career_vector_store）
+    ② 对每个迁移组向 Qdrant 查询相似岗位（job_vector_store）
+    ③ 合并所有分组得分，按加权相似度排序
+    ④ 精选 Top 3 目标岗位（综合相似度 + 硬性门槛命中数）
+    ⑤ 计算桥梁技能（bridge_score = source_coverage × target_importance）
+
+桥梁技能阶段划分：
+    short_term：bridge_score ≥ 0.5（短期可达，重点补强）
+    mid_term：  bridge_score ≥ 0.3（中期目标）
+    long_term：  bridge_score < 0.3（长期积累）
+
+依赖组件：
+    QdrantGroupedVectorStore — 分组向量存储（按迁移组维度独立检索）
+    OpenAICompatibleLLMClient — 本地 LLM（用于关联性分析 / 支撑证据生成）
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -366,34 +390,58 @@ class JobTransferService:
             for group_key in group_scores
         ]
 
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # _build_bridge_skills：桥梁技能计算（职业迁移核心算法）
+    #
+    # 算法思想：
+    #   bridge_score = source_coverage × target_importance
+    #   • source_coverage：技能在源画像中出现 → 表示"你已具备"
+    #   • target_importance：技能在目标岗位的向量相似度分组得分 → 表示"目标岗位需要"
+    #
+    # 阶段划分（bridge_score 阈值）：
+    #   ≥ 0.5 → short_term（短期可达，需重点补强）
+    #   ≥ 0.3 → mid_term（中期目标）
+    #   < 0.3 → long_term（长期积累）
+    #
+    # 输出：Top-8 桥梁技能，按 bridge_score 降序排列
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     def _build_bridge_skills(
         self,
         source_dimension_payload: dict[str, list[str]],
         analyses: list[CandidateAnalysis],
         top_n: int = 8,
     ) -> list[BridgeSkillItem]:
-        """Compute skill bridge items between source and top-scoring target."""
         if not analyses:
             return []
         top = analyses[0]
         target_dimension_payload = build_dimension_payload(top.profile)
 
-        # Build a keyword → {group_key, source_coverage, target_importance} map
+        # ━━━ 第一步：构建关键词评分映射表 ━━━━━━━━━━━━━━━━━━━━━━━━
+        # 遍历 12 个维度，将源/目标画像中的关键词逐一登记到 keyword_map
+        # 每个关键词记录：
+        #   source_coverage：源画像中出现 → 赋值为 1.0（已具备）
+        #   target_importance：取各维度向量相似分的最大值（目标岗位需求程度）
         keyword_map: dict[str, dict] = {}
         for dimension in DIMENSION_FIELDS:
             group_key = DIMENSION_TO_GROUP_KEY[dimension]
-            group_score = top.group_scores.get(group_key, 0.0)
+            group_score = top.group_scores.get(group_key, 0.0)  # 该维度在目标岗位的向量相似分
+            # 源画像关键词：标记为"已具备"
             for kw in source_dimension_payload.get(dimension, []):
                 if kw not in keyword_map:
                     keyword_map[kw] = {"group_key": group_key, "source_coverage": 0.0, "target_importance": 0.0}
                 keyword_map[kw]["source_coverage"] = max(keyword_map[kw]["source_coverage"], 1.0)
                 keyword_map[kw]["target_importance"] = max(keyword_map[kw]["target_importance"], group_score)
+            # 目标画像关键词：累加目标需求分
             for kw in target_dimension_payload.get(dimension, []):
                 if kw not in keyword_map:
                     keyword_map[kw] = {"group_key": group_key, "source_coverage": 0.0, "target_importance": 0.0}
                 keyword_map[kw]["target_importance"] = max(keyword_map[kw]["target_importance"], group_score)
 
-        # Compute bridge scores
+        # ━━━ 第二步：计算桥梁得分并确定学习阶段 ━━━━━━━━━━━━━━━━
+        # bridge_score = source_coverage × target_importance
+        #   • 高 bridge_score：技能已具备 + 目标岗位高度需要 → 短期可达
+        #   • 中 bridge_score：目标岗位需要但尚未具备 → 中期积累
+        #   • 低 bridge_score：目标岗位需要但距离较远 → 长期规划
         bridges = []
         for skill_name, info in keyword_map.items():
             bridge_score = info["source_coverage"] * info["target_importance"]

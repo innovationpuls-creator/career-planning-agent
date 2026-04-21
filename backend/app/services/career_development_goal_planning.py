@@ -1,3 +1,29 @@
+"""
+职业发展目标规划服务（Career Development Goal Planning）
+
+模块职责：
+    基于用户收藏的职业目标，调用 Dify AI 工作流 + 本地 LLM，
+    生成完整的职业发展规划报告（职业定位 → 目标分解 → 行动计划）。
+
+编排流程（详见 build_goal_plan_result）：
+    Step 1 — dify_complete
+        调用 Dify 职业发展目标规划工作流
+        输入：目标岗位 / 行业 / 契合度 / 优势关键词 / 差距关键词
+        输出：职业发展路径 + 社会需求趋势分析（Markdown）
+    Step 2 — correlation
+        调用本地 LLM，基于 Dify 输出 + 本地匹配报告
+        生成：关联性分析（已有基础 / 当前差距 / 路径影响）
+    Step 3 — strengths
+        调用本地 LLM，生成"路径支撑证据"列表
+        回答：为什么当前画像能支撑职业路径中的某一步
+    Step 4 — comprehensive
+        汇总以上结果，生成结构化综合报告 Markdown
+
+收藏管理（Favorites）：
+    支持收藏/取消收藏目标，快速生成规划报告
+    收藏记录持久化到 SQLite（CareerDevelopmentFavoriteReport）
+"""
+
 from __future__ import annotations
 
 import json
@@ -728,6 +754,16 @@ async def _emit_stage(stage_hook: StageHook | None, stage: str) -> None:
 # ─────────────────────────────────────────────────────────────
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DifyCareerGoalPlanningClient：Dify 职业发展目标规划客户端
+# 职责：封装与 Dify API 的交互，向 Dify 工作流传入用户收藏目标信息
+#       获取职业发展路径与社会需求趋势分析（Markdown 格式）
+#
+# 工作流说明：
+#   1. 向 Dify 传入：目标岗位、行业、契合度、优势关键词、差距关键词
+#   2. Dify 返回：包含"职业发展路径"章节的完整 Markdown 报告
+#   3. 本地 LLM 进一步解析：关联性分析 + 路径支撑证据
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DifyCareerGoalPlanningClient:
     def __init__(self) -> None:
         self.base_url = (settings.career_goal_dify_base_url or settings.dify_base_url).rstrip("/")
@@ -764,6 +800,26 @@ class DifyCareerGoalPlanningClient:
         pass
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# build_goal_plan_result：三阶段职业发展规划编排器
+#
+# 编排流程（stage_hook 上报每阶段进度）：
+#   Stage 1 — dify_complete
+#     调用 Dify 职业发展目标规划工作流，获取趋势分析 + 路径章节
+#
+#   Stage 2 — correlation
+#     调用本地 LLM，基于 Dify 输出 + 本地匹配报告数据，生成"关联性分析"
+#     包含：已有基础与优势 / 当前差距 / 差距对路径推进的影响
+#
+#   Stage 3 — strengths
+#     调用本地 LLM，生成"路径支撑证据"列表
+#     回答"为什么当前画像能支撑职业路径中的某一步"
+#
+#   Stage 4 — comprehensive
+#     汇总以上结果，生成综合 Markdown 报告
+#
+# 返回：CareerDevelopmentGoalPlanResultPayload（含路径阶段、趋势报告、关联分析等）
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async def build_goal_plan_result(
     db: Session,
     *,

@@ -15,7 +15,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from reportlab.lib.colors import HexColor
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -2107,6 +2107,7 @@ def _docx_styles_xml() -> str:
     <w:qFormat/>
     <w:pPr>
       <w:spacing w:before="120" w:after="220"/>
+      <w:jc w:val="center"/>
     </w:pPr>
     <w:rPr>
       <w:b/>
@@ -2254,6 +2255,14 @@ def _normalize_pdf_text(text: str) -> str:
         .replace("<", "&lt;")
         .replace(">", "&gt;")
         .replace("\t", "    ")
+        .replace("\u201c", '"')   # left double quotation mark
+        .replace("\u201d", '"')   # right double quotation mark
+        .replace("\u2018", "'")   # left single quotation mark
+        .replace("\u2019", "'")   # right single quotation mark
+        .replace("\u2014", "-")   # em dash
+        .replace("\u2013", "-")   # en dash
+        .replace("\u2026", "...")  # horizontal ellipsis
+        .replace("\u00a0", " ")   # non-breaking space
     )
 
 
@@ -2261,11 +2270,13 @@ def _runs_to_pdf_markup(runs: list[MarkdownRun]) -> str:
     parts: list[str] = []
     for run in runs or [MarkdownRun(text=" ")]:
         text = _normalize_pdf_text(run.text or " ")
-        if run.code:
-            text = f"<font face=\"{PDF_FONT_NAME}\">{text}</font>"
+        # Font is set at ParagraphStyle level; only apply bold/italic markup here
         if run.italic:
-            text = f"<i>{text}</i>"
-        if run.bold:
+            if run.bold:
+                text = f"<b><i>{text}</i></b>"
+            else:
+                text = f"<i>{text}</i>"
+        elif run.bold:
             text = f"<b>{text}</b>"
         parts.append(text)
     return "".join(parts) or " "
@@ -2280,7 +2291,7 @@ def _build_pdf_story(markdown: str, *, font_name: str) -> list[Any]:
         fontSize=20,
         leading=26,
         textColor=HexColor("#262626"),
-        alignment=TA_LEFT,
+        alignment=TA_CENTER,
         spaceAfter=8,
     )
     heading2_style = ParagraphStyle(

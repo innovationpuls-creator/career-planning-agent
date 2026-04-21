@@ -1,3 +1,27 @@
+"""
+蜗牛学习路径复盘服务（Snail Learning Path Review）
+
+模块职责：
+    为用户在蜗牛学习路径中提交的周/月复盘提供 AI 评估，
+    判定当前阶段完成进度，给出下周/下月行动建议。
+
+两种复盘模式：
+    周检查（weekly）：
+        输出：进度评估 / 阶段目标差距 / 有效学习点 / 阻碍 / 下周建议
+    月评（monthly）：
+        输出：月度总结 / 阶段进度 / 差距判断 / 阶段建议（continue/strengthen/advance）
+
+文件支持：
+    支持从上传材料中提取文本（txt / md / json / csv / docx 等），
+    作为上下文注入 LLM prompt，避免用户重复输入。
+
+核心流程：
+    ① 收集上传文件并提取文本摘要
+    ② 根据复盘类型构建对应 system/user prompt
+    ③ 调用本地 LLM（temperature=0.2）生成 JSON 结构化报告
+    ④ 持久化复盘记录到 SQLite
+"""
+
 from __future__ import annotations
 
 import json
@@ -155,6 +179,25 @@ def _format_upload_context(uploaded_files: list[SnailUploadedFileSummary]) -> st
     )
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# _build_weekly_messages：周检查 Prompt 构建
+#
+# 系统 Prompt 角色设定：
+#   "学习路径周检查助手" — 简洁、克制、可执行的周检查
+#
+# User Prompt 注入内容（从用户上下文提取）：
+#   • 目标岗位 & 当前阶段
+#   • 阶段目标（goal_statement）
+#   • 当前模块完成进度（completed/total & percent）
+#   • 用户已打勾的学习资源 URL 列表
+#   • 用户本周自填总结（user_prompt）
+#   • 上传材料摘要（支持 txt/md/json/docx 等格式提取）
+#
+# 输出 JSON Schema：
+#   headline / focus_keywords / progress_assessment / progress_keywords /
+#   goal_gap_summary / gap_keywords / highlights / blockers /
+#   next_action / action_keywords
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def _build_weekly_messages(
     *,
     body: SnailLearningPathReviewCreateRequest,
@@ -199,6 +242,19 @@ def _build_weekly_messages(
     ]
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# _build_monthly_messages：月评 Prompt 构建
+#
+# 与周检查的差异：
+#   • 角色升级为"学习路径月评助手" — 结构化月评视角
+#   • 输出 JSON 新增 recommendation 字段（三选一）：
+#       continue  — 继续维持当前阶段
+#       strengthen — 补强后进入下一阶段
+#       advance   — 可以直接进入下一阶段
+#   • 输出新增：monthly_summary（月度总结）、phase_progress_summary（阶段进度）
+#
+# 适用场景：用户每月提交复盘时调用，生成月度评估报告
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def _build_monthly_messages(
     *,
     body: SnailLearningPathReviewCreateRequest,

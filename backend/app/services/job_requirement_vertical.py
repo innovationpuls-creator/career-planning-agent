@@ -1,3 +1,24 @@
+"""
+岗位要求垂直分析服务（Job Requirement Vertical Analysis）
+
+模块职责：
+    按行业维度对同一岗位的招聘信息进行聚合分析，
+    输出薪资分层对比（高/中/低级）、公司详情和岗位明细。
+
+核心算法：
+    parse_salary_sort_metrics — 将文本薪资（"15-25k·14薪"/"2-3万"等）统一解析为月薪数值
+    build_tiered_vertical_comparison — 按 1/3、2/3 分位点将公司划分为高/中/低级三层
+
+数据结构：
+    VerticalJobProfilePayload       — 完整垂直分析载荷（含 meta / groups / tiered_comparison）
+    VerticalJobProfileCompany       — 单个公司的聚合信息
+    TieredVerticalComparisonPayload — 三层分组后的薪资对比结果
+
+适用场景：
+    用户选择目标岗位后，按行业维度对比各公司的薪资分布，
+    点击公司可钻取该公司在该行业的所有招聘信息。
+"""
+
 from __future__ import annotations
 
 import re
@@ -98,6 +119,15 @@ def format_salary_sort_label(metrics: SalarySortMetrics | None) -> str:
     return f"{round(metrics.lower):,}–{round(metrics.upper):,} 元/月"
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# build_tiered_vertical_comparison：薪资三层分组核心算法
+# 输入：各行业公司的薪资数据列表（部分公司可能薪资面议）
+# 流程：① 将有薪资公司与面议公司分开
+#       ② 按薪资上限降序排列有薪公司
+#       ③ 按 1/3、2/3 分位点切分为高/中/低三层
+#       ④ 面议公司统一归入"低级"层
+# 适用场景：岗位要求垂直分析页的薪资分层可视化
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def build_tiered_vertical_comparison(payload: VerticalJobProfilePayload) -> TieredVerticalComparisonPayload:
     rated_items: list[SalaryTierItem] = []
     unrated_items: list[SalaryTierItem] = []

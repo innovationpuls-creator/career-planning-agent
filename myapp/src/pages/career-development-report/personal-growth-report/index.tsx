@@ -146,6 +146,10 @@ const useStyles = createStyles(({ css, token }) => ({
     border-radius: ${token.borderRadiusLG}px;
     background: ${token.colorBgContainer};
 
+    h1:first-of-type {
+      text-align: center;
+    }
+
     h1,
     h2,
     h3 {

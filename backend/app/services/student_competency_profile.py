@@ -1,3 +1,27 @@
+"""
+学生就业能力画像服务（Student Competency Profile）
+
+模块职责：
+    基于 Dify AI 工作流，从用户上传的简历、成绩单、项目材料中提取"就业能力 12 维画像"。
+
+12 维度定义（定义于 PROFILE_FIELD_FALLBACK_META）：
+    专业技能 | 专业背景 | 学历要求 | 工作经验
+    团队协作 | 抗压适应 | 沟通表达
+    文档规范 | 责任心 | 学习能力 | 分析解决 | 其他特殊
+
+核心类：
+    DifyStudentCompetencyClient — 封装 Dify API（文件上传 / 流式对话 / 配置读取）
+    DifyUploadedFile            — 上传文件元数据 DTO
+    DifyChatResult              — 对话结果 DTO（含 conversation_id / message_id / answer）
+
+核心函数：
+    parse_profile_from_text    — 从 Dify 原始文本中提取 JSON 画像
+    normalize_profile_payload   — 规范化画像数据（去重 / 过滤空值）
+    serialize_profile          — 序列化画像为 JSON 字符串
+    save_student_competency_profile   — 持久化画像到 SQLite
+    read_student_competency_profile  — 从数据库读取并反序列化画像
+"""
+
 from __future__ import annotations
 
 import json
@@ -334,6 +358,13 @@ class DifyStudentCompetencyClient:
             name=str(body.get("name") or file_name),
         )
 
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # send_message：核心对话发送方法
+    # 功能：向 Dify AI 发送消息（支持上传文件），接收流式响应并解析结果
+    # 流程：① 构建 payload（query + inputs + conversation_id）
+    #       ② 使用 httpx.AsyncClient.stream 发起 SSE 流式请求
+    #       ③ 根据 Content-Type 分发至阻塞解析或流式解析
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     async def send_message(
         self,
         *,

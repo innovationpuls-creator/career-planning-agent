@@ -1,3 +1,29 @@
+"""
+岗位要求图谱服务（Job Requirement Graph）
+
+模块职责：
+    将岗位要求画像构建为可交互的图谱结构，同时支持：
+    ① Neo4j 图数据库存储与查询（职业图谱探索）
+    ② 静态图谱元数据生成（前端雷达图驱动）
+
+三层图谱结构：
+    ProfileRoot（根节点） → DimensionGroup（分组节点 × 3）
+                              → Dimension（维度节点 × 12）
+
+三大分组（GRAPH_GROUPS）：
+    ① 专业与门槛：专业技能 / 专业背景 / 学历要求 / 工作经验 / 其他特殊
+    ② 协作与适应：团队协作 / 抗压适应 / 沟通表达
+    ③ 成长与职业素养：文档规范 / 责任心 / 学习能力 / 分析解决问题
+
+Neo4j 实现（Neo4jJobRequirementGraphService）：
+    • reset_graph — 全量重置图谱节点与边（仅当数据签名变化时触发）
+    • get_graph   — 读取当前图谱（如未同步则自动同步）
+    • 图谱签名基于所有岗位画像的关键词 + 覆盖率生成（SHA-1）
+
+适用场景：
+    前端雷达图展示 / Neo4j Browser 可视化探索 / 节点展开与路径查询
+"""
+
 from __future__ import annotations
 
 from collections import Counter
@@ -44,6 +70,27 @@ GRAPH_ROOT = {
     "icon": "profile",
 }
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# GRAPH_GROUPS：职业图谱元数据 — 12 维度按 3 大分组组织
+#
+# 三大分组：
+#   ① 专业与门槛（professional-and-threshold）
+#      — 专业技能、专业背景、学历要求、工作经验、其他/特殊要求
+#      — 聚焦硬性入场门槛
+#
+#   ② 协作与适应（collaboration-and-adaptation）
+#      — 团队协作、抗压/适应、沟通表达
+#      — 聚焦软性工作能力
+#
+#   ③ 成长与职业素养（growth-and-professionalism）
+#      — 文档规范、责任心、学习能力、分析解决问题
+#      — 聚焦长期发展潜力
+#
+# 用途：
+#   • 驱动前端雷达图渲染
+#   • 为 Neo4j 图谱提供节点结构
+#   • 为 Qdrant 向量分组提供维度映射
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 GRAPH_GROUPS: tuple[DimensionGroupMeta, ...] = (
     DimensionGroupMeta(
         key="professional-and-threshold",
