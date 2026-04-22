@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 
@@ -71,13 +72,36 @@ class OpenAICompatibleLLMClient:
 
         last_error: Exception | None = None
         attempts = max(self.max_retries, 0) + 1
-        for _ in range(attempts):
+        for attempt in range(attempts):
             try:
                 response = await self._client.post("/chat/completions", json=payload)
                 response.raise_for_status()
                 body = response.json()
+            except httpx.HTTPStatusError as exc:
+                last_error = exc
+                status = exc.response.status_code
+                if status == 429 and attempt < attempts - 1:
+                    wait = (attempt + 1) * 2.0
+                    print(f"[llm] rate limited (429), backing off {wait}s (attempt {attempt + 1}/{attempts})", flush=True)
+                    await asyncio.sleep(wait)
+                    continue
+                print(f"[llm] request failed: status={status} detail={exc.response.text[:200]}", flush=True)
+                await asyncio.sleep(0.5)
+                continue
+            except httpx.TransportError as exc:
+                last_error = exc
+                if attempt < attempts - 1:
+                    wait = min(2.0 ** (attempt + 1), 30.0)
+                    print(f"[llm] transport error (timeout/network): backing off {wait}s (attempt {attempt + 1}/{attempts}): {type(exc).__name__}", flush=True)
+                    await asyncio.sleep(wait)
+                else:
+                    print(f"[llm] transport error: {type(exc).__name__}", flush=True)
+                continue
             except (httpx.HTTPError, json.JSONDecodeError) as exc:
                 last_error = exc
+                print(f"[llm] request failed: error={repr(exc)}", flush=True)
+                if attempt < attempts - 1:
+                    await asyncio.sleep(1.0)
                 continue
 
             content = body.get("choices", [{}])[0].get("message", {}).get("content")

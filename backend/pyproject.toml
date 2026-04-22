@@ -2,7 +2,7 @@
 name = "feature-map-backend"
 version = "0.1.0"
 description = "FastAPI backend for feature map"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
   "fastapi>=0.116.0,<1.0.0",
   "httpx>=0.28.1,<1.0.0",

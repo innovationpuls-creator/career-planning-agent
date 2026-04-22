@@ -19,7 +19,7 @@ from app.services.vector_store import QdrantGroupedVectorStore, drop_collection_
 from scripts._cli import configure_utf8_console, should_continue_external_api_run
 
 
-DEFAULT_EMBEDDING_BATCH_SIZE = 32
+DEFAULT_EMBEDDING_BATCH_SIZE = 8
 
 
 @dataclass(slots=True)

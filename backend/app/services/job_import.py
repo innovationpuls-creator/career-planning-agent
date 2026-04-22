@@ -24,7 +24,7 @@ EXPECTED_HEADER = (
     "更新日期",
     "公司详情",
 )
-DEFAULT_SOURCE_DIR = Path(r"C:\Users\yzh\Desktop\feature_map\行业数据")
+DEFAULT_SOURCE_DIR = Path(__file__).parent.parent.parent.parent / "行业数据"
 BR_TAG_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
 HTML_TAG_RE = re.compile(r"<[^>]+>")
 LEADING_COMPANY_REPEAT_RE = re.compile(r"^(?P<name>.+?)(?P=name)+")

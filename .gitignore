@@ -19,7 +19,10 @@ backend/.env
 backend/.venv/
 backend/.pytest_cache/
 backend/.pytest-tmp/
+backend/.python-version
 backend/data/
+backend/qdrant-bin/
+backend/data/qdrant/
 backend/**/__pycache__/
 backend/**/*.pyc
 
@@ -35,3 +38,7 @@ myapp/coverage/
 *.log
 npm-debug.log*
 yarn-error.log*
+app.db
+app.db-shm
+app.db-wal
+qdrant/

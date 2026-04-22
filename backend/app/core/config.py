@@ -43,15 +43,15 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("FEATURE_MAP_LLM_MODEL", "LLM_MODEL"),
     )
     llm_timeout_seconds: int = Field(
-        default=60,
+        default=300,
         validation_alias=AliasChoices("FEATURE_MAP_LLM_TIMEOUT_SECONDS", "LLM_TIMEOUT_SECONDS"),
     )
     llm_max_retries: int = Field(
-        default=1,
+        default=3,
         validation_alias=AliasChoices("FEATURE_MAP_LLM_MAX_RETRIES", "LLM_MAX_RETRIES"),
     )
     llm_concurrency: int = Field(
-        default=5,
+        default=30,
         validation_alias=AliasChoices("FEATURE_MAP_LLM_CONCURRENCY", "LLM_CONCURRENCY"),
     )
     embedding_base_url: str | None = Field(
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("FEATURE_MAP_EMBEDDING_TIMEOUT_SECONDS", "EMBEDDING_TIMEOUT_SECONDS"),
     )
     embedding_max_retries: int = Field(
-        default=1,
+        default=3,
         validation_alias=AliasChoices("FEATURE_MAP_EMBEDDING_MAX_RETRIES", "EMBEDDING_MAX_RETRIES"),
     )
     embedding_concurrency: int = Field(

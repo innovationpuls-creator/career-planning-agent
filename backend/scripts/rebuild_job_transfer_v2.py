@@ -23,7 +23,7 @@ from scripts._cli import configure_utf8_console
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_ALIAS_BATCH_SIZE = 50
-DEFAULT_EMBEDDING_BATCH_SIZE = 32
+DEFAULT_EMBEDDING_BATCH_SIZE = 8
 
 
 @dataclass(slots=True)

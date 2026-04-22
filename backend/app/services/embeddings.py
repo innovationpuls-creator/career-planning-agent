@@ -3,9 +3,12 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import settings
 from app.models.job_requirement_profile import JobRequirementProfile
@@ -94,6 +97,17 @@ class OpenAICompatibleEmbeddingClient:
                 body = response.json()
             except httpx.HTTPStatusError as exc:
                 last_error = exc
+                try:
+                    err_body = exc.response.json()
+                except Exception:
+                    err_body = exc.response.text[:500]
+                logger.warning(
+                    "Embedding request HTTP %d: body=%s attempt=%s/%s",
+                    exc.response.status_code,
+                    err_body,
+                    attempt + 1,
+                    attempts,
+                )
                 if attempt < attempts - 1 and _should_retry_status(exc.response.status_code):
                     await asyncio.sleep(_calculate_retry_delay(exc.response, attempt))
                     continue

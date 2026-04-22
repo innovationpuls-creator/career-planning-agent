@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+import os
+import socket
+import subprocess
 import sys
 from contextlib import asynccontextmanager
 
@@ -206,7 +209,79 @@ def _ensure_career_development_plan_workspace_schema() -> None:
             connection.execute(text(statement))
 
 
+def _ensure_qdrant_running() -> None:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.settimeout(1)
+        result = sock.connect_ex(("127.0.0.1", 6333))
+        if result == 0:
+            return
+    finally:
+        sock.close()
+
+    backend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    qdrant_bin = os.path.join(backend_root, "qdrant-bin", "qdrant")
+    qdrant_cfg = os.path.join(backend_root, "qdrant-bin", "config", "config.yaml")
+
+    if not os.path.isfile(qdrant_bin):
+        print(f"[qdrant] binary not found at {qdrant_bin}, skipping auto-start", flush=True)
+        return
+
+    try:
+        global _qdrant_process
+        _qdrant_process = subprocess.Popen(
+            [qdrant_bin, "--config-path", qdrant_cfg],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=backend_root,
+        )
+        print("[qdrant] started automatically", flush=True)
+    except Exception as exc:
+        print(f"[qdrant] auto-start failed: {exc}", flush=True)
+
+
+_qdrant_process: subprocess.Popen[bytes] | None = None
+
+
+def _is_neo4j_running() -> bool:
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(("127.0.0.1", 7687))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
+
+
+_neo4j_started_by_backend: bool = False
+
+
+def _ensure_neo4j_running() -> None:
+    if _is_neo4j_running():
+        return
+    global _neo4j_started_by_backend
+    try:
+        subprocess.run(
+            ["brew", "services", "run", "neo4j"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        for _ in range(15):
+            if _is_neo4j_running():
+                break
+            import time
+            time.sleep(1)
+        _neo4j_started_by_backend = True
+        print("[neo4j] started automatically", flush=True)
+    except Exception as exc:
+        print(f"[neo4j] auto-start failed: {exc}", flush=True)
+
+
 def init_db() -> None:
+    _ensure_qdrant_running()
+    _ensure_neo4j_running()
     _ = (
         User,
         JobPosting,
@@ -254,6 +329,26 @@ def init_db() -> None:
 async def lifespan(_: FastAPI):
     init_db()
     yield
+    global _qdrant_process
+    if _qdrant_process is not None:
+        _qdrant_process.terminate()
+        try:
+            _qdrant_process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            _qdrant_process.kill()
+        print("[qdrant] stopped", flush=True)
+        _qdrant_process = None
+    if _neo4j_started_by_backend:
+        try:
+            subprocess.run(
+                ["brew", "services", "stop", "neo4j"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            print("[neo4j] stopped", flush=True)
+        except Exception:
+            pass
+        _neo4j_started_by_backend = False
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
