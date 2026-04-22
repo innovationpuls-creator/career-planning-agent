@@ -1,14 +1,13 @@
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { LoginForm, ProFormText } from '@ant-design/pro-components';
+import { LockOutlined, RobotOutlined, UserOutlined } from '@ant-design/icons';
 import {
   FormattedMessage,
   Helmet,
-  SelectLang,
   history,
+  SelectLang,
   useIntl,
   useModel,
 } from '@umijs/max';
-import { Alert, App } from 'antd';
+import { Alert, App, Button, Checkbox, Form, Input, theme } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { startTransition, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -19,45 +18,122 @@ import Settings from '../../../../config/defaultSettings';
 
 const SUCCESS_ANIMATION_DELAY_MS = 350;
 
-const useStyles = createStyles(({ token }) => {
-  return {
-    lang: {
-      width: 42,
-      height: 42,
-      lineHeight: '42px',
-      position: 'fixed',
-      right: 16,
-      borderRadius: token.borderRadius,
-      ':hover': {
-        backgroundColor: token.colorBgTextHover,
-      },
+const useStyles = createStyles(({ token }) => ({
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    background: `linear-gradient(135deg, ${token.colorPrimaryBg} 0%, ${token.colorBgLayout} 50%, ${token.colorPrimaryBg} 100%)`,
+    // 让背景延伸到 header 背后，内容视觉上在 header 下方
+    marginTop: -56,
+    padding: '56px 16px 24px',
+    boxSizing: 'border-box',
+    position: 'relative',
+    zIndex: 1,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 420,
+    background: 'rgba(255, 255, 255, 0.96)',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
+    borderRadius: 12,
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.10)',
+    overflow: 'hidden',
+    position: 'relative',
+    zIndex: 2,
+  },
+  cardInner: {
+    padding: '32px 40px 28px',
+  },
+  logoArea: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  logoIconWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    background: token.colorPrimaryBg,
+    marginBottom: 16,
+  },
+  productTitle: {
+    display: 'block',
+    fontSize: 24,
+    fontWeight: 600,
+    color: token.colorText,
+    lineHeight: 1.3,
+    marginBottom: 6,
+    letterSpacing: '-0.01em',
+  },
+  productSubtitle: {
+    display: 'block',
+    fontSize: 14,
+    fontWeight: 400,
+    color: token.colorTextSecondary,
+    lineHeight: 1.5,
+  },
+  errorAlert: {
+    marginBottom: 20,
+  },
+  forgotRow: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: token.margin,
+    marginTop: -4,
+  },
+  forgotLink: {
+    fontSize: 13,
+    color: token.colorTextSecondary,
+    cursor: 'pointer',
+    transition: `color ${token.motionDurationFast} ${token.motionEaseInOut}`,
+    '&:hover': {
+      color: token.colorPrimary,
     },
-    container: {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      overflow: 'auto',
-      backgroundImage:
-        "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
-      backgroundSize: '100% 100%',
+  },
+  submitBtn: {
+    width: '100%',
+    height: 40,
+    fontSize: 14,
+    fontWeight: 500,
+  },
+  registerLink: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    fontSize: 14,
+    color: token.colorTextSecondary,
+    cursor: 'pointer',
+    transition: `color ${token.motionDurationFast} ${token.motionEaseInOut}`,
+    '&:hover': {
+      color: token.colorPrimary,
     },
-    loginForm: {
-      '& .ant-pro-form-login-header': {
-        justifyContent: 'center',
-      },
-      '& .ant-pro-form-login-title': {
-        marginInlineStart: 0,
-      },
-    },
-  };
-});
+  },
+  registerLinkInner: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+}));
 
 const Lang = () => {
-  const { styles } = useStyles();
-
   return (
-    <div className={styles.lang} data-lang>
-      {SelectLang && <SelectLang />}
+    <div
+      style={{
+        position: 'fixed',
+        top: 16,
+        right: 16,
+        zIndex: 1000,
+      }}
+    >
+      <SelectLang />
     </div>
   );
 };
@@ -65,35 +141,17 @@ const Lang = () => {
 const LoginMessage: React.FC<{
   content: string;
 }> = ({ content }) => {
-  return (
-    <Alert
-      style={{
-        marginBottom: 24,
-      }}
-      message={content}
-      type="error"
-      showIcon
-    />
-  );
+  return <Alert message={content} type="error" showIcon />;
 };
 
 const Login: React.FC = () => {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
+  const [submitting, setSubmitting] = useState(false);
   const { initialState, setInitialState } = useModel('@@initialState');
   const { styles } = useStyles();
   const { message } = App.useApp();
   const intl = useIntl();
-  const loginTitle = (
-    <span
-      data-testid="login-page-title"
-      style={{
-        display: 'inline-block',
-        transform: 'translateY(calc(50vh - 250px))',
-      }}
-    >
-      大学生职业规划智能体
-    </span>
-  );
+  const { token } = theme.useToken();
 
   const fetchUserInfo = async () => {
     const userInfo = await initialState?.fetchUserInfo?.();
@@ -110,6 +168,7 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (values: API.LoginParams) => {
     try {
+      setSubmitting(true);
       const msg = await login({ ...values, type: 'account' });
       if (msg.status === 'ok' && msg.token) {
         setAccessToken(msg.token);
@@ -153,13 +212,15 @@ const Login: React.FC = () => {
         errorMessage: backendMessage || defaultLoginFailureMessage,
       });
       message.error(backendMessage || defaultLoginFailureMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const { status, errorMessage } = userLoginState;
 
   return (
-    <div className={styles.container}>
+    <>
       <Helmet>
         <title>
           {intl.formatMessage({
@@ -170,95 +231,177 @@ const Login: React.FC = () => {
         </title>
       </Helmet>
       <Lang />
-      <div
-        data-testid="login-page-shell"
-        style={{
-          flex: '1',
-        }}
-      >
-        <LoginForm
-          className={styles.loginForm}
-          containerStyle={{
-            position: 'relative',
-          }}
-          contentStyle={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            minWidth: 280,
-            maxWidth: '75vw',
-          }}
-          title={loginTitle}
-          onFinish={async (values) => {
-            await handleSubmit(values as API.LoginParams);
-          }}
-        >
+      <div className={styles.container}>
+        <div className={styles.card} data-testid="login-page-shell">
+          {/* Logo 区 */}
+          <div className={styles.logoArea}>
+            <div className={styles.logoIconWrap}>
+              <RobotOutlined
+                style={{ fontSize: 24, color: token.colorPrimary }}
+              />
+            </div>
+            <span
+              className={styles.productTitle}
+              data-testid="login-page-title"
+            >
+              大学生职业规划智能体
+            </span>
+            <span className={styles.productSubtitle}>
+              <FormattedMessage
+                id="pages.login.subtitle"
+                defaultMessage="登录以继续使用"
+              />
+            </span>
+          </div>
+
+          {/* 错误提示 */}
           {status === 'error' && (
-            <LoginMessage
-              content={errorMessage || '用户名或密码错误（管理员：admin / 123456）'}
-            />
+            <div className={styles.errorAlert}>
+              <LoginMessage
+                content={
+                  errorMessage || '用户名或密码错误（管理员：admin / 123456）'
+                }
+              />
+            </div>
           )}
-          <ProFormText
-            name="username"
-            fieldProps={{
-              size: 'large',
-              prefix: <UserOutlined />,
-            }}
-            placeholder="用户名：admin 或普通用户"
-            rules={[
-              {
-                required: true,
-                message: (
-                  <FormattedMessage
-                    id="pages.login.username.required"
-                    defaultMessage="请输入用户名"
-                  />
-                ),
-              },
-            ]}
-          />
-          <ProFormText.Password
-            name="password"
-            fieldProps={{
-              size: 'large',
-              prefix: <LockOutlined />,
-            }}
-            placeholder="密码：管理员为 123456"
-            rules={[
-              {
-                required: true,
-                message: (
-                  <FormattedMessage
-                    id="pages.login.password.required"
-                    defaultMessage="请输入密码"
-                  />
-                ),
-              },
-            ]}
-          />
-          <div
-            style={{
-              marginBottom: 24,
-              textAlign: 'right',
-            }}
-          >
-            <a
-              data-testid="register-account-link"
-              href="/user/register"
-              onClick={(event) => {
-                event.preventDefault();
-                startTransition(() => {
-                  history.push('/user/register');
-                });
+
+          {/* 表单区 */}
+          <div className={styles.cardInner}>
+            <Form
+              layout="vertical"
+              requiredMark="optional"
+              onFinish={async (values) => {
+                await handleSubmit(values as API.LoginParams);
               }}
             >
-              创建账户
-            </a>
+              <Form.Item
+                name="username"
+                rules={[
+                  {
+                    required: true,
+                    message: (
+                      <FormattedMessage
+                        id="pages.login.username.required"
+                        defaultMessage="请输入用户名"
+                      />
+                    ),
+                  },
+                ]}
+              >
+                <Input
+                  size="large"
+                  prefix={
+                    <UserOutlined style={{ color: token.colorTextTertiary }} />
+                  }
+                  placeholder={intl.formatMessage({
+                    id: 'pages.login.username.placeholder',
+                    defaultMessage: '用户名：admin 或普通用户',
+                  })}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="password"
+                rules={[
+                  {
+                    required: true,
+                    message: (
+                      <FormattedMessage
+                        id="pages.login.password.required"
+                        defaultMessage="请输入密码"
+                      />
+                    ),
+                  },
+                ]}
+              >
+                <Input.Password
+                  size="large"
+                  prefix={
+                    <LockOutlined style={{ color: token.colorTextTertiary }} />
+                  }
+                  placeholder={intl.formatMessage({
+                    id: 'pages.login.password.placeholder',
+                    defaultMessage: '密码：管理员为 123456',
+                  })}
+                />
+              </Form.Item>
+
+              <Form.Item name="autoLogin" valuePropName="checked" noStyle>
+                <Checkbox>
+                  <span
+                    style={{ fontSize: 13, color: token.colorTextSecondary }}
+                  >
+                    <FormattedMessage
+                      id="pages.login.remember"
+                      defaultMessage="记住登录"
+                    />
+                  </span>
+                </Checkbox>
+              </Form.Item>
+
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  block
+                  loading={submitting}
+                >
+                  <FormattedMessage
+                    id="pages.login.submit"
+                    defaultMessage="登录"
+                  />
+                </Button>
+              </Form.Item>
+            </Form>
+
+            {/* 忘记密码 */}
+            <div className={styles.forgotRow}>
+              <span
+                className={styles.forgotLink}
+                onClick={() => {
+                  message.info(
+                    intl.formatMessage({
+                      id: 'pages.login.forgot',
+                      defaultMessage: '请联系管理员重置密码',
+                    }),
+                  );
+                }}
+              >
+                <FormattedMessage
+                  id="pages.login.forgotPassword"
+                  defaultMessage="忘记密码？"
+                />
+              </span>
+            </div>
+
+            {/* 注册入口 */}
+            <div className={styles.registerLink}>
+              <span
+                className={styles.registerLinkInner}
+                data-testid="register-account-link"
+                onClick={() => {
+                  startTransition(() => {
+                    history.push('/user/register');
+                  });
+                }}
+              >
+                <FormattedMessage
+                  id="pages.login.noAccount"
+                  defaultMessage="还没有账户？"
+                />
+                <span style={{ color: token.colorPrimary, fontWeight: 500 }}>
+                  <FormattedMessage
+                    id="pages.login.register"
+                    defaultMessage="立即注册"
+                  />
+                </span>
+              </span>
+            </div>
           </div>
-        </LoginForm>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

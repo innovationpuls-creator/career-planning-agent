@@ -1,3 +1,6 @@
+// ============================================================
+// Font Faces — Alibaba Sans
+// ============================================================
 @font-face {
   font-family: "AlibabaSans";
   font-style: normal;
@@ -39,24 +42,86 @@
     format("woff2");
 }
 
+// ============================================================
+// Design Token CSS Variables
+// ============================================================
+:root {
+  // --- Spacing (基准 4px) ---
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  // --- Border Radius ---
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  // --- Shadows ---
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  // --- Page Layout ---
+  --content-max-width: 1200px;
+  --content-padding: 24px;
+  --header-height: 56px;
+
+  // --- Motion ---
+  --motion-fast: 0.15s;
+  --motion-normal: 0.25s;
+  --motion-slow: 0.35s;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  // --- Chart Colors ---
+  --chart-blue: #4A90D9;
+  --chart-teal: #3BA7A0;
+  --chart-purple: #7E68C8;
+  --chart-orange: #D97A3E;
+  --chart-green: #4FA65F;
+  --chart-pink: #C56C93;
+  --chart-gray: #8C8C8C;
+  --chart-yellow: #C9A03E;
+}
+
+// ============================================================
+// Global Reset
+// ============================================================
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family:
-    AlibabaSans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
-    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  font-family: AlibabaSans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .colorWeak {
   filter: invert(80%);
 }
 
+// ============================================================
+// Layout
+// ============================================================
 .ant-layout {
   min-height: 100vh;
 }
+
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {
   left: unset;
 }
@@ -65,30 +130,530 @@ canvas {
   display: block;
 }
 
-body {
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 ul,
 ol {
   list-style: none;
 }
 
+// ============================================================
+// Responsive Base
+// ============================================================
 @media (max-width: 768px) {
+  :root {
+    --content-padding: 16px;
+  }
+
   .ant-table {
     width: 100%;
     overflow-x: auto;
+
     &-thead > tr,
     &-tbody > tr {
       > th,
       > td {
         white-space: pre;
+
         > span {
           display: block;
         }
       }
     }
+  }
+}
+
+// ============================================================
+// Page Content Width
+// ============================================================
+.page-content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
+}
+
+// ============================================================
+// Full Page Spin Overlay
+// ============================================================
+// ============================================================
+// Full Page Spin Overlay
+// ============================================================
+.full-page-spin {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+// ============================================================
+// Navigation — Top Header Menu (layout: 'top')
+// ============================================================
+.ant-pro-sider {
+  // Sider never visible in top layout — collapsed sider stays hidden
+  display: none;
+}
+
+// Top nav bar
+.ant-pro-top-nav-header {
+  background: var(--color-bg-container, #ffffff) !important;
+  border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+  box-shadow: none !important;
+  height: var(--header-height, 56px) !important;
+  line-height: var(--header-height, 56px) !important;
+
+  .ant-pro-top-nav-header-logo {
+    height: var(--header-height, 56px) !important;
+
+    a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+    }
+  }
+}
+
+// Menu bar (horizontal)
+.ant-pro-top-nav-header-menu {
+  height: var(--header-height, 56px) !important;
+
+  .ant-menu {
+    height: var(--header-height, 56px) !important;
+    line-height: var(--header-height, 56px) !important;
+    background: transparent !important;
+    border-bottom: none !important;
+
+    // Top-level items
+    .ant-menu-item {
+      height: var(--header-height, 56px) !important;
+      line-height: var(--header-height, 56px) !important;
+      margin: 0 !important;
+      padding: 0 16px !important;
+      border-radius: 0 !important;
+      color: var(--color-text-secondary, #5c5c5e) !important;
+      font-size: 14px !important;
+      font-weight: 400 !important;
+      transition:
+        color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1)),
+        background-color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+
+      &:hover {
+        color: var(--color-text, #1c1c1e) !important;
+        background: var(--color-bg-spotlight, #fafafa) !important;
+      }
+
+      // Selected — active indicator line at bottom
+      &.ant-menu-item-selected {
+        color: var(--color-primary, #1655cc) !important;
+        background: var(--color-primary-bg, #eef3fb) !important;
+        font-weight: 500 !important;
+
+        &::after {
+          display: none !important;
+        }
+
+        // Bottom border bar as active indicator
+        border-bottom: 2px solid var(--color-primary, #1655cc) !important;
+      }
+    }
+
+    // Submenu items
+    .ant-menu-submenu {
+      height: var(--header-height, 56px) !important;
+      line-height: var(--header-height, 56px) !important;
+
+      .ant-menu-submenu-title {
+        height: var(--header-height, 56px) !important;
+        line-height: var(--header-height, 56px) !important;
+        padding: 0 16px !important;
+        color: var(--color-text-secondary, #5c5c5e) !important;
+        font-size: 14px !important;
+        transition: color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+
+        &:hover {
+          color: var(--color-text, #1c1c1e) !important;
+          background: var(--color-bg-spotlight, #fafafa) !important;
+        }
+      }
+
+      &.ant-menu-submenu-selected {
+        .ant-menu-submenu-title {
+          color: var(--color-primary, #1655cc) !important;
+          background: var(--color-primary-bg, #eef3fb) !important;
+          font-weight: 500 !important;
+        }
+      }
+    }
+  }
+}
+
+// ============================================================
+// PageContainer — Header Area
+// ============================================================
+.ant-pro-page-container {
+  // Reset container padding — handled by page layout
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+
+  .ant-pro-page-container-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+    padding: 16px var(--content-padding, 24px) 12px !important;
+    margin-bottom: 0 !important;
+
+    // Breadcrumb
+    .ant-breadcrumb {
+      margin-bottom: 4px !important;
+
+      .ant-breadcrumb-link,
+      .ant-breadcrumb-separator {
+        font-size: 12px !important;
+        color: var(--color-text-tertiary, #98989d) !important;
+      }
+
+      .ant-breadcrumb-link {
+        cursor: pointer !important;
+
+        &:hover {
+          color: var(--color-primary, #1655cc) !important;
+        }
+      }
+    }
+
+    // Title row
+    .ant-pro-page-container-header-main {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+    }
+
+    // Page title — H1 spec: 22px / 600 / colorText
+    .ant-pro-page-container-header-title {
+      font-size: 22px !important;
+      font-weight: 600 !important;
+      color: var(--color-text, #1c1c1e) !important;
+      line-height: 1.4 !important;
+      letter-spacing: -0.01em !important;
+
+      .ant-title-prefix {
+        margin-right: 8px !important;
+        color: var(--color-primary, #1655cc) !important;
+        vertical-align: middle !important;
+      }
+    }
+
+    // Subtitle — 14px / colorTextSecondary
+    .ant-pro-page-container-header-subTitle {
+      font-size: 14px !important;
+      font-weight: 400 !important;
+      color: var(--color-text-secondary, #5c5c5e) !important;
+      line-height: 1.5 !important;
+      margin: 0 !important;
+    }
+
+    // Extra action buttons — right-aligned, 8px gap with title
+    .ant-pro-page-container-header-actions {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex-shrink: 0 !important;
+    }
+  }
+
+  // Tab bar (if used)
+  .ant-pro-page-container-tab {
+    background: transparent !important;
+    border-bottom: 1px solid var(--color-border-secondary, #ededef) !important;
+    padding: 0 var(--content-padding, 24px) !important;
+  }
+
+  // Page content wrapper
+  .ant-pro-page-container-children-container {
+    padding: 0 !important;
+  }
+}
+
+// ============================================================
+// ProTable — Unified Table Styles
+// ============================================================
+.ant-pro-table {
+  // Table card container
+  .ant-pro-table-list-toolbar {
+    padding: 0 0 12px !important;
+    margin-bottom: 0 !important;
+    border-bottom: none !important;
+  }
+
+  .ant-pro-table-list-toolbar-container {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+.ant-table-wrapper {
+  .ant-table {
+    // --- Table header ---
+    .ant-table-thead > tr > th {
+      background: var(--color-bg-spotlight, #fafafa) !important;
+      color: var(--color-text, #1c1c1e) !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      line-height: 1.4 !important;
+      padding: 12px 16px !important;
+      border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+      white-space: nowrap !important;
+
+      // Sort icon
+      .ant-table-column-sorter {
+        color: var(--color-text-tertiary, #98989d) !important;
+      }
+
+      // Filter icon
+      .ant-table-filter-trigger {
+        color: var(--color-text-tertiary, #98989d) !important;
+
+        &.active {
+          color: var(--color-primary, #1655cc) !important;
+        }
+      }
+    }
+
+    // --- Table body rows ---
+    .ant-table-tbody > tr > td {
+      padding: 12px 16px !important;
+      font-size: 14px !important;
+      color: var(--color-text, #1c1c1e) !important;
+      border-bottom: 1px solid var(--color-border-secondary, #ededef) !important;
+      line-height: 1.5 !important;
+      transition:
+        background-color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+    }
+
+    // Hover row
+    .ant-table-tbody > tr.ant-table-row:hover > td {
+      background: var(--color-bg-spotlight, #fafafa) !important;
+    }
+
+    // Selected row
+    .ant-table-tbody > tr.ant-table-row-selected > td {
+      background: var(--color-primary-bg, #eef3fb) !important;
+    }
+
+    // Zebra (none — keep clean)
+
+    // --- Expandable row ---
+    .ant-table-expanded-row > td {
+      background: var(--color-bg-spotlight, #fafafa) !important;
+      padding: 16px !important;
+    }
+
+    // --- Action column links ---
+    .ant-table-cell-wrap-space {
+      .ant-typography,
+      a {
+        font-size: 14px !important;
+      }
+    }
+
+    // --- Pagination bar ---
+    .ant-table-pagination {
+      margin: 16px 0 0 !important;
+      padding: 12px 0 !important;
+      border-top: 1px solid var(--color-border-secondary, #ededef) !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
+
+      .ant-pagination-total-text {
+        font-size: 12px !important;
+        color: var(--color-text-tertiary, #98989d) !important;
+      }
+
+      .ant-select-selector {
+        height: 32px !important;
+
+        .ant-select-selection-item {
+          line-height: 30px !important;
+          font-size: 14px !important;
+        }
+      }
+    }
+  }
+
+  // --- Empty state ---
+  .ant-table-placeholder {
+    background: transparent !important;
+    padding: 48px 24px !important;
+
+    .ant-empty-description {
+      color: var(--color-text-secondary, #5c5c5e) !important;
+      font-size: 14px !important;
+    }
+  }
+}
+
+// ============================================================
+// Filter / Search Area
+// ============================================================
+.ant-pro-table-search {
+  margin-bottom: 16px !important;
+  padding: 16px !important;
+  background: var(--color-bg-container, #ffffff) !important;
+  border: 1px solid var(--color-border, #e3e3e5) !important;
+  border-radius: var(--radius-lg, 8px) !important;
+
+  .ant-form {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-end !important;
+    gap: 8px !important;
+
+    // --- Individual form items ---
+    .ant-form-item {
+      margin: 0 !important;
+      padding: 0 !important;
+      flex-shrink: 0 !important;
+
+      .ant-form-item-label {
+        padding-bottom: 4px !important;
+
+        > label {
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          color: var(--color-text, #1c1c1e) !important;
+          height: auto !important;
+          line-height: 1.5 !important;
+        }
+      }
+
+      .ant-form-item-control {
+        line-height: 1.5 !important;
+      }
+    }
+
+    // Select — fixed 160px width (spec requirement)
+    .ant-select {
+      width: 160px !important;
+
+      .ant-select-selector {
+        height: 36px !important;
+        border-radius: var(--radius-md, 6px) !important;
+        border-color: var(--color-border, #e3e3e5) !important;
+        font-size: 14px !important;
+
+        &:hover {
+          border-color: var(--color-primary, #1655cc) !important;
+        }
+      }
+
+      &.ant-select-focused .ant-select-selector {
+        border-color: var(--color-primary, #1655cc) !important;
+        box-shadow: var(--shadow-inner, inset 0 1px 2px rgba(0, 0, 0, 0.04)) !important;
+      }
+    }
+
+    // Input — fixed 200px width
+    .ant-input {
+      width: 200px !important;
+      height: 36px !important;
+      border-radius: var(--radius-md, 6px) !important;
+      border-color: var(--color-border, #e3e3e5) !important;
+      font-size: 14px !important;
+
+      &:hover {
+        border-color: var(--color-primary, #1655cc) !important;
+      }
+
+      &:focus,
+      &.ant-input-affix-wrapper-focused {
+        border-color: var(--color-primary, #1655cc) !important;
+        box-shadow: var(--shadow-inner, inset 0 1px 2px rgba(0, 0, 0, 0.04)) !important;
+      }
+    }
+
+    // Date / Range pickers
+    .ant-picker {
+      width: 240px !important;
+      height: 36px !important;
+      border-radius: var(--radius-md, 6px) !important;
+    }
+  }
+
+  // --- Button group (right side) ---
+  .ant-form-item:last-child {
+    margin-left: auto !important;
+  }
+
+  // Search button — primary
+  .ant-btn-primary {
+    height: 36px !important;
+    padding: 0 20px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    border-radius: var(--radius-md, 6px) !important;
+  }
+
+  // Reset button — text type
+  .ant-btn-text {
+    height: 36px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+    color: var(--color-text-secondary, #5c5c5e) !important;
+    border-radius: var(--radius-md, 6px) !important;
+
+    &:hover {
+      color: var(--color-text, #1c1c1e) !important;
+      background: var(--color-bg-spotlight, #fafafa) !important;
+    }
+  }
+
+  // Collapse trigger ("更多筛选")
+  .ant-pro-table-search-collapse {
+    .ant-btn-link {
+      font-size: 14px !important;
+      color: var(--color-primary, #1655cc) !important;
+      padding: 0 8px !important;
+      height: 36px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+  }
+
+  // Divider between form items and buttons
+  .ant-divider {
+    display: none !important;
+  }
+}
+
+// ============================================================
+// Drawer — shared base styles
+// ============================================================
+.ant-drawer {
+  .ant-drawer-header {
+    border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+    padding: 16px 20px !important;
+
+    .ant-drawer-title {
+      font-size: 16px !important;
+      font-weight: 500 !important;
+      color: var(--color-text, #1c1c1e) !important;
+    }
+
+    .ant-drawer-close {
+      color: var(--color-text-tertiary, #98989d) !important;
+
+      &:hover {
+        color: var(--color-text, #1c1c1e) !important;
+      }
+    }
+  }
+
+  .ant-drawer-body {
+    padding: 20px !important;
   }
 }

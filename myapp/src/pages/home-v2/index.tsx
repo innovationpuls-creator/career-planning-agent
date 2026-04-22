@@ -15,16 +15,20 @@ import {
   Typography,
   Upload,
 } from 'antd';
-import { createStyles } from 'antd-style';
 import type { UploadFile } from 'antd/es/upload/interface';
+import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  STAGE_TO_LEVEL,
   getOrderedTiers,
   getStageKeyByLevel,
   getTierSalarySummary,
+  STAGE_TO_LEVEL,
 } from '@/components/VerticalTierComparison';
-import { getHomeV2, getJobTitleOptions, submitOnboardingProfile } from '@/services/ant-design-pro/api';
+import {
+  getHomeV2,
+  getJobTitleOptions,
+  submitOnboardingProfile,
+} from '@/services/ant-design-pro/api';
 
 const STAGE_ORDER: Array<'low' | 'middle' | 'high'> = ['low', 'middle', 'high'];
 
@@ -143,7 +147,10 @@ type ProfileFormValues = API.OnboardingProfileRequest & {
   image_files?: UploadFile[];
 };
 
-const PROFILE_FIELDS: Array<{ key: keyof API.StudentProfilePayload; label: string }> = [
+const PROFILE_FIELDS: Array<{
+  key: keyof API.StudentProfilePayload;
+  label: string;
+}> = [
   { key: 'school', label: '学校' },
   { key: 'grade', label: '年级' },
   { key: 'major', label: '专业' },
@@ -158,7 +165,9 @@ const HomeV2Page: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [payload, setPayload] = useState<API.HomeV2Payload>();
-  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>([]);
+  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>(
+    [],
+  );
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
 
@@ -171,7 +180,9 @@ const HomeV2Page: React.FC = () => {
     let mounted = true;
     Promise.all([
       getHomeV2(),
-      getJobTitleOptions({ skipErrorHandler: true }).catch(() => ({ data: [] })),
+      getJobTitleOptions({ skipErrorHandler: true }).catch(() => ({
+        data: [],
+      })),
     ])
       .then(([homeResponse, jobTitleResponse]) => {
         if (!mounted) {
@@ -198,21 +209,28 @@ const HomeV2Page: React.FC = () => {
   }, [form, payload?.profile, profileDrawerOpen]);
 
   const orderedTiers = useMemo(
-    () => getOrderedTiers(payload?.vertical_profile?.tiered_comparison?.tiers || []),
+    () =>
+      getOrderedTiers(
+        payload?.vertical_profile?.tiered_comparison?.tiers || [],
+      ),
     [payload?.vertical_profile?.tiered_comparison?.tiers],
   );
 
   const currentStageKey = payload?.current_stage || 'low';
   const currentStageLabel = STAGE_TO_LEVEL[currentStageKey] || '低级';
   const currentTier =
-    orderedTiers.find((tier) => getStageKeyByLevel(tier.level) === currentStageKey) || orderedTiers[0];
+    orderedTiers.find(
+      (tier) => getStageKeyByLevel(tier.level) === currentStageKey,
+    ) || orderedTiers[0];
   const salaryReference = currentTier ? getTierSalarySummary(currentTier) : '-';
   const matchedCount = currentTier?.items.length || 0;
 
   const pathItems = useMemo(
     () =>
       STAGE_ORDER.map((stageKey) => {
-        const tier = orderedTiers.find((item) => getStageKeyByLevel(item.level) === stageKey);
+        const tier = orderedTiers.find(
+          (item) => getStageKeyByLevel(item.level) === stageKey,
+        );
         return {
           title: STAGE_TO_LEVEL[stageKey],
           description: `薪资范围：${tier ? getTierSalarySummary(tier) : '-'}`,
@@ -248,7 +266,11 @@ const HomeV2Page: React.FC = () => {
   };
 
   return (
-    <PageContainer className={styles.pageContainer} title={false} breadcrumbRender={false}>
+    <PageContainer
+      className={styles.pageContainer}
+      title={false}
+      breadcrumbRender={false}
+    >
       <div className={styles.shell}>
         <div className={styles.content}>
           <div className={styles.header}>
@@ -269,7 +291,10 @@ const HomeV2Page: React.FC = () => {
                   <Typography.Title level={4} className={styles.sectionTitle}>
                     当前状态
                   </Typography.Title>
-                  <Button type="primary" onClick={() => setProfileDrawerOpen(true)}>
+                  <Button
+                    type="primary"
+                    onClick={() => setProfileDrawerOpen(true)}
+                  >
                     完善个人信息
                   </Button>
                 </div>
@@ -282,7 +307,11 @@ const HomeV2Page: React.FC = () => {
                 <div className={styles.metrics}>
                   <div className={styles.metricBlock}>
                     <div className={styles.metricLabel}>当前阶段</div>
-                    <div className={`${styles.metricValue} ${styles.currentStageValue}`}>{currentStageLabel}</div>
+                    <div
+                      className={`${styles.metricValue} ${styles.currentStageValue}`}
+                    >
+                      {currentStageLabel}
+                    </div>
                   </div>
                   <div className={styles.metricBlock}>
                     <div className={styles.metricLabel}>薪资范围</div>
@@ -303,8 +332,16 @@ const HomeV2Page: React.FC = () => {
                   </Typography.Title>
                 </div>
                 <div className={styles.pathWrap}>
-                  <Steps direction="vertical" current={STAGE_ORDER.indexOf(currentStageKey)} items={pathItems} />
-                  <Alert type="info" showIcon message={`当前处于${currentStageLabel}阶段`} />
+                  <Steps
+                    direction="vertical"
+                    current={STAGE_ORDER.indexOf(currentStageKey)}
+                    items={pathItems}
+                  />
+                  <Alert
+                    type="info"
+                    showIcon
+                    message={`当前处于${currentStageLabel}阶段`}
+                  />
                 </div>
               </section>
 
@@ -314,12 +351,19 @@ const HomeV2Page: React.FC = () => {
                   <Typography.Title level={4} className={styles.sectionTitle}>
                     我的资料
                   </Typography.Title>
-                  <Button type="link" onClick={() => setProfileDrawerOpen(true)}>
+                  <Button
+                    type="link"
+                    onClick={() => setProfileDrawerOpen(true)}
+                  >
                     编辑资料
                   </Button>
                 </div>
                 <div className={styles.profileWrap}>
-                  <Descriptions column={{ xs: 1, md: 2 }} size="small" className={styles.profileDescriptions}>
+                  <Descriptions
+                    column={{ xs: 1, md: 2 }}
+                    size="small"
+                    className={styles.profileDescriptions}
+                  >
                     {PROFILE_FIELDS.map((field) => (
                       <Descriptions.Item key={field.key} label={field.label}>
                         {payload?.profile?.[field.key] || '-'}
@@ -345,26 +389,50 @@ const HomeV2Page: React.FC = () => {
         extra={
           <Space>
             <Button onClick={() => setProfileDrawerOpen(false)}>取消</Button>
-            <Button type="primary" loading={saving} onClick={() => void handleProfileSave()}>
+            <Button
+              type="primary"
+              loading={saving}
+              onClick={() => void handleProfileSave()}
+            >
               保存
             </Button>
           </Space>
         }
       >
         <Form form={form} layout="vertical">
-          <Form.Item label="姓名" name="full_name" rules={[{ required: true, message: '请输入姓名' }]}>
+          <Form.Item
+            label="姓名"
+            name="full_name"
+            rules={[{ required: true, message: '请输入姓名' }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item label="学校" name="school" rules={[{ required: true, message: '请输入学校' }]}>
+          <Form.Item
+            label="学校"
+            name="school"
+            rules={[{ required: true, message: '请输入学校' }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item label="专业" name="major" rules={[{ required: true, message: '请输入专业' }]}>
+          <Form.Item
+            label="专业"
+            name="major"
+            rules={[{ required: true, message: '请输入专业' }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item label="学历" name="education_level" rules={[{ required: true, message: '请输入学历' }]}>
+          <Form.Item
+            label="学历"
+            name="education_level"
+            rules={[{ required: true, message: '请输入学历' }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item label="年级" name="grade" rules={[{ required: true, message: '请输入年级' }]}>
+          <Form.Item
+            label="年级"
+            name="grade"
+            rules={[{ required: true, message: '请输入年级' }]}
+          >
             <Input />
           </Form.Item>
           <Form.Item
@@ -379,13 +447,18 @@ const HomeV2Page: React.FC = () => {
               accept=".jpg,.jpeg,.png,.webp"
               beforeUpload={() => false}
               fileList={fileList}
-              onChange={({ fileList: nextFileList }) => setFileList(nextFileList)}
+              onChange={({ fileList: nextFileList }) =>
+                setFileList(nextFileList)
+              }
             >
               <Button>上传图片</Button>
             </Upload>
             {payload?.attachments?.length ? (
               <div className={styles.attachmentList}>
-                当前附件：{payload.attachments.map((item) => item.original_name).join('，')}
+                当前附件：
+                {payload.attachments
+                  .map((item) => item.original_name)
+                  .join('，')}
               </div>
             ) : null}
           </Form.Item>

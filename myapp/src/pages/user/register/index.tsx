@@ -1,8 +1,18 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Helmet, Link, SelectLang, history, useIntl } from '@umijs/max';
-import { Alert, App, Button, Form, Input, Select, Steps, Typography, Upload } from 'antd';
-import { createStyles } from 'antd-style';
+import { Helmet, history, Link, SelectLang, useIntl } from '@umijs/max';
+import {
+  Alert,
+  App,
+  Button,
+  Form,
+  Input,
+  Select,
+  Steps,
+  Typography,
+  Upload,
+} from 'antd';
 import type { UploadFile } from 'antd/es/upload/interface';
+import { createStyles } from 'antd-style';
 import React, { startTransition, useEffect, useMemo, useState } from 'react';
 import {
   getJobTitleOptions,
@@ -16,37 +26,52 @@ import Settings from '../../../../config/defaultSettings';
 const SUCCESS_ANIMATION_DELAY_MS = 350;
 
 const useStyles = createStyles(({ css, token }) => ({
-  lang: css`
-    width: 42px;
-    height: 42px;
-    line-height: 42px;
-    position: fixed;
-    right: 16px;
-    border-radius: ${token.borderRadius}px;
-
-    &:hover {
-      background-color: ${token.colorBgTextHover};
-    }
-  `,
   container: css`
     display: flex;
     flex-direction: column;
+    align-items: center;
     min-height: 100vh;
-    background-image: url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr');
-    background-size: 100% 100%;
+    background: linear-gradient(
+      135deg,
+      ${token.colorPrimaryBg} 0%,
+      ${token.colorBgLayout} 50%,
+      ${token.colorPrimaryBg} 100%
+    );
+    padding: 24px 16px;
   `,
   shell: css`
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
+    width: 100%;
   `,
   card: css`
     width: min(680px, 100%);
-    padding: 24px;
+    padding: 32px 40px;
     background: rgba(255, 255, 255, 0.96);
     border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
+  `,
+  logoArea: css`
+    text-align: center;
+    margin-bottom: 28px;
+  `,
+  productTitle: css`
+    display: block;
+    font-size: 24px;
+    font-weight: 600;
+    color: ${token.colorText};
+    line-height: 1.3;
+    margin-bottom: 8px;
+  `,
+  productSubtitle: css`
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+    color: ${token.colorTextSecondary};
+    line-height: 1.5;
   `,
   title: css`
     margin-bottom: 24px !important;
@@ -59,7 +84,12 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   linkRow: css`
     margin-top: 16px;
-    text-align: right;
+    text-align: center;
+  `,
+  submitBtn: css`
+    height: 40px;
+    font-size: 14px;
+    font-weight: 500;
   `,
 }));
 
@@ -69,11 +99,9 @@ type RegisterStepValues = API.RegisterParams &
   };
 
 const Lang = () => {
-  const { styles } = useStyles();
-
   return (
-    <div className={styles.lang} data-lang>
-      {SelectLang && <SelectLang />}
+    <div style={{ position: 'fixed', top: 16, right: 16 }}>
+      <SelectLang />
     </div>
   );
 };
@@ -86,7 +114,9 @@ const RegisterPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [registerState, setRegisterState] = useState<API.RegisterResult>({});
-  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>([]);
+  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>(
+    [],
+  );
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [accountCreated, setAccountCreated] = useState(false);
 
@@ -101,11 +131,7 @@ const RegisterPage: React.FC = () => {
   }, []);
 
   const stepItems = useMemo(
-    () => [
-      { title: '账号' },
-      { title: '基础信息' },
-      { title: '简历图片' },
-    ],
+    () => [{ title: '账号' }, { title: '基础信息' }, { title: '简历图片' }],
     [],
   );
 
@@ -183,7 +209,10 @@ const RegisterPage: React.FC = () => {
       });
     } catch (error: any) {
       const backendMessage =
-        error?.response?.data?.detail || error?.info?.errorMessage || error?.message || '提交失败';
+        error?.response?.data?.detail ||
+        error?.info?.errorMessage ||
+        error?.message ||
+        '提交失败';
       setRegisterState({
         status: 'error',
         errorMessage: backendMessage,
@@ -209,10 +238,22 @@ const RegisterPage: React.FC = () => {
       <Lang />
       <div className={styles.shell}>
         <div className={styles.card} data-testid="register-page-shell">
-          <Typography.Title level={3} className={styles.title} data-testid="register-page-title">
-            创建账户
-          </Typography.Title>
-          <Steps current={currentStep} items={stepItems} style={{ marginBottom: 24 }} />
+          <div className={styles.logoArea}>
+            <span
+              className={styles.productTitle}
+              data-testid="register-page-title"
+            >
+              创建账户
+            </span>
+            <span className={styles.productSubtitle}>
+              完成注册，开始职业规划之旅
+            </span>
+          </div>
+          <Steps
+            current={currentStep}
+            items={stepItems}
+            style={{ marginBottom: 24 }}
+          />
           {registerState.status === 'error' ? (
             <Alert
               style={{ marginBottom: 16 }}
@@ -319,12 +360,17 @@ const RegisterPage: React.FC = () => {
             ) : null}
           </Form>
           <div className={styles.footer}>
-            <Button disabled={currentStep === 0} onClick={() => setCurrentStep((step) => step - 1)}>
+            <Button
+              disabled={currentStep === 0}
+              className={styles.submitBtn}
+              onClick={() => setCurrentStep((step) => step - 1)}
+            >
               上一步
             </Button>
             {currentStep < 2 ? (
               <Button
                 type="primary"
+                className={styles.submitBtn}
                 onClick={async () => {
                   await validateCurrentStep();
                   setCurrentStep((step) => step + 1);
@@ -333,7 +379,12 @@ const RegisterPage: React.FC = () => {
                 下一步
               </Button>
             ) : (
-              <Button type="primary" loading={submitting} onClick={() => void handleSubmit()}>
+              <Button
+                type="primary"
+                className={styles.submitBtn}
+                loading={submitting}
+                onClick={() => void handleSubmit()}
+              >
                 完成注册
               </Button>
             )}

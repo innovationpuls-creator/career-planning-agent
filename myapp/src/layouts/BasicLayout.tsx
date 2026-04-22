@@ -1,71 +1,28 @@
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
-import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
+import type { RunTimeLayoutConfig } from '@umijs/max';
 import { history } from '@umijs/max';
 import { Button, Result, Spin } from 'antd';
 import React from 'react';
-import { AvatarDropdown, AvatarName, SelectLang } from '@/components';
-import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
-import { serializeRequestParams } from '@/utils/requestParams';
-import defaultSettings from '../config/defaultSettings';
-import { errorConfig } from './requestErrorConfig';
-import '@ant-design/v5-patch-for-react-19';
+import { AvatarDropdown, AvatarName } from '@/components';
+import defaultSettings from '../../config/defaultSettings';
 
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 const userDefaultPath = '/home-v2';
 const publicPaths = [loginPath, '/user/register', '/user/register-result'];
 
-/**
- * @see https://umijs.org/docs/api/runtime-config#getinitialstate
- */
-export async function getInitialState(): Promise<{
-  settings?: Partial<LayoutSettings>;
-  currentUser?: API.CurrentUser;
-  loading?: boolean;
-  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
-}> {
-  const fetchUserInfo = async () => {
-    try {
-      const msg = await queryCurrentUser({
-        skipErrorHandler: true,
-      });
-      return msg.data;
-    } catch (_error) {
-      if (!publicPaths.includes(history.location.pathname)) {
-        history.push(loginPath);
-      }
-    }
-    return undefined;
-  };
-
-  const { location } = history;
-  if (!publicPaths.includes(location.pathname)) {
-    const currentUser = await fetchUserInfo();
-    return {
-      fetchUserInfo,
-      currentUser,
-      settings: defaultSettings as Partial<LayoutSettings>,
-    };
-  }
-
-  return {
-    fetchUserInfo,
-    settings: defaultSettings as Partial<LayoutSettings>,
-  };
-}
-
 export const layout: RunTimeLayoutConfig = ({
   initialState,
   setInitialState,
 }) => {
   const { location } = history;
-  const shouldShowWatermark = location.pathname.startsWith('/admin');
   const isLoggedIn = !!initialState?.currentUser;
   const isAdmin = initialState?.currentUser?.access === 'admin';
 
   return {
-    actionsRender: () => [<SelectLang key="SelectLang" />],
+    logo: 'https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg',
+    title: '大学生职业规划智能体',
     avatarProps: {
       src: initialState?.currentUser?.avatar,
       title: <AvatarName />,
@@ -73,11 +30,6 @@ export const layout: RunTimeLayoutConfig = ({
         return <AvatarDropdown menu>{avatarChildren}</AvatarDropdown>;
       },
     },
-    waterMarkProps: shouldShowWatermark
-      ? {
-          content: initialState?.currentUser?.name,
-        }
-      : undefined,
     footerRender: false,
     onPageChange: () => {
       if (
@@ -118,12 +70,27 @@ export const layout: RunTimeLayoutConfig = ({
         }
       />
     ),
-    bgLayoutImgList: [],
     links: [],
     menuHeaderRender: undefined,
+    bgLayoutImgList: [],
     childrenRender: (children) => {
       if (initialState?.loading) {
-        return <Spin fullscreen tip="正在加载页面..." />;
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255,255,255,0.72)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+            }}
+          >
+            <Spin size="large" tip="正在加载页面..." />
+          </div>
+        );
       }
       return (
         <>
@@ -133,9 +100,9 @@ export const layout: RunTimeLayoutConfig = ({
               disableUrlParams
               enableDarkTheme
               settings={initialState?.settings}
-              onSettingChange={(settings) => {
-                setInitialState((preInitialState) => ({
-                  ...preInitialState,
+              onSettingChange={(settings: Partial<LayoutSettings>) => {
+                setInitialState((pre) => ({
+                  ...pre,
                   settings,
                 }));
               }}
@@ -149,9 +116,4 @@ export const layout: RunTimeLayoutConfig = ({
     },
     ...initialState?.settings,
   };
-};
-
-export const request: RequestConfig = {
-  ...errorConfig,
-  paramsSerializer: serializeRequestParams,
 };

@@ -18,6 +18,7 @@ import {
   message,
 } from 'antd';
 import React, { useRef, useState } from 'react';
+import { createStyles } from 'antd-style';
 import {
   createAdminUser,
   deleteAdminUser,
@@ -299,7 +300,7 @@ const UserManagementPage: React.FC = () => {
           </Typography.Link>
           <Typography.Link
             onClick={() => handleDelete(record)}
-            style={{ color: '#ff4d4f' }}
+            type="danger"
           >
             删除
           </Typography.Link>
@@ -465,7 +466,7 @@ const UserManagementPage: React.FC = () => {
               <Avatar
                 size={64}
                 src={detailRecord.avatar}
-                style={{ backgroundColor: '#1677ff' }}
+                style={{ backgroundColor: 'var(--chart-blue, #4A90D9)' }}
               >
                 {(detailRecord.display_name || detailRecord.username).slice(0, 1).toUpperCase()}
               </Avatar>
