@@ -11,28 +11,31 @@ const { TextArea } = Input;
 
 const useStyles = createStyles(({ css, token }) => ({
   composer: css`
-    padding: 14px;
+    padding: 18px 18px 16px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
     background: ${token.colorBgContainer};
+    box-shadow: 0 6px 18px rgba(15, 35, 70, 0.035);
   `,
   header: css`
-    margin-bottom: 6px;
+    margin-bottom: 14px;
   `,
   title: css`
     margin: 0;
-    font-size: 15px;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
   `,
   primaryUploadCard: css`
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     border-radius: 12px;
     overflow: hidden;
     transition: all 0.2s ease;
     cursor: pointer;
 
     :global(.ant-upload) {
-      padding: 14px 12px !important;
-      background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+      padding: 18px 12px !important;
+      background: linear-gradient(180deg, ${token.colorPrimaryBg} 0%, ${token.colorBgContainer} 100%);
       transition: background 0.2s ease;
     }
 
@@ -43,7 +46,7 @@ const useStyles = createStyles(({ css, token }) => ({
 
     :hover {
       border-color: ${token.colorPrimary};
-      box-shadow: 0 4px 16px rgba(22, 119, 255, 0.15);
+      box-shadow: 0 8px 18px rgba(22, 85, 204, 0.11);
     }
 
     :hover :global(.ant-upload-drag-icon) {
@@ -51,26 +54,27 @@ const useStyles = createStyles(({ css, token }) => ({
     }
 
     :hover :global(.ant-upload) {
-      background: linear-gradient(180deg, #e6f4ff 0%, #f7fbff 100%);
+      background: linear-gradient(180deg, ${token.colorPrimaryBgHover} 0%, ${token.colorPrimaryBg} 100%);
     }
   `,
   compactUpload: css`
-    margin-top: 8px;
+    margin-top: 12px;
   `,
   textarea: css`
-    border-radius: 10px;
+    border-radius: 8px;
     resize: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     :global(textarea) {
       min-height: 38px !important;
-      padding-block: 8px;
+      padding: 8px 12px;
+      color: ${token.colorText};
     }
 
     :global(.ant-input:focus),
     :global(.ant-input-focused) {
       border-color: ${token.colorPrimary};
-      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+      box-shadow: 0 0 0 2px rgba(22, 85, 204, 0.1);
     }
 
     :hover:not(:global(.ant-input-disabled)) {
@@ -88,7 +92,7 @@ const useStyles = createStyles(({ css, token }) => ({
     align-items: flex-end;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 10px;
+    margin-top: 18px;
     flex-wrap: wrap;
   `,
   actions: css`
@@ -98,12 +102,13 @@ const useStyles = createStyles(({ css, token }) => ({
     flex-wrap: wrap;
   `,
   uploadButton: css`
-    border-radius: 10px;
+    height: 38px;
+    border-radius: 8px;
     transition: all 0.2s ease;
 
     :hover {
       transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 14px rgba(15, 35, 70, 0.08);
       border-color: ${token.colorPrimary};
       color: ${token.colorPrimary};
     }
@@ -113,13 +118,15 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   primaryButton: css`
-    min-width: 120px;
-    border-radius: 10px;
+    min-width: 128px;
+    height: 38px;
+    border-radius: 8px;
+    font-weight: 500;
     transition: all 0.2s ease;
 
     :hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+      box-shadow: 0 8px 18px rgba(22, 85, 204, 0.18);
     }
 
     :active {

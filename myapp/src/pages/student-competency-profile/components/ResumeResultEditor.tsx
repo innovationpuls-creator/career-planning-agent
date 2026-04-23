@@ -1,4 +1,4 @@
-import { Collapse, Empty, Typography } from 'antd';
+import { Collapse, Empty, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo } from 'react';
 import DimensionGroupEditor from './DimensionGroupEditor';
@@ -12,32 +12,81 @@ const useStyles = createStyles(({ css, token }) => ({
     min-height: 0;
   `,
   header: css`
-    padding-bottom: 6px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+    margin-bottom: 16px;
   `,
   title: css`
-    margin: 0;
-    font-size: 17px;
+    margin: 0 !important;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
+  `,
+  subtitle: css`
+    display: block;
+    margin-top: 6px;
+    color: ${token.colorTextSecondary};
+    font-size: 13px;
+  `,
+  modeTag: css`
+    margin-inline-end: 0 !important;
+    border-radius: 6px;
   `,
   body: css`
     min-height: 0;
   `,
   collapse: css`
+    display: grid;
+    gap: 12px;
     background: transparent;
 
     :global(.ant-collapse-item) {
-      border-bottom: 1px solid ${token.colorBorderSecondary};
+      overflow: hidden;
+      border: 1px solid ${token.colorBorderSecondary} !important;
+      border-radius: 12px !important;
+      background: ${token.colorBgContainer};
+      box-shadow: 0 8px 18px rgba(15, 35, 70, 0.03);
     }
 
     :global(.ant-collapse-header) {
-      padding-inline: 0 !important;
-      padding-block: 10px !important;
+      align-items: center !important;
+      padding: 16px 18px !important;
+      border-radius: 12px !important;
+      transition: background-color 0.2s ease;
+    }
+
+    :global(.ant-collapse-header:hover) {
+      background: ${token.colorPrimaryBg};
     }
 
     :global(.ant-collapse-content-box) {
-      padding-inline: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 4px !important;
+      padding: 0 18px 18px !important;
     }
+
+    :global(.ant-collapse-content) {
+      border-top: 1px solid ${token.colorBorderSecondary} !important;
+    }
+  `,
+  groupLabel: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
+  `,
+  groupName: css`
+    color: ${token.colorText};
+    font-weight: 600;
+  `,
+  groupMeta: css`
+    flex: 0 0 auto;
+    color: ${token.colorTextSecondary};
+    font-size: 13px;
   `,
   footer: css`
     margin-top: 14px;
@@ -96,12 +145,23 @@ const ResumeResultEditor = React.forwardRef<HTMLDivElement, Props>(
       return fallbackGroup.key;
     }, [displayProfile]);
 
+    const getGroupFilledCount = (dimensionKeys: readonly string[]) =>
+      dimensionKeys.filter((key) => hasMeaningfulValues(displayProfile[key as ProfileKey])).length;
+
     return (
       <div ref={ref} className={styles.panel} data-result-mode={mode}>
         <div className={styles.header}>
-          <Typography.Title level={4} className={styles.title}>
-            12维解析结果
-          </Typography.Title>
+          <div>
+            <Typography.Title level={4} className={styles.title}>
+              12维解析结果
+            </Typography.Title>
+            <Typography.Text className={styles.subtitle}>
+              按能力分组查看已提取关键词，编辑后保存会同步到当前解析结果
+            </Typography.Text>
+          </div>
+          <Tag color={mode === 'edit' ? 'processing' : 'success'} className={styles.modeTag}>
+            {mode === 'edit' ? '编辑中' : '已生成'}
+          </Tag>
         </div>
 
         <div className={styles.body}>
@@ -113,7 +173,14 @@ const ResumeResultEditor = React.forwardRef<HTMLDivElement, Props>(
               defaultActiveKey={activeKey}
               items={PROFILE_GROUPS.map((group) => ({
                 key: group.key,
-                label: group.title,
+                label: (
+                  <div className={styles.groupLabel}>
+                    <span className={styles.groupName}>{group.title}</span>
+                    <span className={styles.groupMeta}>
+                      {getGroupFilledCount(group.dimensionKeys)} / {group.dimensionKeys.length} 项已提取
+                    </span>
+                  </div>
+                ),
                 children: (
                   <DimensionGroupEditor
                     fields={group.dimensionKeys.map((key) => fieldMap[key as ProfileKey]).filter(Boolean)}

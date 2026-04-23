@@ -1,4 +1,3 @@
-import type { CareerDevelopmentMatchReport } from '@/services/ant-design-pro/typings';
 import type {
   JobMatchOutcomeGapItem,
   JobMatchOutcomeMetric,
@@ -9,6 +8,8 @@ import type {
 import { buildStrengthGroups, getAssessmentLabel } from './JobMatchOutcomeBody';
 
 export type CareerMatchResultTabKey = 'comparison' | 'advice' | 'company';
+
+type CareerDevelopmentMatchReport = API.CareerDevelopmentMatchReport;
 
 const buildGapLabel = (gap: number): string => {
   if (gap <= 10) return '轻微差距';

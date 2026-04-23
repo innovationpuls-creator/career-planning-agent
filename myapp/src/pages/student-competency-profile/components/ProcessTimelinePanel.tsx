@@ -21,14 +21,16 @@ import type {
 const useStyles = createStyles(({ css, token }) => ({
   panel: css`
     display: grid;
-    gap: 12px;
+    gap: 16px;
     min-height: 0;
   `,
   summaryCard: css`
-    padding: 16px;
+    min-height: 104px;
+    padding: 18px 20px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
     background: ${token.colorBgContainer};
+    box-shadow: 0 6px 18px rgba(15, 35, 70, 0.035);
   `,
   summaryHead: css`
     display: flex;
@@ -39,7 +41,9 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   summaryTitle: css`
     margin: 0;
-    font-size: 15px;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
   `,
   summaryMain: css`
     min-width: 0;
@@ -47,18 +51,31 @@ const useStyles = createStyles(({ css, token }) => ({
   summaryFile: css`
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 10px;
+    margin-top: 15px;
     color: ${token.colorTextSecondary};
+  `,
+  summaryIcon: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+    font-size: 17px;
   `,
   summaryProgress: css`
     margin-top: 8px;
   `,
   processCard: css`
-    padding: 16px;
+    padding: 18px 20px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
     background: ${token.colorBgContainer};
+    box-shadow: 0 6px 18px rgba(15, 35, 70, 0.035);
   `,
   processHint: css`
     padding: 14px 16px;
@@ -67,8 +84,10 @@ const useStyles = createStyles(({ css, token }) => ({
     background: ${token.colorFillTertiary};
   `,
   sectionTitle: css`
-    margin: 0 0 4px;
-    font-size: 15px;
+    margin: 0 0 14px;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
   `,
   detailToggle: css`
     margin-top: 6px;
@@ -92,6 +111,20 @@ const useStyles = createStyles(({ css, token }) => ({
 
     :global(.ant-timeline-item-content) {
       inset-inline-start: 26px;
+    }
+  `,
+  steps: css`
+    :global(.ant-steps-item-title) {
+      color: ${token.colorText};
+      font-weight: 500;
+    }
+
+    :global(.ant-steps-item-description) {
+      color: ${token.colorTextSecondary};
+    }
+
+    :global(.ant-steps-item-tail::after) {
+      background-color: ${token.colorPrimaryBorder} !important;
     }
   `,
   timelineItem: css`
@@ -214,6 +247,7 @@ const ProcessTimelinePanel: React.FC<Props> = ({
 
       {showSteps ? (
         <Steps
+          className={styles.steps}
           direction="vertical"
           size="small"
           current={
@@ -374,22 +408,30 @@ const ProcessTimelinePanel: React.FC<Props> = ({
               </Typography.Title>
               {latestResultMessage ? (
                 <div className={styles.summaryFile}>
-                  <FileTextOutlined style={{ color: '#1677ff' }} />
+                  <span className={styles.summaryIcon}>
+                    <FileTextOutlined />
+                  </span>
                   <Typography.Text>{latestResultMessage.assetName}</Typography.Text>
                 </div>
               ) : hasCompletedProfile ? (
                 <div className={styles.summaryFile}>
-                  <FileTextOutlined style={{ color: '#1677ff' }} />
+                  <span className={styles.summaryIcon}>
+                    <FileTextOutlined />
+                  </span>
                   <Typography.Text>简历解析结果</Typography.Text>
                 </div>
               ) : latestUpload ? (
                 <div className={styles.summaryFile}>
-                  <FileTextOutlined style={{ color: '#1677ff' }} />
+                  <span className={styles.summaryIcon}>
+                    <FileTextOutlined />
+                  </span>
                   <Typography.Text>{latestUpload.name}</Typography.Text>
                 </div>
               ) : (
                 <div className={styles.summaryFile}>
-                  <FileTextOutlined style={{ color: '#8c8c8c' }} />
+                  <span className={styles.summaryIcon}>
+                    <FileTextOutlined />
+                  </span>
                   <Typography.Text type="secondary">暂无上传文件</Typography.Text>
                 </div>
               )}

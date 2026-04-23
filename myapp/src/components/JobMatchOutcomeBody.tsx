@@ -1,5 +1,16 @@
 import { Radar } from '@ant-design/charts';
-import { CopyOutlined } from '@ant-design/icons';
+import {
+  AimOutlined,
+  BankOutlined,
+  BarChartOutlined,
+  BookOutlined,
+  CodeOutlined,
+  CopyOutlined,
+  FileTextOutlined,
+  ReadOutlined,
+  StarOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
 import { Button, Collapse, Empty, Space, Tag, Typography, message } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -42,35 +53,40 @@ const STRENGTH_GROUP_CONFIG = [
 
 const useStyles = createStyles(({ css, token }) => ({
   section: css`
-    padding: 14px 16px;
+    padding: 20px 24px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
     background: ${token.colorBgContainer};
+    box-shadow: 0 8px 20px rgba(15, 35, 70, 0.035);
+  `,
+  summarySection: css`
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   `,
   sectionHead: css`
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 18px;
     flex-wrap: wrap;
   `,
   sectionTitle: css`
     margin: 0;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
   `,
   metricsShell: css`
-    display: flex;
-    align-items: stretch;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: block;
   `,
   metricGrid: css`
-    flex: 1;
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(120px, 1.05fr) minmax(140px, 1.2fr) minmax(150px, 1.3fr) repeat(2, minmax(108px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
 
     @media (max-width: 1440px) {
       grid-template-columns: repeat(3, minmax(130px, 1fr));
@@ -81,37 +97,68 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   metricCard: css`
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: ${token.colorFillQuaternary};
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px;
+    align-items: center;
+    min-height: 118px;
+    padding: 22px 24px;
+    overflow: hidden;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    background: ${token.colorBgContainer};
+    box-shadow: 0 8px 20px rgba(15, 35, 70, 0.045);
     transition: all 0.2s ease;
     cursor: default;
 
     :hover {
-      background: ${token.colorFillSecondary};
-      transform: scale(1.02);
+      border-color: ${token.colorPrimaryBorder};
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(22, 85, 204, 0.08);
     }
+  `,
+  metricIcon: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+    font-size: 26px;
+  `,
+  metricIconWarm: css`
+    background: ${token.colorWarningBg};
+    color: ${token.colorWarning};
+  `,
+  metricIconSuccess: css`
+    background: ${token.colorSuccessBg};
+    color: ${token.colorSuccess};
   `,
   metricLabel: css`
     display: block;
-    margin-bottom: 4px;
-    font-size: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
     color: ${token.colorTextSecondary};
   `,
   metricValueStrong: css`
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: #0958d9;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: ${token.colorPrimary};
   `,
   metricValue: css`
-    font-size: 16px;
+    color: ${token.colorText};
+    font-size: 22px;
+    font-weight: 600;
     line-height: 1.3;
   `,
   metricValuePrimary: css`
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 21px;
+    font-weight: 700;
     line-height: 1.3;
+    color: ${token.colorText};
   `,
   assessmentValue: css`
     display: flex;
@@ -135,9 +182,10 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   comparisonBody: css`
+    position: relative;
     display: grid;
-    grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
-    gap: 16px;
+    grid-template-columns: minmax(330px, 0.95fr) minmax(420px, 1.05fr);
+    gap: 26px;
 
     @media (max-width: 1200px) {
       grid-template-columns: 1fr;
@@ -147,17 +195,29 @@ const useStyles = createStyles(({ css, token }) => ({
     min-width: 0;
   `,
   radarWrap: css`
-    height: 360px;
+    height: 318px;
     width: 100%;
+  `,
+  gapPanel: css`
+    min-width: 0;
+    padding-left: 26px;
+    border-left: 1px dashed ${token.colorBorderSecondary};
+
+    @media (max-width: 1200px) {
+      padding-left: 0;
+      border-left: 0;
+    }
   `,
   gapList: css`
     display: grid;
-    gap: 8px;
+    gap: 12px;
   `,
   gapButton: css`
     width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
+    display: grid;
+    gap: 8px;
+    padding: 16px 18px;
+    border-radius: 12px;
     border: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorBgContainer};
     text-align: left;
@@ -166,8 +226,8 @@ const useStyles = createStyles(({ css, token }) => ({
 
     :hover {
       transform: translateY(-2px);
-      border-color: ${token.colorPrimary};
-      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+      border-color: ${token.colorPrimaryBorder};
+      box-shadow: 0 8px 18px rgba(22, 85, 204, 0.09);
     }
 
     :active {
@@ -177,7 +237,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   gapButtonActive: css`
     border-color: ${token.colorPrimary};
-    background: #f5f9ff;
+    background: ${token.colorPrimaryBg};
     transition: all 0.2s ease;
   `,
   gapTop: css`
@@ -191,8 +251,35 @@ const useStyles = createStyles(({ css, token }) => ({
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 6px;
+    min-width: 0;
+  `,
+  gapLeading: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: ${token.colorWarningBg};
+    color: ${token.colorWarning};
+    font-size: 20px;
+  `,
+  gapLeadingBlue: css`
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+  `,
+  gapLeadingGreen: css`
+    background: ${token.colorSuccessBg};
+    color: ${token.colorSuccess};
+  `,
+  gapLeadingPurple: css`
+    background: rgba(126, 104, 200, 0.12);
+    color: #7e68c8;
+  `,
+  gapContent: css`
+    min-width: 0;
+    flex: 1;
   `,
   gapSummary: css`
     flex: 1;
@@ -202,37 +289,52 @@ const useStyles = createStyles(({ css, token }) => ({
   strengthsCompact: css`
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 10px;
   `,
   strengthTag: css`
+    margin-inline-end: 0 !important;
+    padding: 3px 12px;
+    border-color: ${token.colorSuccessBorder};
+    border-radius: 6px;
+    background: ${token.colorSuccessBg};
+    color: ${token.colorSuccess};
+    font-size: 13px;
+    line-height: 20px;
     transition: all 0.2s ease;
 
     :hover {
-      transform: scale(1.05);
-      box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(31, 142, 61, 0.12);
     }
   `,
   adviceLayout: css`
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
-    gap: 16px;
+    grid-template-columns: 286px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
 
     @media (max-width: 1200px) {
       grid-template-columns: 1fr;
     }
   `,
   adviceListTitle: css`
-    margin: 0 0 10px;
-    font-size: 14px;
+    margin: 0 0 14px !important;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
   `,
   adviceList: css`
     display: grid;
-    gap: 8px;
+    gap: 10px;
   `,
   adviceItem: css`
     width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px 14px;
+    border-radius: 12px;
     border: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorBgContainer};
     text-align: left;
@@ -249,9 +351,82 @@ const useStyles = createStyles(({ css, token }) => ({
       transform: translateY(0);
     }
   `,
+  adviceItemActive: css`
+    border-color: ${token.colorPrimary};
+    background: ${token.colorPrimaryBg};
+    box-shadow: 0 8px 18px rgba(22, 85, 204, 0.08);
+  `,
+  adviceItemMain: css`
+    min-width: 0;
+    flex: 1;
+    display: grid;
+    gap: 6px;
+  `,
+  adviceItemTop: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+  `,
+  adviceItemSummary: css`
+    color: ${token.colorTextSecondary};
+    font-size: 13px;
+    line-height: 1.55;
+  `,
+  adviceDetailPanel: css`
+    min-width: 0;
+  `,
   adviceDetail: css`
     display: grid;
-    gap: 16px;
+    gap: 14px;
+  `,
+  adviceHero: css`
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px 18px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    background: linear-gradient(180deg, ${token.colorBgContainer} 0%, ${token.colorPrimaryBg} 180%);
+  `,
+  adviceHeroIcon: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+    font-size: 22px;
+  `,
+  adviceHeroBody: css`
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+  `,
+  adviceHeroMeta: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  `,
+  adviceBlock: css`
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    background: ${token.colorBgContainer};
+  `,
+  adviceBlockTitle: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: ${token.colorText};
+    font-weight: 600;
   `,
   adviceSection: css`
     display: grid;
@@ -259,31 +434,56 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   simpleList: css`
     display: grid;
-    gap: 6px;
+    gap: 8px;
+  `,
+  simpleListItem: css`
+    position: relative;
+    padding-left: 14px;
+    color: ${token.colorText};
+    line-height: 1.65;
+
+    &::before {
+      position: absolute;
+      top: 0.75em;
+      left: 0;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: ${token.colorPrimary};
+      content: '';
+    }
   `,
   tagList: css`
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   `,
   moreCollapse: css`
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    background: ${token.colorBgContainer};
+
     :global(.ant-collapse-header) {
-      padding-inline: 0 !important;
-      padding-block: 8px !important;
+      padding: 12px 16px !important;
     }
 
     :global(.ant-collapse-content-box) {
-      padding-inline: 0 !important;
-      padding-bottom: 0 !important;
-      padding-top: 6px !important;
+      padding: 0 16px 14px !important;
+    }
+
+    :global(.ant-collapse-item) {
+      border-bottom: 0 !important;
     }
   `,
   copyButton: css`
+    border-radius: 8px;
+    border-color: ${token.colorPrimaryBorder};
+    color: ${token.colorPrimary};
     transition: all 0.2s ease;
 
     :hover {
       transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 14px rgba(22, 85, 204, 0.12);
     }
 
     :active {
@@ -373,10 +573,72 @@ type RadarChartProps = {
   config: Record<string, any>;
 };
 
+const RADAR_LABEL_MAP: Array<[string, string]> = [
+  ['professional_skills', '专业技能'],
+  ['professional_background', '专业背景'],
+  ['education_requirement', '学历背景'],
+  ['teamwork', '团队协作'],
+  ['stress_adaptability', '抗压适应'],
+  ['communication', '沟通表达'],
+  ['work_experience', '工作经验'],
+  ['documentation_awareness', '文档意识'],
+  ['responsibility', '责任态度'],
+  ['learning_ability', '学习能力'],
+  ['problem_solving', '问题解决'],
+  ['other_special', '特殊要求'],
+  ['专业技能', '专业技能'],
+  ['专业背景', '专业背景'],
+  ['学历', '学历背景'],
+  ['学业', '学历背景'],
+  ['团队', '团队协作'],
+  ['协作', '团队协作'],
+  ['抗压', '抗压适应'],
+  ['适应', '抗压适应'],
+  ['沟通', '沟通表达'],
+  ['表达', '沟通表达'],
+  ['工作经验', '工作经验'],
+  ['实习', '工作经验'],
+  ['文档', '文档意识'],
+  ['责任', '责任态度'],
+  ['学习', '学习能力'],
+  ['问题', '问题解决'],
+  ['其他', '特殊要求'],
+  ['特殊', '特殊要求'],
+  ['补充', '特殊要求'],
+  ['岗位', '岗位匹配'],
+];
+
 const truncateRadarLabel = (value: string) => {
   const normalized = value.trim();
-  if (normalized.length <= 8) return normalized;
-  return `${normalized.slice(0, 8)}...`;
+  const matched = RADAR_LABEL_MAP.find(([keyword]) => normalized.includes(keyword));
+  const display = matched?.[1] || normalized;
+  if (display.length <= 6) return display;
+  return `${display.slice(0, 6)}...`;
+};
+
+const getGapVisual = (key: string, index: number) => {
+  if (key.includes('other') || key.includes('special') || key.includes('documentation')) {
+    return { className: 'warm', icon: <FileTextOutlined /> };
+  }
+  if (key.includes('skill') || key.includes('professional_skills')) {
+    return { className: 'blue', icon: <CodeOutlined /> };
+  }
+  if (key.includes('work') || key.includes('experience')) {
+    return { className: 'green', icon: <BankOutlined /> };
+  }
+  if (key.includes('team') || key.includes('communication')) {
+    return { className: 'purple', icon: <TeamOutlined /> };
+  }
+  if (key.includes('learning')) {
+    return { className: 'blue', icon: <BookOutlined /> };
+  }
+  if (key.includes('background') || key.includes('education')) {
+    return { className: 'warm', icon: <ReadOutlined /> };
+  }
+  return {
+    className: index % 3 === 1 ? 'blue' : index % 3 === 2 ? 'purple' : 'warm',
+    icon: <StarOutlined />,
+  };
 };
 
 const isMeaningfulTag = (value?: string) => {
@@ -479,9 +741,9 @@ export const buildStrengthGroups = (
   }).filter((group) => group.tags.length > 0);
 
 export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = ({ viewModel, onOpenAdvice }) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const prioritizedGaps = useMemo(() => getPrioritizedGaps(viewModel), [viewModel]);
-  const [mainMetric, ...restMetrics] = viewModel.metrics;
+  const [mainMetric] = viewModel.metrics;
 
   const radarConfig = useMemo(
     () => ({
@@ -495,55 +757,63 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
       axis: {
         x: {
           labelFormatter: (value: string) => truncateRadarLabel(value),
+          labelFontSize: 11,
+          labelSpacing: 6,
         },
         y: {
           labelFormatter: (value: string) => `${value}%`,
+          labelFontSize: 11,
         },
       },
       legend: {
         position: 'top',
       },
-      padding: [16, 16, 32, 16],
+      padding: [12, 10, 22, 10],
     }),
     [viewModel.radarData],
   );
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <section className={styles.section} data-testid="job-match-summary-strip">
+      <section className={`${styles.section} ${styles.summarySection}`} data-testid="job-match-summary-strip">
         <div className={styles.metricsShell}>
           <div className={styles.metricGrid}>
             <div className={styles.metricCard}>
-              <Text className={styles.metricLabel}>{mainMetric?.label || '综合评分'}</Text>
-              <div className={styles.metricValueStrong}>{mainMetric?.value || '--'}</div>
+              <div>
+                <Text className={styles.metricLabel}>{mainMetric?.label || '综合评分'}</Text>
+                <div className={styles.metricValueStrong}>{mainMetric?.value || '--'}</div>
+              </div>
+              <span className={styles.metricIcon}>
+                <BarChartOutlined />
+              </span>
             </div>
             <div className={styles.metricCard}>
-              <Text className={styles.metricLabel}>当前判断</Text>
-              <div className={styles.assessmentValue}>
-                <Text className={styles.metricValuePrimary} data-testid="job-match-assessment-level">
-                  {viewModel.assessmentLabel}
-                </Text>
-                <Tag color={STATUS_COLOR_MAP[viewModel.assessmentLabel] || 'default'}>{viewModel.assessmentLabel}</Tag>
+              <div>
+                <Text className={styles.metricLabel}>当前判断</Text>
+                <div className={styles.assessmentValue}>
+                  <Text className={styles.metricValuePrimary} data-testid="job-match-assessment-level">
+                    {viewModel.assessmentLabel}
+                  </Text>
+                  <Tag color={STATUS_COLOR_MAP[viewModel.assessmentLabel] || 'default'}>{viewModel.assessmentLabel}</Tag>
+                </div>
               </div>
+              <span className={`${styles.metricIcon} ${styles.metricIconSuccess}`}>
+                <AimOutlined />
+              </span>
             </div>
             <div className={styles.metricCard}>
-              <Text className={styles.metricLabel}>当前最需补强</Text>
-              <div className={styles.assessmentValue}>
-                <Text className={styles.metricValuePrimary}>{viewModel.primaryGapTitle || '暂无'}</Text>
-                {viewModel.primaryGapGapLabel ? <Tag color="warning">{viewModel.primaryGapGapLabel}</Tag> : null}
+              <div>
+                <Text className={styles.metricLabel}>当前最需补强</Text>
+                <div className={styles.assessmentValue}>
+                  <Text className={styles.metricValuePrimary}>{viewModel.primaryGapTitle || '暂无'}</Text>
+                  {viewModel.primaryGapGapLabel ? <Tag color="warning">{viewModel.primaryGapGapLabel}</Tag> : null}
+                </div>
               </div>
+              <span className={`${styles.metricIcon} ${styles.metricIconWarm}`}>
+                <StarOutlined />
+              </span>
             </div>
-            {restMetrics.map((metric) => (
-              <div key={metric.key} className={styles.metricCard}>
-                <Text className={styles.metricLabel}>{metric.label}</Text>
-                <div className={styles.metricValue}>{metric.value}</div>
-              </div>
-            ))}
           </div>
-
-          <Button type="primary" className={styles.primaryAction} onClick={() => onOpenAdvice(viewModel.primaryGapKey)}>
-            去看补强建议
-          </Button>
         </div>
       </section>
 
@@ -564,34 +834,49 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
             )}
           </div>
 
-          <div>
+          <div className={styles.gapPanel}>
             <div className={styles.sectionHead}>
               <Title level={5} className={styles.sectionTitle}>
                 当前最需要关注的差距
               </Title>
             </div>
             <div className={styles.gapList}>
-              {prioritizedGaps.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={styles.gapButton}
-                  data-testid={`gap-item-${item.key}`}
-                  onClick={() => onOpenAdvice(item.key)}
-                >
-                  <div className={styles.gapTop}>
-                    <Space size={8} wrap>
-                      <Text strong>{item.title}</Text>
-                      <Tag color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}>{item.statusLabel}</Tag>
-                      <Text type="secondary">gap {item.gapValue}</Text>
-                    </Space>
-                    <Text type="secondary">去看建议</Text>
-                  </div>
-                  <div className={styles.gapMeta}>
-                    <Text className={styles.gapSummary}>{item.summary}</Text>
-                  </div>
-                </button>
-              ))}
+              {prioritizedGaps.map((item, index) => {
+                const gapVisual = getGapVisual(item.key, index);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={styles.gapButton}
+                    data-testid={`gap-item-${item.key}`}
+                    onClick={() => onOpenAdvice(item.key)}
+                  >
+                    <div className={styles.gapMeta}>
+                      <span
+                        className={cx(
+                          styles.gapLeading,
+                          gapVisual.className === 'blue' && styles.gapLeadingBlue,
+                          gapVisual.className === 'green' && styles.gapLeadingGreen,
+                          gapVisual.className === 'purple' && styles.gapLeadingPurple,
+                        )}
+                      >
+                        {gapVisual.icon}
+                      </span>
+                      <div className={styles.gapContent}>
+                        <div className={styles.gapTop}>
+                          <Space size={8} wrap>
+                            <Text strong>{item.title}</Text>
+                            <Tag color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}>{item.statusLabel}</Tag>
+                            <Text type="secondary">gap {item.gapValue}</Text>
+                          </Space>
+                          <Text type="secondary">去看建议</Text>
+                        </div>
+                        <Text className={styles.gapSummary}>{item.summary}</Text>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -607,7 +892,7 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
           <div className={styles.strengthsCompact}>
             {viewModel.strengthGroups.flatMap((group) =>
               group.tags.map((tag) => (
-                <Tag key={`${group.key}-${tag}`} color="success" className={styles.strengthTag} style={{ marginInlineEnd: 0 }}>
+                <Tag key={`${group.key}-${tag}`} className={styles.strengthTag}>
                   {tag}
                 </Tag>
               )),
@@ -627,7 +912,7 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
   listTitle = '优先修改项',
   problemTitle = '当前问题',
   suggestionTitle = '建议补充',
-  writableTitle = '可直接写入简历',
+  writableTitle = '可写入内容',
   copyButtonLabel = '复制内容',
   referenceTitle = '更多参考',
   showOverallReview = false,
@@ -652,53 +937,83 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
             {listTitle}
           </Title>
           <div className={styles.adviceList}>
-            {prioritizedGaps.map((item) => {
+            {prioritizedGaps.map((item, index) => {
               const active = item.key === activeGap?.key;
+              const gapVisual = getGapVisual(item.key, index);
               return (
                 <button
                   key={item.key}
                   type="button"
-                  className={cx(styles.adviceItem, active && styles.gapButtonActive)}
+                  className={cx(styles.adviceItem, active && styles.adviceItemActive)}
                   data-testid={`job-match-action-card-${item.key}`}
                   onClick={() => onActiveGapChange?.(item.key)}
                 >
-                  <Space size={6} wrap>
-                    <Text strong>{item.title}</Text>
-                    <Tag color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}>{item.statusLabel}</Tag>
-                    <Text type="secondary">gap {item.gapValue}</Text>
-                  </Space>
+                  <span
+                    className={cx(
+                      styles.gapLeading,
+                      gapVisual.className === 'blue' && styles.gapLeadingBlue,
+                      gapVisual.className === 'green' && styles.gapLeadingGreen,
+                      gapVisual.className === 'purple' && styles.gapLeadingPurple,
+                    )}
+                  >
+                    {gapVisual.icon}
+                  </span>
+                  <span className={styles.adviceItemMain}>
+                    <span className={styles.adviceItemTop}>
+                      <Text strong>{item.title}</Text>
+                      <Tag color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}>{item.statusLabel}</Tag>
+                      <Text type="secondary">gap {item.gapValue}</Text>
+                    </span>
+                    <Text className={styles.adviceItemSummary}>{item.summary}</Text>
+                  </span>
                 </button>
               );
             })}
           </div>
         </section>
 
-        <section className={styles.section} data-testid="job-match-action-card" data-active-gap={activeGap?.key || ''}>
+        <section
+          className={`${styles.section} ${styles.adviceDetailPanel}`}
+          data-testid="job-match-action-card"
+          data-active-gap={activeGap?.key || ''}
+        >
           {activeGap ? (
             <div className={styles.adviceDetail}>
-              <div className={styles.sectionHead}>
-                <Title level={4} className={styles.sectionTitle}>
-                  {titlePrefix}：{activeGap.title}
-                </Title>
+              <div className={styles.adviceHero}>
+                <span className={styles.adviceHeroIcon}>
+                  {getGapVisual(activeGap.key, prioritizedGaps.findIndex((item) => item.key === activeGap.key)).icon}
+                </span>
+                <div className={styles.adviceHeroBody}>
+                  <Title level={4} className={styles.sectionTitle}>
+                    {titlePrefix}：{activeGap.title}
+                  </Title>
+                  <div className={styles.adviceHeroMeta}>
+                    <Tag color={STATUS_COLOR_MAP[activeGap.statusLabel] || 'default'}>{activeGap.statusLabel}</Tag>
+                    <Text type="secondary">gap {activeGap.gapValue}</Text>
+                    <Text type="secondary">准备度 {activeGap.readiness}%</Text>
+                  </div>
+                </div>
               </div>
 
-              <div className={styles.adviceSection}>
-                <Text strong>{problemTitle}</Text>
+              <div className={styles.adviceBlock}>
+                <Text className={styles.adviceBlockTitle}>{problemTitle}</Text>
                 <Text>{activeGap.currentIssue || activeGap.summary}</Text>
               </div>
 
-              <div className={styles.adviceSection}>
-                <Text strong>{suggestionTitle}</Text>
+              <div className={styles.adviceBlock}>
+                <Text className={styles.adviceBlockTitle}>{suggestionTitle}</Text>
                 <div className={styles.simpleList}>
                   {(activeGap.nextActions || []).slice(0, 3).map((item) => (
-                    <Text key={item}>• {item}</Text>
+                    <Text key={item} className={styles.simpleListItem}>
+                      {item}
+                    </Text>
                   ))}
                 </div>
               </div>
 
-              <div className={styles.adviceSection}>
+              <div className={styles.adviceBlock}>
                 <div className={styles.sectionHead}>
-                  <Text strong>{writableTitle}</Text>
+                  <Text className={styles.adviceBlockTitle}>{writableTitle}</Text>
                   <Button
                     size="small"
                     icon={<CopyOutlined />}

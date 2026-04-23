@@ -1,4 +1,4 @@
-import { StarFilled, StarOutlined } from '@ant-design/icons';
+import { CalendarOutlined, DatabaseOutlined, FileTextOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import { Button, Card, Empty, List, Spin, Tabs, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo } from 'react';
@@ -11,10 +11,10 @@ import CompanyMatchPanel from './CompanyMatchPanel';
 
 const { Text, Title } = Typography;
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ css, token }) => ({
   shell: css`
     display: flex;
-    gap: 16px;
+    gap: 20px;
     width: 100%;
     min-width: 0;
     align-items: flex-start;
@@ -24,36 +24,128 @@ const useStyles = createStyles(({ css }) => ({
     }
   `,
   sidebar: css`
-    flex: 0 0 320px;
+    flex: 0 0 312px;
     min-width: 0;
     display: grid;
-    gap: 16px;
+    gap: 14px;
   `,
   main: css`
     flex: 1;
     min-width: 0;
   `,
   compactCard: css`
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(15, 35, 70, 0.035);
+
     :global(.ant-card-body) {
-      padding: 14px 16px;
+      padding: 18px 20px;
     }
+  `,
+  cardTitle: css`
+    margin: 0 0 14px !important;
+    color: ${token.colorText};
+    font-size: 17px !important;
+    font-weight: 600 !important;
+  `,
+  infoRow: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: ${token.colorTextSecondary};
+  `,
+  infoIcon: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+  `,
+  sourceIcon: css`
+    background: rgba(126, 104, 200, 0.12);
+    color: #7e68c8;
   `,
   compactList: css`
     :global(.ant-list-item) {
-      padding-block: 10px;
+      margin-bottom: 10px;
+      padding: 14px 12px !important;
+      border: 1px solid ${token.colorBorderSecondary};
+      border-radius: 10px;
       cursor: pointer;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
     }
+
+    :global(.ant-list-item:last-child) {
+      margin-bottom: 0;
+    }
+
+    :global(.ant-list-item-meta-title) {
+      margin-bottom: 8px;
+      color: ${token.colorText};
+      font-weight: 600;
+    }
+  `,
+  recommendationActive: css`
+    border-color: ${token.colorPrimaryBorder} !important;
+    background: ${token.colorPrimaryBg} !important;
   `,
   recommendationMeta: css`
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     flex-wrap: wrap;
   `,
+  scoreText: css`
+    margin-left: auto;
+    color: ${token.colorPrimary};
+    font-size: 22px;
+    font-weight: 700;
+  `,
   resultCard: css`
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(15, 35, 70, 0.045);
+
     :global(.ant-card-body) {
-      padding: 12px 16px 16px;
+      padding: 16px 24px 22px;
     }
+
+    :global(.ant-tabs-nav) {
+      min-height: 44px;
+      margin-bottom: 0;
+      border-bottom: 1px solid ${token.colorBorderSecondary};
+    }
+
+    :global(.ant-tabs-tab) {
+      padding: 0 0 12px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    :global(.ant-tabs-extra-content) {
+      padding-bottom: 10px;
+    }
+  `,
+  resultActions: css`
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  `,
+  actionButton: css`
+    height: 38px;
+    border-radius: 8px;
+    border-color: ${token.colorBorder};
+    font-weight: 500;
+  `,
+  primaryButton: css`
+    height: 38px;
+    border-radius: 8px;
+    font-weight: 500;
   `,
 }));
 
@@ -129,26 +221,39 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
     <div className={styles.shell}>
       <div className={styles.sidebar}>
         <Card className={styles.compactCard}>
-          <Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+          <Title level={5} className={styles.cardTitle}>
             当前分析对象
           </Title>
-          <Text>{sourceLabel || '当前 12 维画像'}</Text>
+          <div className={styles.infoRow}>
+            <span className={styles.infoIcon}>
+              <FileTextOutlined />
+            </span>
+            <Text>{sourceLabel || '当前 12 维画像'}</Text>
+          </div>
         </Card>
 
         <Card className={styles.compactCard}>
-          <Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+          <Title level={5} className={styles.cardTitle}>
             匹配来源
           </Title>
-          <Text type="secondary" style={{ display: 'block' }}>
-            更新时间：{sourceUpdatedAt ? new Date(sourceUpdatedAt).toLocaleString('zh-CN') : '--'}
-          </Text>
-          <Text type="secondary" style={{ display: 'block' }}>
-            已识别维度：{activeDimensionCount ?? '--'}
-          </Text>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div className={styles.infoRow}>
+              <span className={`${styles.infoIcon} ${styles.sourceIcon}`}>
+                <CalendarOutlined />
+              </span>
+              <Text type="secondary">更新时间：{sourceUpdatedAt ? new Date(sourceUpdatedAt).toLocaleString('zh-CN') : '--'}</Text>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={`${styles.infoIcon} ${styles.sourceIcon}`}>
+                <DatabaseOutlined />
+              </span>
+              <Text type="secondary">已识别维度：{activeDimensionCount ?? '--'}</Text>
+            </div>
+          </div>
         </Card>
 
         <Card className={`${styles.compactCard} ${styles.compactList}`}>
-          <Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+          <Title level={5} className={styles.cardTitle}>
             推荐目标
           </Title>
           <List
@@ -156,11 +261,7 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
             renderItem={(item) => (
               <List.Item
                 onClick={() => onRecommendationChange?.(item.report_id)}
-                style={{
-                  background: item.report_id === activeReport.report_id ? '#f5f9ff' : undefined,
-                  borderRadius: 8,
-                  paddingInline: 8,
-                }}
+                className={item.report_id === activeReport.report_id ? styles.recommendationActive : undefined}
               >
                 <List.Item.Meta
                   title={item.target_title}
@@ -169,7 +270,7 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
                       <Tag color="processing" style={{ marginInlineEnd: 0 }}>
                         {item.target_scope === 'industry' ? '行业岗位' : '职业方向'}
                       </Tag>
-                      <Text type="secondary">{Math.round(item.overall_match)}%</Text>
+                      <span className={styles.scoreText}>{Math.round(item.overall_match)}%</span>
                     </div>
                   }
                 />
@@ -180,27 +281,26 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
       </div>
 
       <div className={styles.main}>
-        <Card
-          className={styles.resultCard}
-          extra={
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Button
-                aria-label={favoriteLabel}
-                icon={favorite ? <StarFilled /> : <StarOutlined />}
-                loading={favoriteSubmitting}
-                onClick={onToggleFavorite}
-              >
-                {favoriteLabel}
-              </Button>
-              <Button type="primary" onClick={onGeneratePlan}>
-                生成计划
-              </Button>
-            </div>
-          }
-        >
+        <Card className={styles.resultCard}>
           <Tabs
             activeKey={activeResultTab}
             onChange={(key) => onResultTabChange?.(key as CareerMatchResultTabKey)}
+            tabBarExtraContent={
+              <div className={styles.resultActions}>
+                <Button
+                  aria-label={favoriteLabel}
+                  icon={favorite ? <StarFilled /> : <StarOutlined />}
+                  loading={favoriteSubmitting}
+                  onClick={onToggleFavorite}
+                  className={styles.actionButton}
+                >
+                  {favoriteLabel}
+                </Button>
+                <Button type="primary" onClick={onGeneratePlan} className={styles.primaryButton}>
+                  生成计划
+                </Button>
+              </div>
+            }
             items={[
               {
                 key: 'comparison',

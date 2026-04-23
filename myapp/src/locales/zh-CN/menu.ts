@@ -1,5 +1,11 @@
 export default {
   'menu.home': '职业规划',
+  'menu.职业规划': '职业规划',
+  'menu.简历解构': '简历解构',
+  'menu.蜗牛学习路径': '蜗牛学习路径',
+  'menu.个人职业成长报告': '个人职业成长报告',
+  'menu.岗位能力图谱': '岗位能力图谱',
+  'menu.同岗行业对比': '同岗行业对比',
   'menu.admin': '管理端',
   'menu.admin.profile': '个人信息',
   'menu.admin.user-management': '用户管理',

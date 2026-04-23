@@ -8,31 +8,74 @@ import type { JobProfileDimensions, ProfileKey, RuntimeField, WorkspaceStage } f
 const useStyles = createStyles(({ css, token }) => ({
   group: css`
     display: grid;
-    gap: 0;
+    gap: 12px;
   `,
   dimensionItem: css`
     display: grid;
-    gap: 8px;
-    padding: 12px 0;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
+    grid-template-columns: minmax(150px, 0.34fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    background: ${token.colorBgContainer};
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 
-    &:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
+    :hover {
+      border-color: ${token.colorPrimaryBorder};
+      box-shadow: 0 8px 18px rgba(22, 85, 204, 0.07);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
   `,
+  dimensionInfo: css`
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+  `,
   title: css`
-    margin: 0;
-    font-size: 14px;
+    margin: 0 !important;
+    color: ${token.colorText};
+    font-size: 15px !important;
+    font-weight: 600 !important;
+  `,
+  description: css`
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+    line-height: 1.6;
+  `,
+  dimensionContent: css`
+    min-width: 0;
+    display: grid;
+    gap: 12px;
   `,
   tagRow: css`
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   `,
   tag: css`
+    margin-inline-end: 0 !important;
+    max-width: 100%;
+    height: auto;
+    padding: 3px 12px;
+    border-color: ${token.colorSuccessBorder};
+    border-radius: 6px;
+    background: ${token.colorSuccessBg};
+    color: ${token.colorSuccess};
+    white-space: normal;
+    line-height: 20px;
     transition: all 0.2s ease;
     animation: tagEnter 0.2s ease;
+
+    :hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(31, 142, 61, 0.12);
+    }
 
     @keyframes tagEnter {
       from {
@@ -60,17 +103,22 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   emptyText: css`
+    width: fit-content;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: ${token.colorFillTertiary};
     font-size: 13px;
     color: ${token.colorTextTertiary};
   `,
   inputRow: css`
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
   `,
   input: css`
     flex: 1;
     min-width: 220px;
+    border-radius: 8px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     :global(.ant-input:focus),
@@ -84,7 +132,9 @@ const useStyles = createStyles(({ css, token }) => ({
     }
   `,
   addButton: css`
-    border-radius: 6px;
+    border-radius: 8px;
+    border-color: ${token.colorPrimaryBorder};
+    color: ${token.colorPrimary};
     transition: all 0.2s ease;
 
     :hover {
@@ -114,12 +164,6 @@ type Props = {
   onRemoveTag: (key: ProfileKey, tagValue: string) => void;
 };
 
-const buildTagStyle = () => ({
-  background: '#e6f4ff',
-  borderColor: '#91caff',
-  color: '#1677ff',
-});
-
 const DimensionGroupEditor: React.FC<Props> = ({
   fields,
   profile,
@@ -140,40 +184,41 @@ const DimensionGroupEditor: React.FC<Props> = ({
 
         return (
           <div key={field.key} className={styles.dimensionItem}>
-            <Typography.Title level={5} className={styles.title}>
-              {field.title}
-            </Typography.Title>
+            <div className={styles.dimensionInfo}>
+              <Typography.Title level={5} className={styles.title}>
+                {field.title}
+              </Typography.Title>
+              <Typography.Text className={styles.description}>{field.description}</Typography.Text>
+            </div>
 
-            {hasValues ? (
-              <div className={styles.tagRow}>
-                {values.map((value) => (
-                  <Tag
-                    key={`${field.key}-${value}`}
-                    closable={isEditing}
-                    className={styles.tag}
-                    style={{ ...buildTagStyle(), marginInlineEnd: 0, whiteSpace: 'normal', height: 'auto' }}
-                    onClose={(event) => {
-                      event.preventDefault();
-                      if (isEditing) {
-                        // Add closing animation class
-                        const target = event.currentTarget as HTMLElement;
-                        target.classList.add(styles.tagClosing.replace('.', ''));
-                        setTimeout(() => {
-                          onRemoveTag(field.key, value);
-                        }, 200);
-                      }
-                    }}
-                  >
-                    {value}
-                  </Tag>
-                ))}
-              </div>
-            ) : (
-              <Typography.Text className={styles.emptyText}>暂无补充信息</Typography.Text>
-            )}
+            <div className={styles.dimensionContent}>
+              {hasValues ? (
+                <div className={styles.tagRow}>
+                  {values.map((value) => (
+                    <Tag
+                      key={`${field.key}-${value}`}
+                      closable={isEditing}
+                      className={styles.tag}
+                      onClose={(event) => {
+                        event.preventDefault();
+                        if (isEditing) {
+                          const target = event.currentTarget as HTMLElement;
+                          target.classList.add(styles.tagClosing.replace('.', ''));
+                          setTimeout(() => {
+                            onRemoveTag(field.key, value);
+                          }, 200);
+                        }
+                      }}
+                    >
+                      {value}
+                    </Tag>
+                  ))}
+                </div>
+              ) : (
+                <Typography.Text className={styles.emptyText}>暂无补充信息</Typography.Text>
+              )}
 
-            {isEditing ? (
-              <>
+              {isEditing ? (
                 <div className={styles.inputRow}>
                   <Input
                     className={styles.input}
@@ -186,9 +231,11 @@ const DimensionGroupEditor: React.FC<Props> = ({
                     添加
                   </Button>
                 </div>
-                {!hasValues ? <Typography.Text className={styles.hint}>保存后会同步到当前解析结果</Typography.Text> : null}
-              </>
-            ) : null}
+              ) : null}
+              {isEditing && !hasValues ? (
+                <Typography.Text className={styles.hint}>保存后会同步到当前解析结果</Typography.Text>
+              ) : null}
+            </div>
           </div>
         );
       })}

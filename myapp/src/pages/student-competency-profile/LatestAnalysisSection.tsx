@@ -23,6 +23,7 @@ const buildLatestAnalysisViewModel = (
 
   const gaps = (analysis.comparison_dimensions || []).map((item) => {
     const advice = (analysis.action_advices || []).find((entry) => entry.key === item.key);
+    const nextActions = (advice?.next_actions || []).filter(Boolean).slice(0, 3);
     const missing = (item.missing_market_keywords || []).filter(Boolean).slice(0, 2);
     const current = (item.user_values || []).filter(Boolean).slice(0, 2);
 
@@ -41,8 +42,8 @@ const buildLatestAnalysisViewModel = (
       whyItMatters: advice?.why_it_matters,
       currentIssue: advice?.current_issue || (missing.length ? `缺 ${missing.join('、')} 相关内容` : '缺岗位相关信息'),
       nextActions:
-        (advice?.next_actions || []).filter(Boolean).slice(0, 3).length > 0
-          ? advice.next_actions.slice(0, 3)
+        nextActions.length > 0
+          ? nextActions
           : [`补 ${item.title} 相关经历`, `补 ${item.title} 相关结果`, `补 ${item.title} 相关表达`],
       examplePhrases: (advice?.example_phrases || []).filter(Boolean).slice(0, 6),
       evidenceSources: (advice?.evidence_sources || []).filter(Boolean).slice(0, 6),

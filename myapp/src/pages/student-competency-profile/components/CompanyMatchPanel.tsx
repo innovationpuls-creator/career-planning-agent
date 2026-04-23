@@ -1,5 +1,5 @@
-import { BankOutlined, LoadingOutlined, ReadOutlined } from '@ant-design/icons';
-import { Button, Card, Descriptions, Drawer, Empty, Space, Spin, Tag, Typography, message } from 'antd';
+import { AimOutlined, BankOutlined, DatabaseOutlined, FileTextOutlined, LoadingOutlined, ReadOutlined } from '@ant-design/icons';
+import { Button, Card, Descriptions, Drawer, Empty, Spin, Tag, Typography, message } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 import { getJobRequirementComparison } from '@/services/ant-design-pro/api';
@@ -30,7 +30,7 @@ const useStyles = createStyles(({ css, token }) => ({
   list: css`
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
 
     @media (max-width: 1280px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -42,15 +42,74 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   card: css`
     height: 100%;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(15, 35, 70, 0.035);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+    :hover {
+      transform: translateY(-2px);
+      border-color: ${token.colorPrimaryBorder};
+      box-shadow: 0 12px 24px rgba(22, 85, 204, 0.08);
+    }
 
     :global(.ant-card-body) {
       display: grid;
-      gap: 12px;
+      gap: 14px;
+      padding: 18px 20px;
     }
+  `,
+  cardHead: css`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+  `,
+  titleGroup: css`
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+  `,
+  jobIcon: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+    font-size: 20px;
+  `,
+  jobTitle: css`
+    margin: 0 !important;
+    color: ${token.colorText};
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+  `,
+  careerText: css`
+    display: block;
+    margin-top: 4px;
+    color: ${token.colorTextSecondary};
+    font-size: 13px;
+  `,
+  scoreBadge: css`
+    flex: 0 0 auto;
+    margin-inline-end: 0 !important;
+    padding: 3px 10px;
+    border-color: ${token.colorWarningBorder};
+    border-radius: 6px;
+    background: ${token.colorWarningBg};
+    color: ${token.colorWarning};
+    font-weight: 600;
   `,
   summary: css`
     display: grid;
-    gap: 8px;
+    gap: 12px;
   `,
   metaRow: css`
     display: flex;
@@ -58,18 +117,102 @@ const useStyles = createStyles(({ css, token }) => ({
     gap: 8px;
     flex-wrap: wrap;
   `,
+  metaTag: css`
+    margin-inline-end: 0 !important;
+    border-radius: 6px;
+  `,
+  metricGrid: css`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  `,
+  metricItem: css`
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 10px;
+    background: ${token.colorFillQuaternary};
+  `,
+  metricLabel: css`
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+  `,
+  metricValue: css`
+    color: ${token.colorText};
+    font-weight: 600;
+  `,
+  viewButton: css`
+    justify-self: flex-start;
+    height: 34px;
+    padding-inline: 0;
+    color: ${token.colorPrimary};
+    font-weight: 500;
+  `,
+  drawerOverview: css`
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+    background: linear-gradient(180deg, ${token.colorBgContainer} 0%, ${token.colorPrimaryBg} 190%);
+  `,
   detailSection: css`
     display: grid;
-    gap: 10px;
-    padding: 14px 16px;
+    gap: 14px;
+    padding: 18px 20px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
     background: ${token.colorBgContainer};
+  `,
+  detailSectionTitle: css`
+    margin: 0 !important;
+    color: ${token.colorText};
+    font-size: 16px !important;
+    font-weight: 600 !important;
+  `,
+  dimensionGrid: css`
+    display: grid;
+    gap: 12px;
+  `,
+  dimensionRow: css`
+    display: grid;
+    grid-template-columns: minmax(150px, 0.32fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 12px;
+
+    @media (max-width: 760px) {
+      grid-template-columns: 1fr;
+    }
   `,
   tagList: css`
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  `,
+  valueTag: css`
+    margin-inline-end: 0 !important;
+    max-width: 100%;
+    height: auto;
+    padding: 3px 12px;
+    border-color: ${token.colorSuccessBorder};
+    border-radius: 6px;
+    background: ${token.colorSuccessBg};
+    color: ${token.colorSuccess};
+    white-space: normal;
+    line-height: 20px;
+  `,
+  emptyValue: css`
+    width: fit-content;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: ${token.colorFillTertiary};
+    color: ${token.colorTextTertiary};
+    font-size: 13px;
   `,
   drawerBody: css`
     display: grid;
@@ -107,13 +250,13 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
 
   const renderDimensionValues = (values?: string[]) => {
     if (!values?.length || (values.length === 1 && values[0] === DEFAULT_VALUE)) {
-      return <Text type="secondary">{DEFAULT_VALUE}</Text>;
+      return <Text className={styles.emptyValue}>{DEFAULT_VALUE}</Text>;
     }
 
     return (
       <div className={styles.tagList}>
         {values.map((item) => (
-          <Tag color="blue" key={item}>
+          <Tag className={styles.valueTag} key={item}>
             {item}
           </Tag>
         ))}
@@ -129,31 +272,43 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
     <>
       <div className={styles.list}>
         {items.map((item) => (
-          <Card
-            key={item.profile_id}
-            className={styles.card}
-            title={
-              <Space size={8}>
-                <BankOutlined />
-                <span>{item.job_title}</span>
-              </Space>
-            }
-            extra={<Tag color="gold">{Math.round(item.match_score)}%</Tag>}
-          >
+          <Card key={item.profile_id} className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.titleGroup}>
+                <span className={styles.jobIcon}>
+                  <BankOutlined />
+                </span>
+                <div>
+                  <Title level={5} className={styles.jobTitle}>
+                    {item.job_title}
+                  </Title>
+                  <Text className={styles.careerText}>标准职业：{item.career_title}</Text>
+                </div>
+              </div>
+              <Tag className={styles.scoreBadge}>{Math.round(item.match_score)}%</Tag>
+            </div>
+
             <div className={styles.summary}>
               <div className={styles.metaRow}>
-                <Tag color="blue">{item.industry}</Tag>
-                <Tag color="green">{item.company_name}</Tag>
+                <Tag color="processing" className={styles.metaTag}>
+                  {item.industry}
+                </Tag>
+                <Tag color="success" className={styles.metaTag}>
+                  {item.company_name}
+                </Tag>
               </div>
-              <Text type="secondary">标准职业：{item.career_title}</Text>
-              <Text type="secondary">
-                画像基础维度：{item.professional_threshold_dimension_count} 项
-              </Text>
-              <Text type="secondary">
-                关键词命中：{item.professional_threshold_keyword_count} 个
-              </Text>
+              <div className={styles.metricGrid}>
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>画像基础维度</span>
+                  <span className={styles.metricValue}>{item.professional_threshold_dimension_count} 项</span>
+                </div>
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>关键词命中</span>
+                  <span className={styles.metricValue}>{item.professional_threshold_keyword_count} 个</span>
+                </div>
+              </div>
             </div>
-            <Button type="link" icon={<ReadOutlined />} style={{ paddingInline: 0 }} onClick={() => void openDetail(item.profile_id)}>
+            <Button type="link" icon={<ReadOutlined />} className={styles.viewButton} onClick={() => void openDetail(item.profile_id)}>
               查看具体信息
             </Button>
           </Card>
@@ -174,17 +329,20 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
           <Spin indicator={<LoadingOutlined spin />} />
         ) : detail ? (
           <div className={styles.drawerBody}>
-            <Card>
+            <section className={styles.drawerOverview}>
+              <Title level={5} className={styles.detailSectionTitle}>
+                岗位概览
+              </Title>
               <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
-                <Descriptions.Item label="公司">{detail.company_name}</Descriptions.Item>
-                <Descriptions.Item label="行业">{detail.industry}</Descriptions.Item>
-                <Descriptions.Item label="职位">{detail.job_title}</Descriptions.Item>
-                <Descriptions.Item label="原文条数">{detail.job_detail_count}</Descriptions.Item>
+                <Descriptions.Item label={<><BankOutlined /> 公司</>}>{detail.company_name}</Descriptions.Item>
+                <Descriptions.Item label={<><AimOutlined /> 行业</>}>{detail.industry}</Descriptions.Item>
+                <Descriptions.Item label={<><FileTextOutlined /> 职位</>}>{detail.job_title}</Descriptions.Item>
+                <Descriptions.Item label={<><DatabaseOutlined /> 原文条数</>}>{detail.job_detail_count}</Descriptions.Item>
               </Descriptions>
-            </Card>
+            </section>
 
             <section className={styles.detailSection}>
-              <Title level={5} style={{ margin: 0 }}>
+              <Title level={5} className={styles.detailSectionTitle}>
                 合并后的岗位原文
               </Title>
               <Paragraph className={styles.detailParagraph}>
@@ -193,17 +351,17 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
             </section>
 
             <section className={styles.detailSection}>
-              <Title level={5} style={{ margin: 0 }}>
+              <Title level={5} className={styles.detailSectionTitle}>
                 12 维提取结果
               </Title>
-              {DIMENSION_LABELS.map((dimension) => (
-                <div key={dimension.key}>
-                  <Text strong>{dimension.label}</Text>
-                  <div style={{ marginTop: 8 }}>
+              <div className={styles.dimensionGrid}>
+                {DIMENSION_LABELS.map((dimension) => (
+                  <div key={dimension.key} className={styles.dimensionRow}>
+                    <Text strong>{dimension.label}</Text>
                     {renderDimensionValues(detail[dimension.key] as string[])}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </section>
           </div>
         ) : (
