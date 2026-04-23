@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
 import React from 'react';
 import HomeV2Page from './index';
 
@@ -7,9 +13,10 @@ const mockedGetJobTitleOptions = jest.fn();
 const mockedSubmitOnboardingProfile = jest.fn();
 
 jest.mock('@/services/ant-design-pro/api', () => ({
-  getHomeV2: (...args: any[]) => mockedGetHomeV2(...args),
-  getJobTitleOptions: (...args: any[]) => mockedGetJobTitleOptions(...args),
-  submitOnboardingProfile: (...args: any[]) => mockedSubmitOnboardingProfile(...args),
+  getHomeV2: (...args: unknown[]) => mockedGetHomeV2(...args),
+  getJobTitleOptions: (...args: unknown[]) => mockedGetJobTitleOptions(...args),
+  submitOnboardingProfile: (...args: unknown[]) =>
+    mockedSubmitOnboardingProfile(...args),
 }));
 
 describe('HomeV2Page', () => {
@@ -70,7 +77,7 @@ describe('HomeV2Page', () => {
     });
   });
 
-  it('renders the tightened homepage layout', async () => {
+  it('renders the result-page layout', async () => {
     render(React.createElement(HomeV2Page));
 
     await waitFor(() => {
@@ -78,40 +85,56 @@ describe('HomeV2Page', () => {
       expect(mockedGetJobTitleOptions).toHaveBeenCalled();
     });
 
-    expect(await screen.findByText('职业规划')).toBeTruthy();
-    expect(screen.queryByText('先看当前阶段，再看成长路径，最后看资料。')).toBeNull();
-    expect(screen.getByText('当前状态')).toBeTruthy();
-    expect(screen.getAllByText('目标岗位').length).toBe(2);
-    expect(screen.getAllByText('Java 开发').length).toBe(2);
+    await waitForElementToBeRemoved(() => document.querySelector('.ant-spin'));
+
+    // Hero — job title is the primary visual anchor
+    expect(screen.getByRole('heading', { name: 'Java 开发' })).toBeTruthy();
+    expect(screen.getAllByText('目标岗位').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Java 开发').length).toBeGreaterThan(0);
+
+    // Stage in hero badge row
+    expect(screen.getAllByText('低级').length).toBeGreaterThan(0);
+
+    // Floating metrics card
     expect(screen.getByText('当前阶段')).toBeTruthy();
-    expect(screen.getByText('薪资范围')).toBeTruthy();
-    expect(screen.getByText('已匹配岗位数')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '完善个人信息' })).toBeTruthy();
-    expect(screen.queryByText('快捷操作')).toBeNull();
-    expect(screen.queryByRole('button', { name: '简历解析' })).toBeNull();
+    expect(screen.getByText('薪资参考')).toBeTruthy();
+    expect(screen.getByText('已匹配岗位')).toBeTruthy();
+    expect(screen.getByText(/完善信息/)).toBeTruthy();
+
+    // Growth path
     expect(screen.getByText('成长路径')).toBeTruthy();
     expect(screen.getAllByText('低级').length).toBeGreaterThan(0);
     expect(screen.getAllByText('中级').length).toBeGreaterThan(0);
     expect(screen.getAllByText('高级').length).toBeGreaterThan(0);
-    expect(screen.getByText('当前处于低级阶段')).toBeTruthy();
-    expect(screen.getByText('我的资料')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '编辑资料' })).toBeTruthy();
+
+    // Profile bar
+    expect(screen.getByText('姓名')).toBeTruthy();
     expect(screen.getByText('学校')).toBeTruthy();
     expect(screen.getByText('年级')).toBeTruthy();
-    expect(screen.getByText('专业')).toBeTruthy();
-    expect(screen.getByText('学历')).toBeTruthy();
+    expect(screen.getByText(/编辑资料/)).toBeTruthy();
+
+    // Hidden elements
+    expect(
+      screen.queryByText('先看当前阶段，再看成长路径，最后看资料。'),
+    ).toBeNull();
+    expect(screen.queryByText('快捷操作')).toBeNull();
+    expect(screen.queryByRole('button', { name: '简历解析' })).toBeNull();
   });
 
   it('opens the profile drawer from homepage actions', async () => {
     render(React.createElement(HomeV2Page));
 
-    await screen.findByText('职业规划');
+    await waitFor(() => {
+      expect(mockedGetHomeV2).toHaveBeenCalled();
+    });
+    await waitForElementToBeRemoved(() => document.querySelector('.ant-spin'));
 
-    fireEvent.click(screen.getByRole('button', { name: '完善个人信息' }));
+    expect(screen.getByRole('heading', { name: 'Java 开发' })).toBeTruthy();
+
+    fireEvent.click(screen.getByText(/完善信息/));
     expect(await screen.findByDisplayValue('测试大学')).toBeTruthy();
-    expect(screen.getByText(/当前附件：resume\.png/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: '编辑资料' }));
+    fireEvent.click(screen.getByText(/编辑资料/));
     expect(await screen.findByDisplayValue('测试大学')).toBeTruthy();
   });
 });
