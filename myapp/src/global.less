@@ -631,6 +631,174 @@ ol {
 }
 
 // ============================================================
+// Auth — Login Page (Split-Screen)
+// ============================================================
+@auth-left-gradient: linear-gradient(160deg, #0F2060 0%, #1A3A8F 50%, #0F4299 100%);
+
+.auth-root {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.auth-left {
+  width: 40%;
+  background: @auth-left-gradient;
+  display: flex;
+  flex-direction: column;
+  padding: 48px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  animation: authFadeInLeft 0.35s ease-out both;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.auth-left-top {
+  flex: 1;
+}
+
+.auth-left-logo-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.auth-left-logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.auth-left-logo-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.01em;
+}
+
+.auth-left-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.auth-left-subtitle {
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.auth-left-divider {
+  width: 32px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 1px;
+  margin-bottom: 20px;
+}
+
+.auth-left-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-left-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.auth-left-feature-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.auth-left-copyright {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  line-height: 1.5;
+  margin-top: auto;
+}
+
+.auth-left-deco-circle {
+  position: absolute;
+  bottom: -80px;
+  right: -80px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.035);
+  pointer-events: none;
+}
+
+// ============================================================
+// Input Autofill Override — prevents browser blue bg on autofill
+// ============================================================
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container, #ffffff) inset !important;
+  -webkit-text-fill-color: var(--color-text, #1c1c1e) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container, #ffffff) inset !important;
+  -webkit-text-fill-color: var(--color-text, #1c1c1e) !important;
+}
+
+// Ant Design Input / Input.Password autofill safe wrapper
+.ant-input-affix-wrapper input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container, #ffffff) inset !important;
+  -webkit-text-fill-color: var(--color-text, #1c1c1e) !important;
+}
+
+.auth-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+  background: #ffffff;
+  animation: authFadeInRight 0.35s ease-out 0.06s both;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+@keyframes authFadeInLeft {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes authFadeInRight {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+// ============================================================
 // Drawer — shared base styles
 // ============================================================
 .ant-drawer {

@@ -7,7 +7,7 @@ import {
   useIntl,
   useModel,
 } from '@umijs/max';
-import { Alert, App, Button, Checkbox, Form, Input, theme } from 'antd';
+import { Alert, App, Button, Checkbox, Form, Input, Space, theme } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { startTransition, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -18,76 +18,56 @@ import Settings from '../../../../config/defaultSettings';
 
 const SUCCESS_ANIMATION_DELAY_MS = 350;
 
-const useStyles = createStyles(({ token }) => ({
-  container: {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const useStyles = createStyles(({ token }: { token: any }) => ({
+  // === 右面板（表单区）===
+  rightPanel: {
+    flex: 1,
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '100vh',
-    background: `linear-gradient(135deg, ${token.colorPrimaryBg} 0%, ${token.colorBgLayout} 50%, ${token.colorPrimaryBg} 100%)`,
-    // 让背景延伸到 header 背后，内容视觉上在 header 下方
-    marginTop: -56,
-    padding: '56px 16px 24px',
-    boxSizing: 'border-box',
-    position: 'relative',
-    zIndex: 1,
+    padding: '24px 32px',
+    background: token.colorBgBase,
+    animation: `fadeInRight 0.35s ease-out 0.06s both`,
+    '@keyframes fadeInRight': {
+      from: { opacity: 0, transform: 'translateX(10px)' },
+      to: { opacity: 1, transform: 'translateX(0)' },
+    },
   },
-  card: {
+
+  loginCard: {
     width: '100%',
-    maxWidth: 420,
-    background: 'rgba(255, 255, 255, 0.96)',
-    border: '1px solid rgba(0, 0, 0, 0.08)',
-    borderRadius: 12,
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.10)',
-    overflow: 'hidden',
-    position: 'relative',
-    zIndex: 2,
+    maxWidth: 380,
   },
-  cardInner: {
-    padding: '32px 40px 28px',
-  },
-  logoArea: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  logoIconWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    background: token.colorPrimaryBg,
-    marginBottom: 16,
-  },
-  productTitle: {
-    display: 'block',
-    fontSize: 24,
-    fontWeight: 600,
+
+  formTitle: {
+    fontSize: token.fontSizeHeading1,
+    fontWeight: token.fontWeightSemibold,
     color: token.colorText,
     lineHeight: 1.3,
     marginBottom: 6,
     letterSpacing: '-0.01em',
   },
-  productSubtitle: {
-    display: 'block',
-    fontSize: 14,
-    fontWeight: 400,
+
+  formSubtitle: {
+    fontSize: token.fontSize,
+    fontWeight: token.fontWeightRegular,
     color: token.colorTextSecondary,
-    lineHeight: 1.5,
+    lineHeight: 1.6,
+    marginBottom: 20,
   },
+
   errorAlert: {
     marginBottom: 20,
   },
-  forgotRow: {
+
+  autoLoginRow: {
     display: 'flex',
-    justifyContent: 'flex-end',
-    marginBottom: token.margin,
-    marginTop: -4,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
+
   forgotLink: {
     fontSize: 13,
     color: token.colorTextSecondary,
@@ -97,18 +77,21 @@ const useStyles = createStyles(({ token }) => ({
       color: token.colorPrimary,
     },
   },
+
   submitBtn: {
     width: '100%',
     height: 40,
-    fontSize: 14,
-    fontWeight: 500,
+    fontSize: token.fontSize,
+    fontWeight: token.fontWeightMedium,
+    borderRadius: token.borderRadiusLG,
   },
-  registerLink: {
+
+  registerEntry: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    fontSize: 14,
+    marginTop: 24,
+    fontSize: token.fontSize,
     color: token.colorTextSecondary,
     cursor: 'pointer',
     transition: `color ${token.motionDurationFast} ${token.motionEaseInOut}`,
@@ -116,33 +99,42 @@ const useStyles = createStyles(({ token }) => ({
       color: token.colorPrimary,
     },
   },
-  registerLinkInner: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
+
+  // Input autofill override — kills browser blue background on all states
+  inputAutofill: {
+    '& input': {
+      backgroundColor: `${token.colorBgContainer} !important`,
+      backgroundImage: 'none !important',
+      WebkitBoxShadow: `0 0 0 100px ${token.colorBgContainer} inset !important`,
+      '&:-webkit-autofill': {
+        WebkitBoxShadow: `0 0 0 100px ${token.colorBgContainer} inset !important`,
+      },
+    },
   },
 }));
 
-const Lang = () => {
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 16,
-        right: 16,
-        zIndex: 1000,
-      }}
-    >
-      <SelectLang />
-    </div>
-  );
-};
+const Lang = () => (
+  <div
+    style={{
+      position: 'fixed',
+      top: 20,
+      right: 24,
+      zIndex: 100,
+    }}
+  >
+    <SelectLang />
+  </div>
+);
 
-const LoginMessage: React.FC<{
-  content: string;
-}> = ({ content }) => {
-  return <Alert message={content} type="error" showIcon />;
-};
+const LoginMessage: React.FC<{ content: string }> = ({ content }) => (
+  <Alert message={content} type="error" showIcon />
+);
+
+const FEATURES = [
+  '智能职业规划与路径推荐',
+  '个性化成长报告生成',
+  '岗位能力图谱与对比分析',
+];
 
 const Login: React.FC = () => {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
@@ -200,9 +192,13 @@ const Login: React.FC = () => {
       if (nextState.errorMessage) {
         message.error(nextState.errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { detail?: string } };
+        info?: { errorMessage?: string };
+      };
       const backendMessage =
-        error?.response?.data?.detail || error?.info?.errorMessage;
+        err?.response?.data?.detail || err?.info?.errorMessage;
       const defaultLoginFailureMessage = intl.formatMessage({
         id: 'pages.login.failure',
         defaultMessage: '登录失败，请重试',
@@ -231,42 +227,60 @@ const Login: React.FC = () => {
         </title>
       </Helmet>
       <Lang />
-      <div className={styles.container}>
-        <div className={styles.card} data-testid="login-page-shell">
-          {/* Logo 区 */}
-          <div className={styles.logoArea}>
-            <div className={styles.logoIconWrap}>
-              <RobotOutlined
-                style={{ fontSize: 24, color: token.colorPrimary }}
-              />
+      <div className="auth-root" data-testid="login-page-shell">
+        {/* 左面板：品牌区 — 使用 CSS class（global.less） */}
+        <div className="auth-left">
+          <div className="auth-left-top">
+            <div className="auth-left-logo-area">
+              <div className="auth-left-logo-icon">
+                <RobotOutlined style={{ fontSize: 18, color: '#FFFFFF' }} />
+              </div>
+              <span className="auth-left-logo-text">CareerAgent</span>
             </div>
-            <span
-              className={styles.productTitle}
-              data-testid="login-page-title"
-            >
-              大学生职业规划智能体
-            </span>
-            <span className={styles.productSubtitle}>
+
+            <div className="auth-left-title">大学生职业规划智能体</div>
+            <div className="auth-left-subtitle">你的 AI 职业导师</div>
+
+            <div className="auth-left-divider" />
+
+            <div className="auth-left-features">
+              {FEATURES.map((f) => (
+                <div key={f} className="auth-left-feature-item">
+                  <div className="auth-left-feature-dot" />
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="auth-left-copyright">
+            © {new Date().getFullYear()} CareerAgent. 保留所有权利。
+          </div>
+
+          <div className="auth-left-deco-circle" />
+        </div>
+
+        {/* 右面板：表单区 */}
+        <div className="auth-right">
+          <div className="auth-card" data-testid="login-form-card">
+            <div className={styles.formTitle}>欢迎回来</div>
+            <div className={styles.formSubtitle}>
               <FormattedMessage
                 id="pages.login.subtitle"
                 defaultMessage="登录以继续使用"
               />
-            </span>
-          </div>
-
-          {/* 错误提示 */}
-          {status === 'error' && (
-            <div className={styles.errorAlert}>
-              <LoginMessage
-                content={
-                  errorMessage || '用户名或密码错误（管理员：admin / 123456）'
-                }
-              />
             </div>
-          )}
 
-          {/* 表单区 */}
-          <div className={styles.cardInner}>
+            {status === 'error' && (
+              <div className={styles.errorAlert}>
+                <LoginMessage
+                  content={
+                    errorMessage || '用户名或密码错误（管理员：admin / 123456）'
+                  }
+                />
+              </div>
+            )}
+
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -297,6 +311,8 @@ const Login: React.FC = () => {
                     id: 'pages.login.username.placeholder',
                     defaultMessage: '用户名：admin 或普通用户',
                   })}
+                  className={styles.inputAutofill}
+                  style={{ height: 40, borderRadius: token.borderRadius }}
                 />
               </Form.Item>
 
@@ -323,21 +339,45 @@ const Login: React.FC = () => {
                     id: 'pages.login.password.placeholder',
                     defaultMessage: '密码：管理员为 123456',
                   })}
+                  className={styles.inputAutofill}
+                  style={{ height: 40, borderRadius: token.borderRadius }}
                 />
               </Form.Item>
 
-              <Form.Item name="autoLogin" valuePropName="checked" noStyle>
-                <Checkbox>
-                  <span
-                    style={{ fontSize: 13, color: token.colorTextSecondary }}
-                  >
-                    <FormattedMessage
-                      id="pages.login.remember"
-                      defaultMessage="记住登录"
-                    />
-                  </span>
-                </Checkbox>
-              </Form.Item>
+              <div className={styles.autoLoginRow}>
+                <Form.Item name="autoLogin" valuePropName="checked" noStyle>
+                  <Checkbox>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: token.colorTextSecondary,
+                      }}
+                    >
+                      <FormattedMessage
+                        id="pages.login.remember"
+                        defaultMessage="记住登录"
+                      />
+                    </span>
+                  </Checkbox>
+                </Form.Item>
+
+                <span
+                  className={styles.forgotLink}
+                  onClick={() => {
+                    message.info(
+                      intl.formatMessage({
+                        id: 'pages.login.forgot',
+                        defaultMessage: '请联系管理员重置密码',
+                      }),
+                    );
+                  }}
+                >
+                  <FormattedMessage
+                    id="pages.login.forgotPassword"
+                    defaultMessage="忘记密码？"
+                  />
+                </span>
+              </div>
 
               <Form.Item style={{ marginBottom: 0 }}>
                 <Button
@@ -346,6 +386,7 @@ const Login: React.FC = () => {
                   size="large"
                   block
                   loading={submitting}
+                  className={styles.submitBtn}
                 >
                   <FormattedMessage
                     id="pages.login.submit"
@@ -355,47 +396,25 @@ const Login: React.FC = () => {
               </Form.Item>
             </Form>
 
-            {/* 忘记密码 */}
-            <div className={styles.forgotRow}>
-              <span
-                className={styles.forgotLink}
-                onClick={() => {
-                  message.info(
-                    intl.formatMessage({
-                      id: 'pages.login.forgot',
-                      defaultMessage: '请联系管理员重置密码',
-                    }),
-                  );
-                }}
-              >
+            <div
+              className={styles.registerEntry}
+              data-testid="register-account-link"
+              onClick={() => {
+                startTransition(() => {
+                  history.push('/user/register');
+                });
+              }}
+            >
+              <FormattedMessage
+                id="pages.login.noAccount"
+                defaultMessage="还没有账户？"
+              />
+              <Space size={4} />
+              <span style={{ color: token.colorPrimary, fontWeight: 500 }}>
                 <FormattedMessage
-                  id="pages.login.forgotPassword"
-                  defaultMessage="忘记密码？"
+                  id="pages.login.register"
+                  defaultMessage="立即注册"
                 />
-              </span>
-            </div>
-
-            {/* 注册入口 */}
-            <div className={styles.registerLink}>
-              <span
-                className={styles.registerLinkInner}
-                data-testid="register-account-link"
-                onClick={() => {
-                  startTransition(() => {
-                    history.push('/user/register');
-                  });
-                }}
-              >
-                <FormattedMessage
-                  id="pages.login.noAccount"
-                  defaultMessage="还没有账户？"
-                />
-                <span style={{ color: token.colorPrimary, fontWeight: 500 }}>
-                  <FormattedMessage
-                    id="pages.login.register"
-                    defaultMessage="立即注册"
-                  />
-                </span>
               </span>
             </div>
           </div>

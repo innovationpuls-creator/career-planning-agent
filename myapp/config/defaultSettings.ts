@@ -85,6 +85,10 @@ const designToken = {
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
   boxShadowSecondary: '0 1px 2px rgba(0, 0, 0, 0.06)',
 
+  // === Auth 页专属渐变 ===
+  authLeftGradient:
+    'linear-gradient(160deg, #0F2060 0%, #1A3A8F 50%, #0F4299 100%)',
+
   // === 控制尺寸 ===
   controlHeight: 36,
   controlHeightSM: 28,

@@ -1,6 +1,9 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { PageContainer, ProDescriptions, ProTable } from '@ant-design/pro-components';
-import dayjs from 'dayjs';
+import {
+  PageContainer,
+  ProDescriptions,
+  ProTable,
+} from '@ant-design/pro-components';
 import {
   Avatar,
   Button,
@@ -9,16 +12,17 @@ import {
   Form,
   Input,
   Modal,
+  message,
   Select,
   Skeleton,
   Space,
   Switch,
   Tag,
   Typography,
-  message,
 } from 'antd';
-import React, { useRef, useState } from 'react';
 import { createStyles } from 'antd-style';
+import dayjs from 'dayjs';
+import React, { useRef, useState } from 'react';
 import {
   createAdminUser,
   deleteAdminUser,
@@ -85,9 +89,7 @@ const roleTag = (role?: string) => (
 );
 
 const statusTag = (isActive?: boolean) => (
-  <Tag color={isActive ? 'success' : 'error'}>
-    {isActive ? '启用' : '禁用'}
-  </Tag>
+  <Tag color={isActive ? 'success' : 'error'}>{isActive ? '启用' : '禁用'}</Tag>
 );
 
 const UserManagementPage: React.FC = () => {
@@ -298,10 +300,7 @@ const UserManagementPage: React.FC = () => {
           <Typography.Link onClick={() => openEditDrawer(record)}>
             编辑
           </Typography.Link>
-          <Typography.Link
-            onClick={() => handleDelete(record)}
-            type="danger"
-          >
+          <Typography.Link onClick={() => handleDelete(record)} type="danger">
             删除
           </Typography.Link>
         </Space>
@@ -313,7 +312,8 @@ const UserManagementPage: React.FC = () => {
     <PageContainer
       header={{
         title: '用户管理',
-        subTitle: '维护管理员与普通用户账号，支持查询、查看、新增、编辑和删除。',
+        subTitle:
+          '维护管理员与普通用户账号，支持查询、查看、新增、编辑和删除。',
       }}
     >
       <ProTable<API.AdminUserItem, UserTableParams>
@@ -408,7 +408,9 @@ const UserManagementPage: React.FC = () => {
       </Drawer>
 
       <Drawer
-        title={editingRecord ? `编辑用户 · ${editingRecord.username}` : '编辑用户'}
+        title={
+          editingRecord ? `编辑用户 · ${editingRecord.username}` : '编辑用户'
+        }
         width={440}
         open={editOpen}
         destroyOnClose
@@ -468,7 +470,9 @@ const UserManagementPage: React.FC = () => {
                 src={detailRecord.avatar}
                 style={{ backgroundColor: 'var(--chart-blue, #4A90D9)' }}
               >
-                {(detailRecord.display_name || detailRecord.username).slice(0, 1).toUpperCase()}
+                {(detailRecord.display_name || detailRecord.username)
+                  .slice(0, 1)
+                  .toUpperCase()}
               </Avatar>
               <Space direction="vertical" size={4}>
                 <Typography.Title level={5} style={{ margin: 0 }}>
