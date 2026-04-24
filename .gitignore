@@ -33,6 +33,7 @@ myapp/.umi/
 myapp/.umi-production/
 myapp/.umi-test/
 myapp/coverage/
+myapp/artifacts
 
 # Common logs and temp files
 *.log

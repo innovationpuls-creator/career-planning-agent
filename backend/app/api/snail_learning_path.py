@@ -1,6 +1,5 @@
 import logging
 import json
-import hashlib
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
@@ -30,12 +29,6 @@ from app.services.student_profile import get_student_profile
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["snail-learning-path"])
-
-
-def _build_snail_workspace_id(*, current_user_id: int, favorite_id: int, report_id: str) -> str:
-    stable_seed = "|".join([str(current_user_id), str(favorite_id), report_id or ""])
-    digest = hashlib.sha1(stable_seed.encode("utf-8")).hexdigest()[:16]
-    return f"snail-{digest}"
 
 
 def _assert_snail_learning_path_prerequisites(

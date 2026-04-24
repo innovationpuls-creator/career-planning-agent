@@ -176,6 +176,11 @@ const ResumeComposer: React.FC<Props> = ({
   const uploadProps = buildUploadButtonProps(onBeforeUpload, disabled || !fileUploadEnabled);
   const isEmptyState = viewState === 'empty';
   const compact = !expanded;
+  const getUploadColor = (status: WorkspaceUpload['status']) => {
+    if (status === 'error') return 'error';
+    if (status === 'submitted') return 'success';
+    return 'processing';
+  };
 
   return (
     <div className={styles.composer}>
@@ -211,7 +216,7 @@ const ResumeComposer: React.FC<Props> = ({
           {(compact ? uploads.slice(0, 1) : uploads).map((upload) => (
             <Tag
               key={upload.id}
-              color={upload.status === 'error' ? 'error' : 'processing'}
+              color={getUploadColor(upload.status)}
               closable={!compact}
               onClose={(event) => {
                 event.preventDefault();
@@ -220,6 +225,7 @@ const ResumeComposer: React.FC<Props> = ({
               style={{ marginInlineEnd: 0 }}
             >
               {upload.kind === 'image' ? '图片' : '文件'} | {upload.name}
+              {!compact && upload.status === 'submitted' ? ' | 已上传' : ''}
               {!compact && upload.error ? ` | ${upload.error}` : ''}
             </Tag>
           ))}

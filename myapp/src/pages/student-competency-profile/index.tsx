@@ -1,8 +1,11 @@
-import { Upload, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ResumeMatchWorkspace from './components/ResumeMatchWorkspace';
-import { goToSnailLearningPath } from '../career-development-report/learning-path/learningPathUtils';
-import ResumeParsingWorkspace from './components/ResumeParsingWorkspace';
+import { message, Upload } from 'antd';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   createCareerDevelopmentFavorite,
   deleteCareerDevelopmentFavorite,
@@ -15,25 +18,28 @@ import {
   streamStudentCompetencyChat,
   syncStudentCompetencyResult,
 } from '@/services/ant-design-pro/api';
+import { goToSnailLearningPath } from '../career-development-report/learning-path/learningPathUtils';
+import ResumeMatchWorkspace from './components/ResumeMatchWorkspace';
+import ResumeParsingWorkspace from './components/ResumeParsingWorkspace';
 import {
-  DEFAULT_VALUE,
-  DEFAULT_TITLE,
   appendStreamLine,
   buildConversation,
   buildDefaultProfile,
   buildId,
   cloneProfile,
+  DEFAULT_TITLE,
+  DEFAULT_VALUE,
   emptyLatestAnalysis,
   extractRequestError,
   getUploadKind,
   hasMeaningfulValues,
   hasProfileResult,
-  normalizeProfile,
-  toRuntimeFields,
   type JobProfileDimensions,
+  normalizeProfile,
   type ProfileKey,
   type ResultTabKey,
   type RuntimeConfig,
+  toRuntimeFields,
   type WorkspaceConversation,
   type WorkspaceMessage,
   type WorkspaceUpload,
@@ -47,43 +53,70 @@ const buildFavoriteTargetKey = (report: API.CareerDevelopmentMatchReport) =>
 
 const StudentCompetencyProfilePage: React.FC = () => {
   const [activeModule, setActiveModule] = useState<ModuleKey>('resume');
-  const [conversation, setConversation] = useState<WorkspaceConversation>(buildConversation());
+  const [conversation, setConversation] = useState<WorkspaceConversation>(
+    buildConversation(),
+  );
   const [composerValue, setComposerValue] = useState('');
   const [composerUploads, setComposerUploads] = useState<WorkspaceUpload[]>([]);
   const [composerError, setComposerError] = useState<string>();
   const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [editorProfile, setEditorProfile] = useState<JobProfileDimensions>(buildDefaultProfile());
-  const [tagInputs, setTagInputs] = useState<Partial<Record<ProfileKey, string>>>({});
-  const [latestAnalysis, setLatestAnalysis] = useState<API.StudentCompetencyLatestAnalysisPayload>(() =>
-    emptyLatestAnalysis(),
+  const [editorProfile, setEditorProfile] = useState<JobProfileDimensions>(
+    buildDefaultProfile(),
   );
+  const [tagInputs, setTagInputs] = useState<
+    Partial<Record<ProfileKey, string>>
+  >({});
+  const [latestAnalysis, setLatestAnalysis] =
+    useState<API.StudentCompetencyLatestAnalysisPayload>(() =>
+      emptyLatestAnalysis(),
+    );
   const [isLoadingLatestAnalysis, setIsLoadingLatestAnalysis] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeResultTab, setActiveResultTab] = useState<ResultTabKey>('comparison');
+  const [activeResultTab, setActiveResultTab] =
+    useState<ResultTabKey>('comparison');
   const [activeGapKey, setActiveGapKey] = useState<string>();
 
-  const [careerMatchInit, setCareerMatchInit] = useState<API.CareerDevelopmentMatchInitPayload>();
+  const [careerMatchInit, setCareerMatchInit] =
+    useState<API.CareerDevelopmentMatchInitPayload>();
   const [careerMatchLoading, setCareerMatchLoading] = useState(false);
   const [careerMatchError, setCareerMatchError] = useState<string>();
-  const [careerFavorites, setCareerFavorites] = useState<API.CareerDevelopmentFavoritePayload[]>([]);
-  const [activeRecommendationId, setActiveRecommendationId] = useState<string>();
-  const [activeResultTabCareer, setActiveResultTabCareer] = useState<'comparison' | 'advice' | 'company'>('comparison');
-  const [careerFavoriteSubmitting, setCareerFavoriteSubmitting] = useState(false);
+  const [careerFavorites, setCareerFavorites] = useState<
+    API.CareerDevelopmentFavoritePayload[]
+  >([]);
+  const [activeRecommendationId, setActiveRecommendationId] =
+    useState<string>();
+  const [activeResultTabCareer, setActiveResultTabCareer] = useState<
+    'comparison' | 'advice' | 'company'
+  >('comparison');
+  const [careerFavoriteSubmitting, setCareerFavoriteSubmitting] =
+    useState(false);
 
   const uploadFilesRef = useRef<Record<string, File>>({});
   const streamControllerRef = useRef<AbortController | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const defaultProfileRef = useRef<JobProfileDimensions>(buildDefaultProfile());
 
-  const currentProfile = conversation.currentProfile || defaultProfileRef.current;
-  const readyUploads = composerUploads.filter((item) => item.status === 'ready');
-  const canSubmit = !isSubmitting && (composerValue.trim().length > 0 || readyUploads.length > 0);
-  const submitDisabledReason = !composerValue.trim() && readyUploads.length === 0 ? '请先上传文件或补充描述' : undefined;
+  const currentProfile =
+    conversation.currentProfile || defaultProfileRef.current;
+  const readyUploads = composerUploads.filter(
+    (item) => item.status === 'ready',
+  );
+  const canSubmit =
+    !isSubmitting &&
+    (composerValue.trim().length > 0 || readyUploads.length > 0);
+  const submitDisabledReason =
+    !composerValue.trim() && readyUploads.length === 0
+      ? '请先上传文件或补充描述'
+      : undefined;
   const runtimeFields = toRuntimeFields(runtimeConfig);
 
-  const workspaceStage = isEditing ? 'edit' : hasProfileResult(currentProfile) ? 'view' : 'empty';
+  const workspaceStage = isEditing
+    ? 'edit'
+    : hasProfileResult(currentProfile)
+      ? 'view'
+      : 'empty';
   const workspaceViewState: WorkspaceViewState = isEditing
     ? 'edit'
     : isSubmitting
@@ -94,7 +127,8 @@ const StudentCompetencyProfilePage: React.FC = () => {
 
   const recommendations = careerMatchInit?.recommendations || [];
   const activeRecommendation =
-    recommendations.find((item) => item.report_id === activeRecommendationId) || recommendations[0];
+    recommendations.find((item) => item.report_id === activeRecommendationId) ||
+    recommendations[0];
   const activeRecommendationFavorite = activeRecommendation
     ? careerFavorites.find(
         (item) =>
@@ -115,9 +149,13 @@ const StudentCompetencyProfilePage: React.FC = () => {
       setCareerFavorites(favoriteRes.data || []);
       setActiveRecommendationId((current) => {
         const nextRecommendations = initRes.data.recommendations || [];
-        const stillExists = nextRecommendations.some((item) => item.report_id === current);
+        const stillExists = nextRecommendations.some(
+          (item) => item.report_id === current,
+        );
         if (stillExists) return current;
-        return initRes.data.default_report_id || nextRecommendations[0]?.report_id;
+        return (
+          initRes.data.default_report_id || nextRecommendations[0]?.report_id
+        );
       });
     } catch (err) {
       setCareerMatchError(extractRequestError(err));
@@ -141,7 +179,9 @@ const StudentCompetencyProfilePage: React.FC = () => {
     const loadLatest = async () => {
       setIsLoadingLatestAnalysis(true);
       try {
-        const res = await getStudentCompetencyLatestAnalysis({ skipErrorHandler: true });
+        const res = await getStudentCompetencyLatestAnalysis({
+          skipErrorHandler: true,
+        });
         if (cancelled) return;
         setLatestAnalysis(res.data);
 
@@ -156,7 +196,10 @@ const StudentCompetencyProfilePage: React.FC = () => {
           }));
 
           try {
-            const conversationRes = await getStudentCompetencyConversation(conversationId, { skipErrorHandler: true });
+            const conversationRes = await getStudentCompetencyConversation(
+              conversationId,
+              { skipErrorHandler: true },
+            );
             if (cancelled) return;
             setConversation((current) => ({
               ...current,
@@ -170,7 +213,11 @@ const StudentCompetencyProfilePage: React.FC = () => {
         }
       } catch (err) {
         if (!cancelled) {
-          setLatestAnalysis(emptyLatestAnalysis(`加载最新结果失败：${extractRequestError(err)}`));
+          setLatestAnalysis(
+            emptyLatestAnalysis(
+              `加载最新结果失败：${extractRequestError(err)}`,
+            ),
+          );
         }
       } finally {
         if (!cancelled) setIsLoadingLatestAnalysis(false);
@@ -222,9 +269,12 @@ const StudentCompetencyProfilePage: React.FC = () => {
     }
   }, [activeRecommendation?.report_id]);
 
-  useEffect(() => () => {
-    streamControllerRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      streamControllerRef.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     const viewport = messagesViewportRef.current;
@@ -233,11 +283,16 @@ const StudentCompetencyProfilePage: React.FC = () => {
     }
   }, [conversation.messages]);
 
-  const updateConversationMessage = (messageId: string, updater: (message: WorkspaceMessage) => WorkspaceMessage) => {
+  const updateConversationMessage = (
+    messageId: string,
+    updater: (message: WorkspaceMessage) => WorkspaceMessage,
+  ) => {
     setConversation((current) => ({
       ...current,
       updatedAt: new Date().toISOString(),
-      messages: current.messages.map((messageItem) => (messageItem.id === messageId ? updater(messageItem) : messageItem)),
+      messages: current.messages.map((messageItem) =>
+        messageItem.id === messageId ? updater(messageItem) : messageItem,
+      ),
     }));
   };
 
@@ -249,10 +304,17 @@ const StudentCompetencyProfilePage: React.FC = () => {
       return Upload.LIST_IGNORE;
     }
 
-    const maxLength = kind === 'image' ? runtimeConfig?.image_upload.max_length ?? 3 : runtimeConfig?.document_upload.max_length ?? 3;
-    const readyCount = composerUploads.filter((item) => item.kind === kind && item.status === 'ready').length;
+    const maxLength =
+      kind === 'image'
+        ? (runtimeConfig?.image_upload.max_length ?? 3)
+        : (runtimeConfig?.document_upload.max_length ?? 3);
+    const readyCount = composerUploads.filter(
+      (item) => item.kind === kind && item.status === 'ready',
+    ).length;
     if (readyCount >= maxLength) {
-      setComposerError(`${kind === 'image' ? '图片' : '文档'}最多上传 ${maxLength} 个`);
+      setComposerError(
+        `${kind === 'image' ? '图片' : '文档'}最多上传 ${maxLength} 个`,
+      );
       return Upload.LIST_IGNORE;
     }
 
@@ -276,7 +338,9 @@ const StudentCompetencyProfilePage: React.FC = () => {
 
   const handleRemoveUpload = (uploadId: string) => {
     delete uploadFilesRef.current[uploadId];
-    setComposerUploads((current) => current.filter((item) => item.id !== uploadId));
+    setComposerUploads((current) =>
+      current.filter((item) => item.id !== uploadId),
+    );
   };
 
   const handleSubmit = async () => {
@@ -290,7 +354,10 @@ const StudentCompetencyProfilePage: React.FC = () => {
       id: userMessageId,
       role: 'user',
       kind: 'chat',
-      content: prompt || readyUploads.map((item) => item.name).join('、') || '上传文件开始解析',
+      content:
+        prompt ||
+        readyUploads.map((item) => item.name).join('、') ||
+        '上传文件开始解析',
       createdAt,
       status: 'completed',
       uploads: readyUploads,
@@ -343,7 +410,11 @@ const StudentCompetencyProfilePage: React.FC = () => {
     }));
 
     try {
-      for await (const event of streamStudentCompetencyChat(formData, controller.signal)) {
+      const submittedUploadIds = new Set(readyUploads.map((item) => item.id));
+      for await (const event of streamStudentCompetencyChat(
+        formData,
+        controller.signal,
+      )) {
         if (event.event === 'meta') {
           updateConversationMessage(assistantMessageId, (messageItem) => ({
             ...messageItem,
@@ -353,25 +424,33 @@ const StudentCompetencyProfilePage: React.FC = () => {
         }
 
         if (event.event === 'delta') {
-          updateConversationMessage(event.assistant_message_id, (messageItem) => ({
-            ...messageItem,
-            kind: 'status',
-            status: 'streaming',
-            content: appendStreamLine(messageItem.content, event.delta),
-            stage: event.stage,
-            progress: event.progress,
-            createdAt: event.created_at,
-          }));
+          updateConversationMessage(
+            event.assistant_message_id,
+            (messageItem) => ({
+              ...messageItem,
+              kind: 'status',
+              status: 'streaming',
+              content: appendStreamLine(messageItem.content, event.delta),
+              stage: event.stage,
+              progress: event.progress,
+              createdAt: event.created_at,
+            }),
+          );
         }
 
         if (event.event === 'done') {
           const resultPayload = event.data;
-          const updatedProfile = resultPayload.profile ? normalizeProfile(resultPayload.profile) : undefined;
-          updateConversationMessage(event.assistant_message_id, (messageItem) => ({
-            ...messageItem,
-            status: 'completed',
-            content: resultPayload.assistant_message,
-          }));
+          const updatedProfile = resultPayload.profile
+            ? normalizeProfile(resultPayload.profile)
+            : undefined;
+          updateConversationMessage(
+            event.assistant_message_id,
+            (messageItem) => ({
+              ...messageItem,
+              status: 'completed',
+              content: resultPayload.assistant_message,
+            }),
+          );
 
           setConversation((current) => {
             const resultMessages =
@@ -401,7 +480,10 @@ const StudentCompetencyProfilePage: React.FC = () => {
             };
           });
 
-          if (resultPayload.output_mode === 'profile' && resultPayload.latest_analysis) {
+          if (
+            resultPayload.output_mode === 'profile' &&
+            resultPayload.latest_analysis
+          ) {
             setLatestAnalysis(resultPayload.latest_analysis);
             setActiveResultTab('result');
             setActiveGapKey(
@@ -413,11 +495,14 @@ const StudentCompetencyProfilePage: React.FC = () => {
         }
 
         if (event.event === 'error') {
-          updateConversationMessage(event.assistant_message_id, (messageItem) => ({
-            ...messageItem,
-            status: 'error',
-            content: event.detail,
-          }));
+          updateConversationMessage(
+            event.assistant_message_id,
+            (messageItem) => ({
+              ...messageItem,
+              status: 'error',
+              content: event.detail,
+            }),
+          );
           throw new Error(event.detail);
         }
       }
@@ -426,7 +511,17 @@ const StudentCompetencyProfilePage: React.FC = () => {
       readyUploads.forEach((item) => {
         delete uploadFilesRef.current[item.id];
       });
-      setComposerUploads([]);
+      setComposerUploads((current) =>
+        current.map((item) =>
+          submittedUploadIds.has(item.id)
+            ? {
+                ...item,
+                status: 'submitted',
+                file: undefined,
+              }
+            : item,
+        ),
+      );
     } catch (err) {
       const detail = extractRequestError(err);
       setComposerError(detail);
@@ -435,8 +530,14 @@ const StudentCompetencyProfilePage: React.FC = () => {
         ...current,
         updatedAt: new Date().toISOString(),
         messages: current.messages.map((messageItem) =>
-          messageItem.id === assistantMessageId || (messageItem.kind === 'status' && messageItem.status === 'streaming')
-            ? { ...messageItem, status: 'error', content: detail, stage: 'error' }
+          messageItem.id === assistantMessageId ||
+          (messageItem.kind === 'status' && messageItem.status === 'streaming')
+            ? {
+                ...messageItem,
+                status: 'error',
+                content: detail,
+                stage: 'error',
+              }
             : messageItem,
         ),
       }));
@@ -546,8 +647,16 @@ const StudentCompetencyProfilePage: React.FC = () => {
     setCareerFavoriteSubmitting(true);
     try {
       if (activeRecommendationFavorite) {
-        await deleteCareerDevelopmentFavorite(activeRecommendationFavorite.favorite_id, { skipErrorHandler: true });
-        setCareerFavorites((current) => current.filter((item) => item.favorite_id !== activeRecommendationFavorite.favorite_id));
+        await deleteCareerDevelopmentFavorite(
+          activeRecommendationFavorite.favorite_id,
+          { skipErrorHandler: true },
+        );
+        setCareerFavorites((current) =>
+          current.filter(
+            (item) =>
+              item.favorite_id !== activeRecommendationFavorite.favorite_id,
+          ),
+        );
         message.success('已取消收藏');
       } else {
         const res = await createCareerDevelopmentFavorite(
@@ -558,7 +667,9 @@ const StudentCompetencyProfilePage: React.FC = () => {
           { skipErrorHandler: true },
         );
         setCareerFavorites((current) => {
-          const next = current.filter((item) => item.favorite_id !== res.data.favorite_id);
+          const next = current.filter(
+            (item) => item.favorite_id !== res.data.favorite_id,
+          );
           return [...next, res.data];
         });
         message.success('已收藏结果');
@@ -581,7 +692,8 @@ const StudentCompetencyProfilePage: React.FC = () => {
   const careerWorkspace = (
     <ResumeMatchWorkspace
       sourceLabel={
-        conversation.messages.find((item) => item.kind === 'result')?.assetName ||
+        conversation.messages.find((item) => item.kind === 'result')
+          ?.assetName ||
         (hasProfileResult(currentProfile) ? '简历解析结果' : '当前12维画像')
       }
       sourceUpdatedAt={careerMatchInit?.source?.updated_at}

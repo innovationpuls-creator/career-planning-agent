@@ -331,34 +331,11 @@ const canUseStorage = () =>
   typeof window.localStorage !== 'undefined' &&
   typeof window.sessionStorage !== 'undefined';
 
-export const persistPendingReport = (_report: API.CareerDevelopmentMatchReport) => {
-  // Legacy no-op: snail learning path now only opens via favorite_id.
-};
 
 export const goToSnailLearningPath = (favoriteId: number) => {
   history.push(`/snail-learning-path?favorite_id=${favoriteId}`);
 };
 
-export const loadPendingReport = (): API.CareerDevelopmentMatchReport | null => {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const stored = window.sessionStorage.getItem(SNAIL_REPORT_KEY);
-    if (stored) {
-      return JSON.parse(stored) as API.CareerDevelopmentMatchReport;
-    }
-  } catch {}
-
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const encoded = params.get('report');
-    if (!encoded) return null;
-    const json = decodeURIComponent(atob(encoded));
-    return JSON.parse(json) as API.CareerDevelopmentMatchReport;
-  } catch {
-    return null;
-  }
-};
 
 export const buildWorkspaceStorageKey = (
   workspace?: API.PlanWorkspacePayload,
@@ -409,21 +386,7 @@ export const saveCompletedResources = (storageKey: string, resources: Set<string
   );
 };
 
-export const loadReviewStore = (storageKey: string): ReviewStore => {
-  if (!canUseStorage()) return { weekly: [], monthly: [] };
-  try {
-    const raw = window.localStorage.getItem(`${REVIEW_STORAGE_PREFIX}${storageKey}`);
-    if (!raw) return { weekly: [], monthly: [] };
-    return JSON.parse(raw) as ReviewStore;
-  } catch {
-    return { weekly: [], monthly: [] };
-  }
-};
 
-export const saveReviewStore = (storageKey: string, reviewStore: ReviewStore) => {
-  if (!canUseStorage()) return;
-  window.localStorage.setItem(`${REVIEW_STORAGE_PREFIX}${storageKey}`, JSON.stringify(reviewStore));
-};
 
 export const loadActivePhaseKey = (storageKey: string): LearningPathPhaseKey | undefined => {
   if (!canUseStorage()) return undefined;
@@ -641,15 +604,3 @@ export const getOverallProgress = (phases: API.GrowthPlanPhase[], completedSet: 
   };
 };
 
-export const buildMonthlyConclusion = (
-  currentPhase: API.GrowthPlanPhase | undefined,
-  completedSet: Set<string>,
-  allDone: boolean,
-): MonthlyReviewRecord['conclusion'] => {
-  if (!currentPhase) return 'continue';
-  if (allDone) return 'advance';
-  const progress = getPhaseProgress(currentPhase, completedSet);
-  if (progress.total > 0 && progress.completed === progress.total) return 'advance';
-  if (progress.percent >= 50) return 'continue';
-  return 'strengthen';
-};

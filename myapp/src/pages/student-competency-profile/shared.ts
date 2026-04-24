@@ -33,20 +33,43 @@ export const ACCEPTED_EXTENSIONS = [
   '.svg',
 ] as const;
 
-export const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']);
+export const IMAGE_EXTENSIONS = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.svg',
+]);
 
 export const PROFILE_FIELDS = [
   ['professional_skills', '专业技能', '与岗位直接相关的工具、语言、技术能力。'],
-  ['professional_background', '专业背景', '专业方向、研究主题、岗位相关课程或背景信息。'],
+  [
+    'professional_background',
+    '专业背景',
+    '专业方向、研究主题、岗位相关课程或背景信息。',
+  ],
   ['education_requirement', '学历要求', '学历层次、专业匹配度及教育背景要求。'],
   ['teamwork', '团队协作能力', '与团队合作、配合、跨角色协作相关的能力。'],
-  ['stress_adaptability', '抗压/适应能力', '面对变化、压力、节奏要求时的适应与稳定性。'],
+  [
+    'stress_adaptability',
+    '抗压/适应能力',
+    '面对变化、压力、节奏要求时的适应与稳定性。',
+  ],
   ['communication', '沟通表达能力', '口头、书面、跨角色沟通和信息传达能力。'],
   ['work_experience', '工作经验', '实习、项目、兼职、实践或岗位相关经历。'],
-  ['documentation_awareness', '文档规范意识', '文档整理、记录、规范表达和交付意识。'],
+  [
+    'documentation_awareness',
+    '文档规范意识',
+    '文档整理、记录、规范表达和交付意识。',
+  ],
   ['responsibility', '责任心/工作态度', '主动性、执行力、稳定性和结果意识。'],
   ['learning_ability', '学习能力', '快速学习、主动补齐、持续成长的能力。'],
-  ['problem_solving', '分析解决问题能力', '发现问题、拆解问题、推动解决的能力。'],
+  [
+    'problem_solving',
+    '分析解决问题能力',
+    '发现问题、拆解问题、推动解决的能力。',
+  ],
   ['other_special', '补充信息', '证书、作品、竞赛、开源或其他有价值补充。'],
 ] as const;
 
@@ -54,7 +77,11 @@ export const PROFILE_GROUPS = [
   {
     key: 'background',
     title: '基础背景',
-    dimensionKeys: ['professional_background', 'education_requirement', 'work_experience'],
+    dimensionKeys: [
+      'professional_background',
+      'education_requirement',
+      'work_experience',
+    ],
   },
   {
     key: 'core',
@@ -88,7 +115,7 @@ export const STAGE_LABEL_MAP: Record<string, string> = {
 
 export type ProfileKey = (typeof PROFILE_FIELDS)[number][0];
 export type UploadKind = 'image' | 'document';
-export type UploadStatus = 'ready' | 'error';
+export type UploadStatus = 'ready' | 'submitted' | 'error';
 export type MessageStatus = 'completed' | 'streaming' | 'error';
 export type MessageKind = 'chat' | 'status' | 'result';
 export type WorkspaceStage = 'empty' | 'view' | 'edit';
@@ -149,16 +176,8 @@ export type WorkspaceConversation = {
   currentProfile?: JobProfileDimensions;
 };
 
-export type WorkspaceSnapshot = {
-  version: number;
-  conversation: WorkspaceConversation;
-  composerUploads: WorkspaceUpload[];
-  activeResultTab: ResultTabKey;
-  activeGapKey?: string;
-  activeModule?: 'resume' | 'career';
-};
-
-export const buildId = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+export const buildId = (prefix: string) =>
+  `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 
 export const formatTimestamp = (iso?: string) => {
   if (!iso) return '--';
@@ -171,19 +190,26 @@ export const formatTimestamp = (iso?: string) => {
 };
 
 export const getExtension = (fileName: string) =>
-  fileName.lastIndexOf('.') >= 0 ? fileName.slice(fileName.lastIndexOf('.')).toLowerCase() : '';
+  fileName.lastIndexOf('.') >= 0
+    ? fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
+    : '';
 
 export const getUploadKind = (file: File): UploadKind | undefined => {
   const extension = getExtension(file.name);
-  if (IMAGE_EXTENSIONS.has(extension) || file.type.startsWith('image/')) return 'image';
+  if (IMAGE_EXTENSIONS.has(extension) || file.type.startsWith('image/'))
+    return 'image';
   if (ACCEPTED_EXTENSIONS.some((item) => item === extension)) return 'document';
   return undefined;
 };
 
 export const buildDefaultProfile = (): JobProfileDimensions =>
-  Object.fromEntries(PROFILE_FIELDS.map(([key]) => [key, [DEFAULT_VALUE]])) as JobProfileDimensions;
+  Object.fromEntries(
+    PROFILE_FIELDS.map(([key]) => [key, [DEFAULT_VALUE]]),
+  ) as JobProfileDimensions;
 
-export const normalizeProfile = (profile?: Record<string, string[]>): JobProfileDimensions =>
+export const normalizeProfile = (
+  profile?: Record<string, string[]>,
+): JobProfileDimensions =>
   Object.fromEntries(
     PROFILE_FIELDS.map(([key]) => {
       const values = Array.isArray(profile?.[key])
@@ -200,9 +226,13 @@ export const normalizeProfile = (profile?: Record<string, string[]>): JobProfile
     }),
   ) as JobProfileDimensions;
 
-export const cloneProfile = (profile: JobProfileDimensions): JobProfileDimensions => normalizeProfile(profile);
+export const cloneProfile = (
+  profile: JobProfileDimensions,
+): JobProfileDimensions => normalizeProfile(profile);
 
-export const buildConversation = (conversationId?: string): WorkspaceConversation => {
+export const buildConversation = (
+  conversationId?: string,
+): WorkspaceConversation => {
   const now = new Date().toISOString();
   return {
     id: conversationId || buildId('conversation'),
@@ -213,19 +243,12 @@ export const buildConversation = (conversationId?: string): WorkspaceConversatio
   };
 };
 
-export const normalizeRestoredUploads = (uploads: WorkspaceUpload[] = []) =>
-  uploads.map((upload) => ({
-    ...upload,
-    status: 'error' as UploadStatus,
-    error: '刷新后需要重新上传文件',
-    requiresReupload: true,
-  }));
-
 export const hasMeaningfulValues = (values?: string[]) =>
   !!values?.some((value) => value.trim() && value.trim() !== DEFAULT_VALUE);
 
 export const hasProfileResult = (profile?: JobProfileDimensions) =>
-  !!profile && Object.values(profile).some((values) => hasMeaningfulValues(values));
+  !!profile &&
+  Object.values(profile).some((values) => hasMeaningfulValues(values));
 
 export const appendStreamLine = (content: string, nextLine: string) => {
   const line = nextLine.trim();
@@ -248,7 +271,11 @@ const PROCESS_COPY_BY_STAGE: Record<string, string> = {
   error: '解析失败',
 };
 
-export const normalizeProcessContent = (stage?: string, content?: string, status?: MessageStatus) => {
+export const normalizeProcessContent = (
+  stage?: string,
+  content?: string,
+  status?: MessageStatus,
+) => {
   if (status === 'error') {
     const lastLine = content
       ?.split('\n')
@@ -301,12 +328,6 @@ export const toRuntimeFields = (runtime?: RuntimeConfig): RuntimeField[] => {
     title,
     description,
   }));
-};
-
-export const buildSummary = (profile?: JobProfileDimensions) => {
-  if (!profile) return '暂无结果';
-  const filledCount = Object.values(profile).filter((values) => hasMeaningfulValues(values)).length;
-  return `已完成 ${filledCount} 项维度提取`;
 };
 
 export const buildUploadButtonProps = (

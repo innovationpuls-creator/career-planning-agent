@@ -6,6 +6,7 @@ import socket
 import subprocess
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 # 开发环境：INFO 级别日志可见
 logging.basicConfig(
@@ -209,6 +210,10 @@ def _ensure_career_development_plan_workspace_schema() -> None:
             connection.execute(text(statement))
 
 
+def _get_backend_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
 def _ensure_qdrant_running() -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -219,21 +224,21 @@ def _ensure_qdrant_running() -> None:
     finally:
         sock.close()
 
-    backend_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    qdrant_bin = os.path.join(backend_root, "qdrant-bin", "qdrant")
-    qdrant_cfg = os.path.join(backend_root, "qdrant-bin", "config", "config.yaml")
+    backend_root = _get_backend_root()
+    qdrant_bin = backend_root / "qdrant-bin" / "qdrant"
+    qdrant_cfg = backend_root / "qdrant-bin" / "config" / "config.yaml"
 
-    if not os.path.isfile(qdrant_bin):
+    if not qdrant_bin.is_file():
         print(f"[qdrant] binary not found at {qdrant_bin}, skipping auto-start", flush=True)
         return
 
     try:
         global _qdrant_process
         _qdrant_process = subprocess.Popen(
-            [qdrant_bin, "--config-path", qdrant_cfg],
+            [qdrant_bin.as_posix(), "--config-path", qdrant_cfg.as_posix()],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            cwd=backend_root,
+            cwd=backend_root.as_posix(),
         )
         print("[qdrant] started automatically", flush=True)
     except Exception as exc:

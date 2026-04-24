@@ -275,4 +275,60 @@ describe('StudentCompetencyProfilePage', () => {
     fireEvent.click(actionButton as HTMLElement);
     expect(mockGoToSnailLearningPath).toHaveBeenCalledWith(99);
   });
+
+  it('keeps submitted pdf visible after chat stream completes without a profile result', async () => {
+    mockGetLatestAnalysis.mockResolvedValueOnce({
+      data: {
+        available: false,
+        message: '上传简历或补充描述后开始解析',
+        comparison_dimensions: [],
+        chart_series: [],
+        strength_dimensions: [],
+        priority_gap_dimensions: [],
+        recommended_keywords: {},
+        action_advices: [],
+      },
+    });
+    mockStreamChat.mockImplementation(async function* () {
+      yield {
+        event: 'meta',
+        workspace_conversation_id: 'conversation-upload',
+        assistant_message_id: 'assistant-upload',
+        created_at: new Date().toISOString(),
+      };
+      yield {
+        event: 'done',
+        assistant_message_id: 'assistant-upload',
+        data: {
+          workspace_conversation_id: 'conversation-upload',
+          dify_conversation_id: 'dify-upload',
+          last_message_id: 'message-upload',
+          assistant_message: '已收到材料。',
+          output_mode: 'chat',
+        },
+      };
+    });
+
+    const { container } = render(React.createElement(StudentCompetencyProfilePage));
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['pdf-content'], 'student-resume.pdf', {
+      type: 'application/pdf',
+    });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/student-resume\.pdf/).length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '开始解析' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/student-resume\.pdf/).length).toBeGreaterThan(0);
+      expect(screen.getByText(/已上传/)).toBeTruthy();
+    });
+
+    const submittedFormData = mockStreamChat.mock.calls[0][0] as FormData;
+    expect(submittedFormData.getAll('document_files')).toHaveLength(1);
+  });
 });

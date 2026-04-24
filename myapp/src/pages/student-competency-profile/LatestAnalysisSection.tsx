@@ -1,10 +1,10 @@
 import { Empty, Spin, Typography } from 'antd';
 import React, { useMemo } from 'react';
 import {
-  JobMatchAdvicePanel,
-  JobMatchComparisonPanel,
   buildStrengthGroups,
   getAssessmentLabel,
+  JobMatchAdvicePanel,
+  JobMatchComparisonPanel,
   type JobMatchOutcomeViewModel,
 } from '@/components/JobMatchOutcomeBody';
 
@@ -18,13 +18,21 @@ const buildLatestAnalysisViewModel = (
   analysis: API.StudentCompetencyLatestAnalysisPayload,
 ): JobMatchOutcomeViewModel => {
   const comparisonByKey = Object.fromEntries(
-    (analysis.comparison_dimensions || []).map((item) => [item.key, item] as const),
+    (analysis.comparison_dimensions || []).map(
+      (item) => [item.key, item] as const,
+    ),
   );
 
   const gaps = (analysis.comparison_dimensions || []).map((item) => {
-    const advice = (analysis.action_advices || []).find((entry) => entry.key === item.key);
-    const nextActions = (advice?.next_actions || []).filter(Boolean).slice(0, 3);
-    const missing = (item.missing_market_keywords || []).filter(Boolean).slice(0, 2);
+    const advice = (analysis.action_advices || []).find(
+      (entry) => entry.key === item.key,
+    );
+    const nextActions = (advice?.next_actions || [])
+      .filter(Boolean)
+      .slice(0, 3);
+    const missing = (item.missing_market_keywords || [])
+      .filter(Boolean)
+      .slice(0, 2);
     const current = (item.user_values || []).filter(Boolean).slice(0, 2);
 
     return {
@@ -40,20 +48,40 @@ const buildLatestAnalysisViewModel = (
           ? `当前仅覆盖 ${current.join('、')}`
           : '缺岗位相关信息',
       whyItMatters: advice?.why_it_matters,
-      currentIssue: advice?.current_issue || (missing.length ? `缺 ${missing.join('、')} 相关内容` : '缺岗位相关信息'),
+      currentIssue:
+        advice?.current_issue ||
+        (missing.length
+          ? `缺 ${missing.join('、')} 相关内容`
+          : '缺岗位相关信息'),
       nextActions:
         nextActions.length > 0
           ? nextActions
-          : [`补 ${item.title} 相关经历`, `补 ${item.title} 相关结果`, `补 ${item.title} 相关表达`],
-      examplePhrases: (advice?.example_phrases || []).filter(Boolean).slice(0, 6),
-      evidenceSources: (advice?.evidence_sources || []).filter(Boolean).slice(0, 6),
-      recommendedKeywords: (advice?.recommended_keywords || item.missing_market_keywords || []).filter(Boolean).slice(0, 6),
+          : [
+              `补 ${item.title} 相关经历`,
+              `补 ${item.title} 相关结果`,
+              `补 ${item.title} 相关表达`,
+            ],
+      examplePhrases: (advice?.example_phrases || [])
+        .filter(Boolean)
+        .slice(0, 6),
+      evidenceSources: (advice?.evidence_sources || [])
+        .filter(Boolean)
+        .slice(0, 6),
+      recommendedKeywords: (
+        advice?.recommended_keywords ||
+        item.missing_market_keywords ||
+        []
+      )
+        .filter(Boolean)
+        .slice(0, 6),
     };
   });
 
-  const primaryGap = [...gaps]
-    .sort((left, right) => right.gapValue - left.gapValue)
-    .find((item) => item.key === analysis.priority_gap_dimensions?.[0]) || [...gaps].sort((left, right) => right.gapValue - left.gapValue)[0];
+  const primaryGap =
+    [...gaps]
+      .sort((left, right) => right.gapValue - left.gapValue)
+      .find((item) => item.key === analysis.priority_gap_dimensions?.[0]) ||
+    [...gaps].sort((left, right) => right.gapValue - left.gapValue)[0];
 
   return {
     metrics: [
@@ -79,12 +107,23 @@ const buildLatestAnalysisViewModel = (
     primaryGapTitle: primaryGap?.title,
     primaryGapGapLabel: primaryGap?.gapLabel,
     radarData: (analysis.chart_series || []).flatMap((item) => [
-      { dimension: item.title, category: '目标要求', value: item.market_importance },
-      { dimension: item.title, category: '当前准备度', value: item.user_readiness },
+      {
+        dimension: item.title,
+        category: '目标要求',
+        value: item.market_importance,
+      },
+      {
+        dimension: item.title,
+        category: '当前准备度',
+        value: item.user_readiness,
+      },
     ]),
     gaps,
     priorityGapKeys: analysis.priority_gap_dimensions || [],
-    strengthGroups: buildStrengthGroups(analysis.strength_dimensions || [], comparisonByKey),
+    strengthGroups: buildStrengthGroups(
+      analysis.strength_dimensions || [],
+      comparisonByKey,
+    ),
     overallReview: analysis.narrative?.overall_review,
   };
 };
@@ -107,7 +146,8 @@ const LatestAnalysisSection: React.FC<Props> = ({
   onActiveGapChange,
 }) => {
   const viewModel = useMemo(
-    () => (analysis?.available ? buildLatestAnalysisViewModel(analysis) : undefined),
+    () =>
+      analysis?.available ? buildLatestAnalysisViewModel(analysis) : undefined,
     [analysis],
   );
 
@@ -119,7 +159,11 @@ const LatestAnalysisSection: React.FC<Props> = ({
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={<Typography.Text type="secondary">{analysis?.message || '暂无岗位对标结果'}</Typography.Text>}
+        description={
+          <Typography.Text type="secondary">
+            {analysis?.message || '暂无岗位对标结果'}
+          </Typography.Text>
+        }
       />
     );
   }
@@ -134,7 +178,12 @@ const LatestAnalysisSection: React.FC<Props> = ({
     );
   }
 
-  return <JobMatchComparisonPanel viewModel={viewModel} onOpenAdvice={(key) => onOpenAdvice?.(key)} />;
+  return (
+    <JobMatchComparisonPanel
+      viewModel={viewModel}
+      onOpenAdvice={(key) => onOpenAdvice?.(key)}
+    />
+  );
 };
 
 export default LatestAnalysisSection;
