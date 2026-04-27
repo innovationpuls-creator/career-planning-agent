@@ -3,7 +3,7 @@ import {
   FieldNumberOutlined,
   RadarChartOutlined,
 } from '@ant-design/icons';
-import { Card, Empty, Skeleton, Tag, Typography } from 'antd';
+import { Card, Skeleton, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 
@@ -108,6 +108,7 @@ const useStyles = createStyles(({ css }) => ({
     letter-spacing: 0.06em;
     text-transform: uppercase;
     font-weight: 600;
+    font-family: var(--font-heading);
   `,
 
   metricValue: css`
@@ -117,6 +118,7 @@ const useStyles = createStyles(({ css }) => ({
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
+    font-family: var(--font-heading);
   `,
 
   metricValuePrimary: css`
@@ -127,6 +129,7 @@ const useStyles = createStyles(({ css }) => ({
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.03em;
     text-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
+    font-family: var(--font-heading);
   `,
 
   metricUnit: css`
@@ -185,6 +188,7 @@ const useStyles = createStyles(({ css }) => ({
   `,
 
   assessmentLabel: css`
+    font-family: var(--font-heading);
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -395,7 +399,13 @@ const HeroAnalysisSection: React.FC<HeroAnalysisSectionProps> = ({
 
           {/* Radial score ring */}
           <div className={styles.radialScore}>
-            <svg width="84" height="84" viewBox="0 0 84 84">
+            <svg
+              width="84"
+              height="84"
+              viewBox="0 0 84 84"
+              role="img"
+              aria-label="综合评分环形图"
+            >
               <circle
                 cx="42"
                 cy="42"

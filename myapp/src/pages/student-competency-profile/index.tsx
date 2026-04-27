@@ -2,7 +2,6 @@ import { message, Upload } from 'antd';
 import React, {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -47,12 +46,15 @@ import {
 } from './shared';
 
 type ModuleKey = 'resume' | 'career';
+type InteractionStage = 'empty' | 'uploading' | 'transforming' | 'workspace';
 
 const buildFavoriteTargetKey = (report: API.CareerDevelopmentMatchReport) =>
   `${report.canonical_job_title}::${report.industry || ''}`;
 
 const StudentCompetencyProfilePage: React.FC = () => {
   const [activeModule, setActiveModule] = useState<ModuleKey>('resume');
+  const [interactionStage, setInteractionStage] =
+    useState<InteractionStage>('empty');
   const [conversation, setConversation] = useState<WorkspaceConversation>(
     buildConversation(),
   );
@@ -95,6 +97,9 @@ const StudentCompetencyProfilePage: React.FC = () => {
 
   const uploadFilesRef = useRef<Record<string, File>>({});
   const streamControllerRef = useRef<AbortController | null>(null);
+  const interactionTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>(
+    [],
+  );
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const defaultProfileRef = useRef<JobProfileDimensions>(buildDefaultProfile());
 
@@ -124,6 +129,27 @@ const StudentCompetencyProfilePage: React.FC = () => {
       : hasProfileResult(currentProfile)
         ? 'completed'
         : 'empty';
+
+  const clearInteractionTimers = useCallback(() => {
+    for (const timer of interactionTimeoutsRef.current) {
+      clearTimeout(timer);
+    }
+    interactionTimeoutsRef.current = [];
+  }, []);
+
+  const scheduleUploadTransition = useCallback(() => {
+    clearInteractionTimers();
+    setInteractionStage('uploading');
+
+    interactionTimeoutsRef.current = [
+      setTimeout(() => {
+        setInteractionStage('transforming');
+      }, 160),
+      setTimeout(() => {
+        setInteractionStage('workspace');
+      }, 940),
+    ];
+  }, [clearInteractionTimers]);
 
   const recommendations = careerMatchInit?.recommendations || [];
   const activeRecommendation =
@@ -186,6 +212,8 @@ const StudentCompetencyProfilePage: React.FC = () => {
         setLatestAnalysis(res.data);
 
         if (res.data.available && res.data.workspace_conversation_id) {
+          clearInteractionTimers();
+          setInteractionStage('workspace');
           const conversationId = res.data.workspace_conversation_id;
           setConversation((current) => ({
             ...current,
@@ -209,7 +237,12 @@ const StudentCompetencyProfilePage: React.FC = () => {
               currentProfile: normalizeProfile(conversationRes.data.profile),
               updatedAt: conversationRes.data.updated_at || current.updatedAt,
             }));
-          } catch {}
+          } catch (err) {
+            console.warn(
+              'Failed to load student competency conversation',
+              err,
+            );
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -228,7 +261,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [clearInteractionTimers]);
 
   useEffect(() => {
     let cancelled = false;
@@ -269,11 +302,19 @@ const StudentCompetencyProfilePage: React.FC = () => {
     }
   }, [activeRecommendation?.report_id]);
 
+  useEffect(() => {
+    if (hasProfileResult(currentProfile) && interactionStage === 'empty') {
+      clearInteractionTimers();
+      setInteractionStage('workspace');
+    }
+  }, [clearInteractionTimers, currentProfile, interactionStage]);
+
   useEffect(
     () => () => {
+      clearInteractionTimers();
       streamControllerRef.current?.abort();
     },
-    [],
+    [clearInteractionTimers],
   );
 
   useEffect(() => {
@@ -301,6 +342,10 @@ const StudentCompetencyProfilePage: React.FC = () => {
     const kind = getUploadKind(file);
     if (!kind) {
       setComposerError('不支持的文件类型');
+      if (!hasProfileResult(currentProfile)) {
+        clearInteractionTimers();
+        setInteractionStage('empty');
+      }
       return Upload.LIST_IGNORE;
     }
 
@@ -315,6 +360,10 @@ const StudentCompetencyProfilePage: React.FC = () => {
       setComposerError(
         `${kind === 'image' ? '图片' : '文档'}最多上传 ${maxLength} 个`,
       );
+      if (!hasProfileResult(currentProfile)) {
+        clearInteractionTimers();
+        setInteractionStage('empty');
+      }
       return Upload.LIST_IGNORE;
     }
 
@@ -333,6 +382,12 @@ const StudentCompetencyProfilePage: React.FC = () => {
       },
       ...current,
     ]);
+    if (workspaceViewState === 'empty' && activeModule === 'resume') {
+      scheduleUploadTransition();
+    } else {
+      clearInteractionTimers();
+      setInteractionStage('workspace');
+    }
     return Upload.LIST_IGNORE;
   };
 
@@ -347,6 +402,8 @@ const StudentCompetencyProfilePage: React.FC = () => {
     if (!canSubmit) return;
 
     const prompt = composerValue.trim();
+    clearInteractionTimers();
+    setInteractionStage('workspace');
     const workspaceConversationId = conversation.id || buildId('conversation');
     const createdAt = new Date().toISOString();
     const userMessageId = buildId('user');
@@ -525,6 +582,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
     } catch (err) {
       const detail = extractRequestError(err);
       setComposerError(detail);
+      setInteractionStage('workspace');
       message.error(`解析失败：${detail}`);
       setConversation((current) => ({
         ...current,
@@ -595,10 +653,14 @@ const StudentCompetencyProfilePage: React.FC = () => {
   const handleResetConversation = async () => {
     try {
       await deleteStudentCompetencyLatestAnalysis({ skipErrorHandler: true });
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to delete latest student competency analysis', err);
+    }
 
+    clearInteractionTimers();
     streamControllerRef.current?.abort();
     uploadFilesRef.current = {};
+    setInteractionStage('empty');
     setConversation(buildConversation());
     setComposerValue('');
     setComposerUploads([]);
@@ -720,6 +782,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
       activeModule={activeModule}
       onModuleChange={setActiveModule}
       careerWorkspace={careerWorkspace}
+      interactionStage={interactionStage}
       stage={workspaceStage}
       viewState={workspaceViewState}
       conversation={conversation}

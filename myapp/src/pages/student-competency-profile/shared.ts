@@ -176,8 +176,15 @@ export type WorkspaceConversation = {
   currentProfile?: JobProfileDimensions;
 };
 
-export const buildId = (prefix: string) =>
-  `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+let fallbackIdCounter = 0;
+
+export const buildId = (prefix: string) => {
+  const randomId = globalThis.crypto?.randomUUID?.().slice(0, 8);
+  if (randomId) return `${prefix}_${randomId}`;
+
+  fallbackIdCounter += 1;
+  return `${prefix}_${Date.now().toString(36)}_${fallbackIdCounter.toString(36)}`;
+};
 
 export const formatTimestamp = (iso?: string) => {
   if (!iso) return '--';
@@ -323,10 +330,14 @@ export const emptyLatestAnalysis = (
 });
 
 export const toRuntimeFields = (runtime?: RuntimeConfig): RuntimeField[] => {
+  const runtimeFieldMap = new Map(
+    (runtime?.fields || []).map((field) => [field.key, field]),
+  );
+
   return PROFILE_FIELDS.map(([key, title, description]) => ({
     key,
-    title,
-    description,
+    title: runtimeFieldMap.get(key)?.title || title,
+    description: runtimeFieldMap.get(key)?.description || description,
   }));
 };
 

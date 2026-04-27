@@ -1,8 +1,26 @@
-import { AimOutlined, BankOutlined, DatabaseOutlined, FileTextOutlined, LoadingOutlined, ReadOutlined } from '@ant-design/icons';
-import { Button, Card, Descriptions, Drawer, Empty, Spin, Tag, Typography, message } from 'antd';
+import {
+  AimOutlined,
+  BankOutlined,
+  DatabaseOutlined,
+  FileTextOutlined,
+  LoadingOutlined,
+  ReadOutlined,
+} from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Descriptions,
+  Drawer,
+  Empty,
+  message,
+  Spin,
+  Tag,
+  Typography,
+} from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 import { getJobRequirementComparison } from '@/services/ant-design-pro/api';
+import { extractRequestError } from '../shared';
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -90,6 +108,8 @@ const useStyles = createStyles(({ css, token }) => ({
     font-size: 16px !important;
     font-weight: 600 !important;
     line-height: 1.4 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   careerText: css`
     display: block;
@@ -171,6 +191,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 16px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   dimensionGrid: css`
     display: grid;
@@ -232,16 +254,20 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
   const { styles } = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [detail, setDetail] = useState<API.JobRequirementComparisonDetailItem>();
+  const [detail, setDetail] =
+    useState<API.JobRequirementComparisonDetailItem>();
 
   const openDetail = async (profileId: number) => {
     setDrawerOpen(true);
     setLoading(true);
     try {
-      const response = await getJobRequirementComparison(profileId, { skipErrorHandler: true });
+      const response = await getJobRequirementComparison(profileId, {
+        skipErrorHandler: true,
+      });
       setDetail(response.data);
-    } catch (error: any) {
-      message.error(error?.message || '加载公司详情失败');
+    } catch (error: unknown) {
+      const detail = extractRequestError(error);
+      message.error(detail === '请求失败' ? '加载公司详情失败' : detail);
       setDetail(undefined);
     } finally {
       setLoading(false);
@@ -249,7 +275,10 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
   };
 
   const renderDimensionValues = (values?: string[]) => {
-    if (!values?.length || (values.length === 1 && values[0] === DEFAULT_VALUE)) {
+    if (
+      !values?.length ||
+      (values.length === 1 && values[0] === DEFAULT_VALUE)
+    ) {
       return <Text className={styles.emptyValue}>{DEFAULT_VALUE}</Text>;
     }
 
@@ -265,7 +294,12 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
   };
 
   if (!items.length) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前暂无匹配职位" />;
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description="当前暂无匹配职位"
+      />
+    );
   }
 
   return (
@@ -282,10 +316,14 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
                   <Title level={5} className={styles.jobTitle}>
                     {item.job_title}
                   </Title>
-                  <Text className={styles.careerText}>标准职业：{item.career_title}</Text>
+                  <Text className={styles.careerText}>
+                    标准职业：{item.career_title}
+                  </Text>
                 </div>
               </div>
-              <Tag className={styles.scoreBadge}>{Math.round(item.match_score)}%</Tag>
+              <Tag className={styles.scoreBadge}>
+                {Math.round(item.match_score)}%
+              </Tag>
             </div>
 
             <div className={styles.summary}>
@@ -300,15 +338,24 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
               <div className={styles.metricGrid}>
                 <div className={styles.metricItem}>
                   <span className={styles.metricLabel}>画像基础维度</span>
-                  <span className={styles.metricValue}>{item.professional_threshold_dimension_count} 项</span>
+                  <span className={styles.metricValue}>
+                    {item.professional_threshold_dimension_count} 项
+                  </span>
                 </div>
                 <div className={styles.metricItem}>
                   <span className={styles.metricLabel}>关键词命中</span>
-                  <span className={styles.metricValue}>{item.professional_threshold_keyword_count} 个</span>
+                  <span className={styles.metricValue}>
+                    {item.professional_threshold_keyword_count} 个
+                  </span>
                 </div>
               </div>
             </div>
-            <Button type="link" icon={<ReadOutlined />} className={styles.viewButton} onClick={() => void openDetail(item.profile_id)}>
+            <Button
+              type="link"
+              icon={<ReadOutlined />}
+              className={styles.viewButton}
+              onClick={() => void openDetail(item.profile_id)}
+            >
               查看具体信息
             </Button>
           </Card>
@@ -334,10 +381,42 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
                 岗位概览
               </Title>
               <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
-                <Descriptions.Item label={<><BankOutlined /> 公司</>}>{detail.company_name}</Descriptions.Item>
-                <Descriptions.Item label={<><AimOutlined /> 行业</>}>{detail.industry}</Descriptions.Item>
-                <Descriptions.Item label={<><FileTextOutlined /> 职位</>}>{detail.job_title}</Descriptions.Item>
-                <Descriptions.Item label={<><DatabaseOutlined /> 原文条数</>}>{detail.job_detail_count}</Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <BankOutlined /> 公司
+                    </>
+                  }
+                >
+                  {detail.company_name}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <AimOutlined /> 行业
+                    </>
+                  }
+                >
+                  {detail.industry}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <FileTextOutlined /> 职位
+                    </>
+                  }
+                >
+                  {detail.job_title}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={
+                    <>
+                      <DatabaseOutlined /> 原文条数
+                    </>
+                  }
+                >
+                  {detail.job_detail_count}
+                </Descriptions.Item>
               </Descriptions>
             </section>
 
@@ -365,7 +444,10 @@ const CompanyMatchPanel: React.FC<Props> = ({ items }) => {
             </section>
           </div>
         ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无详情数据" />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="暂无详情数据"
+          />
         )}
       </Drawer>
     </>

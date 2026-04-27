@@ -1,8 +1,17 @@
-import { CalendarOutlined, DatabaseOutlined, FileTextOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import {
+  CalendarOutlined,
+  DatabaseOutlined,
+  FileTextOutlined,
+  StarFilled,
+  StarOutlined,
+} from '@ant-design/icons';
 import { Button, Card, Empty, List, Spin, Tabs, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo } from 'react';
-import { JobMatchAdvicePanel, JobMatchComparisonPanel } from '@/components/JobMatchOutcomeBody';
+import {
+  JobMatchAdvicePanel,
+  JobMatchComparisonPanel,
+} from '@/components/JobMatchOutcomeBody';
 import {
   buildCareerDevelopmentMatchViewModel,
   type CareerMatchResultTabKey,
@@ -47,6 +56,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 17px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   infoRow: css`
     display: flex;
@@ -72,39 +83,130 @@ const useStyles = createStyles(({ css, token }) => ({
   compactList: css`
     :global(.ant-list-item) {
       margin-bottom: 10px;
-      padding: 14px 12px !important;
-      border: 1px solid ${token.colorBorderSecondary};
-      border-radius: 10px;
-      cursor: pointer;
-      transition: border-color 0.2s ease, background-color 0.2s ease;
+      padding: 0 !important;
+      border: 0;
     }
 
     :global(.ant-list-item:last-child) {
       margin-bottom: 0;
     }
+  `,
+  recommendationButton: css`
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 86px;
+    padding: 16px 16px 16px 18px;
+    border: 1px solid ${token.colorBorderSecondary};
+    border-radius: 14px;
+    background: ${token.colorBgContainer};
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
 
-    :global(.ant-list-item-meta-title) {
-      margin-bottom: 8px;
-      color: ${token.colorText};
-      font-weight: 600;
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block: 12px;
+      inset-inline-start: 0;
+      width: 3px;
+      border-radius: 0 999px 999px 0;
+      background: transparent;
+      transition:
+        background-color 180ms ease,
+        opacity 180ms ease;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in srgb, ${token.colorPrimaryBorder} 72%, ${token.colorBorderSecondary} 28%);
+      background: color-mix(in srgb, ${token.colorPrimaryBg} 34%, ${token.colorBgContainer} 66%);
+      box-shadow: 0 12px 26px color-mix(in srgb, ${token.colorPrimary} 10%, transparent);
+    }
+
+    &:hover::before,
+    &:focus-visible::before {
+      background: ${token.colorPrimary};
+    }
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, ${token.colorPrimaryBorder} 60%, transparent);
+      outline-offset: 2px;
+      border-color: ${token.colorPrimaryBorder};
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 16px color-mix(in srgb, ${token.colorPrimary} 9%, transparent);
     }
   `,
   recommendationActive: css`
     border-color: ${token.colorPrimaryBorder} !important;
-    background: ${token.colorPrimaryBg} !important;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, ${token.colorPrimaryBg} 74%, ${token.colorBgContainer} 26%),
+      color-mix(in srgb, ${token.colorInfoBg} 40%, ${token.colorBgContainer} 60%)
+    ) !important;
+    box-shadow:
+      inset 3px 0 0 ${token.colorPrimary},
+      0 12px 26px color-mix(in srgb, ${token.colorPrimary} 10%, transparent);
+
+    &::before {
+      background: ${token.colorPrimary};
+    }
   `,
-  recommendationMeta: css`
+  recommendationContent: css`
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  `,
+  recommendationTitleRow: css`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
+    min-width: 0;
+  `,
+  recommendationTitle: css`
+    min-width: 0;
+    color: ${token.colorText};
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  `,
+  recommendationTag: css`
+    margin-inline-end: 0;
+    border-radius: 999px;
+    padding-inline: 10px;
+    line-height: 24px;
+    font-weight: 500;
   `,
   scoreText: css`
-    margin-left: auto;
+    justify-self: end;
     color: ${token.colorPrimary};
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+  `,
+  scoreLabel: css`
+    display: block;
+    margin-top: 6px;
+    color: ${token.colorTextTertiary};
+    font-size: 12px;
+    font-weight: 500;
+    text-align: right;
   `,
   resultCard: css`
     border: 1px solid ${token.colorBorderSecondary};
@@ -147,6 +249,45 @@ const useStyles = createStyles(({ css, token }) => ({
     border-radius: 8px;
     font-weight: 500;
   `,
+  matchWorkspaceItem: css`
+    animation: matchWorkspaceItemIn 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--match-stagger, 0ms);
+
+    @keyframes matchWorkspaceItemIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `,
+  recommendationItemMotion: css`
+    animation: recommendationItemIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--match-stagger, 0ms);
+
+    @keyframes recommendationItemIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `,
+  motionSafe: css`
+    @media (prefers-reduced-motion: reduce) {
+      &,
+      * {
+        animation: none !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  `,
 }));
 
 type Props = {
@@ -188,16 +329,22 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
   onToggleFavorite,
   onGeneratePlan,
 }) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const favoriteLabel = favorite ? '取消收藏' : '收藏结果';
 
   const activeReport = useMemo(
-    () => recommendations.find((item) => item.report_id === activeRecommendationId) || recommendations[0],
+    () =>
+      recommendations.find(
+        (item) => item.report_id === activeRecommendationId,
+      ) || recommendations[0],
     [recommendations, activeRecommendationId],
   );
 
   const viewModel = useMemo(
-    () => (activeReport ? buildCareerDevelopmentMatchViewModel(activeReport) : undefined),
+    () =>
+      activeReport
+        ? buildCareerDevelopmentMatchViewModel(activeReport)
+        : undefined,
     [activeReport],
   );
 
@@ -206,21 +353,39 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
   }
 
   if (error) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="danger">{error}</Text>} />;
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={<Text type="danger">{error}</Text>}
+      />
+    );
   }
 
   if (!available) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary">当前暂无职业匹配结果</Text>} />;
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={<Text type="secondary">当前暂无职业匹配结果</Text>}
+      />
+    );
   }
 
   if (!recommendations.length || !viewModel) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary">暂无自动推荐岗位</Text>} />;
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={<Text type="secondary">暂无自动推荐岗位</Text>}
+      />
+    );
   }
 
   return (
-    <div className={styles.shell}>
+    <div className={cx(styles.shell, styles.motionSafe)}>
       <div className={styles.sidebar}>
-        <Card className={styles.compactCard}>
+        <Card
+          className={cx(styles.compactCard, styles.matchWorkspaceItem)}
+          style={{ '--match-stagger': '0ms' } as React.CSSProperties}
+        >
           <Title level={5} className={styles.cardTitle}>
             当前分析对象
           </Title>
@@ -232,7 +397,10 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
           </div>
         </Card>
 
-        <Card className={styles.compactCard}>
+        <Card
+          className={cx(styles.compactCard, styles.matchWorkspaceItem)}
+          style={{ '--match-stagger': '70ms' } as React.CSSProperties}
+        >
           <Title level={5} className={styles.cardTitle}>
             匹配来源
           </Title>
@@ -241,50 +409,91 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
               <span className={`${styles.infoIcon} ${styles.sourceIcon}`}>
                 <CalendarOutlined />
               </span>
-              <Text type="secondary">更新时间：{sourceUpdatedAt ? new Date(sourceUpdatedAt).toLocaleString('zh-CN') : '--'}</Text>
+              <Text type="secondary">
+                更新时间：
+                {sourceUpdatedAt
+                  ? new Date(sourceUpdatedAt).toLocaleString('zh-CN')
+                  : '--'}
+              </Text>
             </div>
             <div className={styles.infoRow}>
               <span className={`${styles.infoIcon} ${styles.sourceIcon}`}>
                 <DatabaseOutlined />
               </span>
-              <Text type="secondary">已识别维度：{activeDimensionCount ?? '--'}</Text>
+              <Text type="secondary">
+                已识别维度：{activeDimensionCount ?? '--'}
+              </Text>
             </div>
           </div>
         </Card>
 
-        <Card className={`${styles.compactCard} ${styles.compactList}`}>
+        <Card
+          className={cx(
+            styles.compactCard,
+            styles.compactList,
+            styles.matchWorkspaceItem,
+          )}
+          style={{ '--match-stagger': '140ms' } as React.CSSProperties}
+        >
           <Title level={5} className={styles.cardTitle}>
             推荐目标
           </Title>
-          <List
-            dataSource={recommendations}
-            renderItem={(item) => (
-              <List.Item
-                onClick={() => onRecommendationChange?.(item.report_id)}
-                className={item.report_id === activeReport.report_id ? styles.recommendationActive : undefined}
+	          <List
+	            dataSource={recommendations}
+	            renderItem={(item, index) => (
+	              <List.Item
+	                className={cx(styles.recommendationItemMotion)}
+	                style={
+	                  {
+	                    '--match-stagger': `${index * 60}ms`,
+                  } as React.CSSProperties
+                }
               >
-                <List.Item.Meta
-                  title={item.target_title}
-                  description={
-                    <div className={styles.recommendationMeta}>
-                      <Tag color="processing" style={{ marginInlineEnd: 0 }}>
-                        {item.target_scope === 'industry' ? '行业岗位' : '职业方向'}
-                      </Tag>
-                      <span className={styles.scoreText}>{Math.round(item.overall_match)}%</span>
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        </Card>
-      </div>
+                <button
+                  type="button"
+                  className={cx(
+                    styles.recommendationButton,
+                    item.report_id === activeReport.report_id
+                      ? styles.recommendationActive
+                      : undefined,
+	                  )}
+	                  aria-pressed={item.report_id === activeReport.report_id}
+	                  aria-label={`选择推荐目标：${item.target_title}，匹配度 ${Math.round(item.overall_match)}%`}
+	                  onClick={() => onRecommendationChange?.(item.report_id)}
+	                >
+                  <span className={styles.recommendationContent}>
+                    <span className={styles.recommendationTitleRow}>
+                      <span className={styles.recommendationTitle}>
+                        {item.target_title}
+                      </span>
+                    </span>
+                    <Tag color="processing" className={styles.recommendationTag}>
+                      {item.target_scope === 'industry'
+                        ? '行业岗位'
+                        : '职业方向'}
+                    </Tag>
+                  </span>
+                  <span className={styles.scoreText}>
+                    {Math.round(item.overall_match)}%
+                    <span className={styles.scoreLabel}>匹配度</span>
+                  </span>
+                </button>
+	              </List.Item>
+	            )}
+	          />
+	        </Card>
+	      </div>
 
-      <div className={styles.main}>
-        <Card className={styles.resultCard}>
+	      <div className={styles.main}>
+        <Card
+          className={cx(styles.resultCard, styles.matchWorkspaceItem)}
+          style={{ '--match-stagger': '220ms' } as React.CSSProperties}
+        >
           <Tabs
             activeKey={activeResultTab}
-            onChange={(key) => onResultTabChange?.(key as CareerMatchResultTabKey)}
+            onChange={(key) =>
+              onResultTabChange?.(key as CareerMatchResultTabKey)
+            }
             tabBarExtraContent={
               <div className={styles.resultActions}>
                 <Button
@@ -296,7 +505,11 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
                 >
                   {favoriteLabel}
                 </Button>
-                <Button type="primary" onClick={onGeneratePlan} className={styles.primaryButton}>
+                <Button
+                  type="primary"
+                  onClick={onGeneratePlan}
+                  className={styles.primaryButton}
+                >
                   生成计划
                 </Button>
               </div>
@@ -329,7 +542,11 @@ const ResumeMatchWorkspace: React.FC<Props> = ({
               {
                 key: 'company',
                 label: '最匹配的工作',
-                children: <CompanyMatchPanel items={activeReport.evidence_cards || []} />,
+                children: (
+                  <CompanyMatchPanel
+                    items={activeReport.evidence_cards || []}
+                  />
+                ),
               },
             ]}
           />

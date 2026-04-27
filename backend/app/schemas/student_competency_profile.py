@@ -114,6 +114,26 @@ class StudentCompetencyComparisonDimensionItem(BaseModel):
     coverage_score: float = Field(default=0, ge=0, le=1)
     alignment_score: float = Field(default=0, ge=0, le=1)
 
+    @property
+    def dimension_name(self) -> str:
+        return self.title
+
+    @property
+    def source_value(self) -> str:
+        return "、".join(self.user_values)
+
+    @property
+    def target_value(self) -> str:
+        return "、".join(self.market_keywords)
+
+    @property
+    def match_level(self) -> Literal["strong", "medium", "weak"]:
+        if self.user_readiness >= 80:
+            return "strong"
+        if self.user_readiness >= 55:
+            return "medium"
+        return "weak"
+
 
 class StudentCompetencyChartSeriesItem(BaseModel):
     key: str

@@ -2,8 +2,13 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Button, Input, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
+import type {
+  JobProfileDimensions,
+  ProfileKey,
+  RuntimeField,
+  WorkspaceStage,
+} from '../shared';
 import { hasMeaningfulValues } from '../shared';
-import type { JobProfileDimensions, ProfileKey, RuntimeField, WorkspaceStage } from '../shared';
 
 const useStyles = createStyles(({ css, token }) => ({
   group: css`
@@ -42,6 +47,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 15px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   description: css`
     color: ${token.colorTextSecondary};
@@ -188,7 +195,9 @@ const DimensionGroupEditor: React.FC<Props> = ({
               <Typography.Title level={5} className={styles.title}>
                 {field.title}
               </Typography.Title>
-              <Typography.Text className={styles.description}>{field.description}</Typography.Text>
+              <Typography.Text className={styles.description}>
+                {field.description}
+              </Typography.Text>
             </div>
 
             <div className={styles.dimensionContent}>
@@ -203,7 +212,9 @@ const DimensionGroupEditor: React.FC<Props> = ({
                         event.preventDefault();
                         if (isEditing) {
                           const target = event.currentTarget as HTMLElement;
-                          target.classList.add(styles.tagClosing.replace('.', ''));
+                          target.classList.add(
+                            styles.tagClosing.replace('.', ''),
+                          );
                           setTimeout(() => {
                             onRemoveTag(field.key, value);
                           }, 200);
@@ -215,7 +226,9 @@ const DimensionGroupEditor: React.FC<Props> = ({
                   ))}
                 </div>
               ) : (
-                <Typography.Text className={styles.emptyText}>暂无补充信息</Typography.Text>
+                <Typography.Text className={styles.emptyText}>
+                  暂无补充信息
+                </Typography.Text>
               )}
 
               {isEditing ? (
@@ -224,16 +237,25 @@ const DimensionGroupEditor: React.FC<Props> = ({
                     className={styles.input}
                     placeholder="添加一条补充信息"
                     value={tagInputs[field.key] || ''}
-                    onChange={(event) => onTagInputChange(field.key, event.target.value)}
+                    onChange={(event) =>
+                      onTagInputChange(field.key, event.target.value)
+                    }
                     onPressEnter={() => onAddTag(field.key)}
                   />
-                  <Button data-testid={`add-tag-${field.key}`} icon={<PlusOutlined />} className={styles.addButton} onClick={() => onAddTag(field.key)}>
+                  <Button
+                    data-testid={`add-tag-${field.key}`}
+                    icon={<PlusOutlined />}
+                    className={styles.addButton}
+                    onClick={() => onAddTag(field.key)}
+                  >
                     添加
                   </Button>
                 </div>
               ) : null}
               {isEditing && !hasValues ? (
-                <Typography.Text className={styles.hint}>保存后会同步到当前解析结果</Typography.Text>
+                <Typography.Text className={styles.hint}>
+                  保存后会同步到当前解析结果
+                </Typography.Text>
               ) : null}
             </div>
           </div>

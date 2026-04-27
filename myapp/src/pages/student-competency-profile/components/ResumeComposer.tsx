@@ -1,10 +1,10 @@
 import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
+import type { UploadProps } from 'antd';
 import { Button, Input, Space, Tag, Typography, Upload } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
-import type { UploadProps } from 'antd';
-import { buildUploadButtonProps } from '../shared';
 import type { WorkspaceUpload, WorkspaceViewState } from '../shared';
+import { buildUploadButtonProps } from '../shared';
 
 const { Dragger } = Upload;
 const { TextArea } = Input;
@@ -25,6 +25,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 17px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   primaryUploadCard: css`
     margin-bottom: 12px;
@@ -173,7 +175,10 @@ const ResumeComposer: React.FC<Props> = ({
   onBeforeUpload,
 }) => {
   const { styles } = useStyles();
-  const uploadProps = buildUploadButtonProps(onBeforeUpload, disabled || !fileUploadEnabled);
+  const uploadProps = buildUploadButtonProps(
+    onBeforeUpload,
+    disabled || !fileUploadEnabled,
+  );
   const isEmptyState = viewState === 'empty';
   const compact = !expanded;
   const getUploadColor = (status: WorkspaceUpload['status']) => {
@@ -195,10 +200,16 @@ const ResumeComposer: React.FC<Props> = ({
           <p className="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
-          <Typography.Title level={4} style={{ marginBottom: 4 }}>
+          <Typography.Title
+            level={4}
+            className={styles.title}
+            style={{ marginBottom: 4 }}
+          >
             上传简历开始解析
           </Typography.Title>
-          <Typography.Text type="secondary">也可补充项目经历或技能描述</Typography.Text>
+          <Typography.Text type="secondary">
+            也可补充项目经历或技能描述
+          </Typography.Text>
         </Dragger>
       ) : null}
 
@@ -235,7 +246,11 @@ const ResumeComposer: React.FC<Props> = ({
       {!isEmptyState ? (
         <div className={styles.compactUpload}>
           <Upload {...uploadProps}>
-            <Button className={styles.uploadButton} icon={<UploadOutlined />} disabled={disabled || !fileUploadEnabled}>
+            <Button
+              className={styles.uploadButton}
+              icon={<UploadOutlined />}
+              disabled={disabled || !fileUploadEnabled}
+            >
               {compact ? '继续上传' : '上传文件'}
             </Button>
           </Upload>

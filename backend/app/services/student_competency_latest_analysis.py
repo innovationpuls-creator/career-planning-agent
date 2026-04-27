@@ -265,7 +265,7 @@ def _build_action_advices(
         next_actions = [
             f"先从 {first_source} 里梳理与 {item.title} 相关的具体经历。",
             f"再补充 {focus_text}，优先带上 {keyword_text} 这类高频词组合。",
-            f"最后补上结果证据，如产出物、协作对象、完成结果或量化指标。",
+            "最后补上结果证据，如产出物、协作对象、完成结果或量化指标。",
         ]
 
         why_template = str(playbook.get("why") or f"{item.title} 会影响岗位适配判断。")

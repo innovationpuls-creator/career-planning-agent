@@ -6,16 +6,29 @@ import {
   FileTextOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Button, Drawer, Progress, Space, Steps, Tag, Timeline, Typography } from 'antd';
+import {
+  Button,
+  Drawer,
+  Progress,
+  Space,
+  Steps,
+  Tag,
+  Timeline,
+  Typography,
+} from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo, useState } from 'react';
-import { STAGE_LABEL_MAP, formatTimestamp, normalizeProcessContent } from '../shared';
 import type {
   WorkspaceConversation,
   WorkspaceMessage,
   WorkspaceStage,
   WorkspaceUpload,
   WorkspaceViewState,
+} from '../shared';
+import {
+  formatTimestamp,
+  normalizeProcessContent,
+  STAGE_LABEL_MAP,
 } from '../shared';
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -44,6 +57,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 17px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   summaryMain: css`
     min-width: 0;
@@ -88,6 +103,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 17px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   detailToggle: css`
     margin-top: 6px;
@@ -177,7 +194,9 @@ const buildStepDescription = (time?: string, output?: string) => (
     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
       {time ? formatTimestamp(time) : '--'}
     </Typography.Text>
-    <Typography.Text style={{ whiteSpace: 'pre-wrap' }}>{output || '待处理'}</Typography.Text>
+    <Typography.Text style={{ whiteSpace: 'pre-wrap' }}>
+      {output || '待处理'}
+    </Typography.Text>
   </div>
 );
 
@@ -196,29 +215,45 @@ const ProcessTimelinePanel: React.FC<Props> = ({
 
   const latestUpload = useMemo(() => {
     if (composerUploads.length) return composerUploads[0];
-    const uploads = [...conversation.messages].reverse().flatMap((message) => message.uploads || []);
+    const uploads = [...conversation.messages]
+      .reverse()
+      .flatMap((message) => message.uploads || []);
     return uploads[0];
   }, [composerUploads, conversation.messages]);
 
   const latestUserMessage = useMemo(
-    () => [...conversation.messages].reverse().find((message) => message.role === 'user'),
+    () =>
+      [...conversation.messages]
+        .reverse()
+        .find((message) => message.role === 'user'),
     [conversation.messages],
   );
 
   const latestStatusMessage = useMemo(
-    () => [...conversation.messages].reverse().find((message) => message.kind === 'status'),
+    () =>
+      [...conversation.messages]
+        .reverse()
+        .find((message) => message.kind === 'status'),
     [conversation.messages],
   );
 
   const latestResultMessage = useMemo(
-    () => [...conversation.messages].reverse().find((message) => message.kind === 'result' || !!message.assetName),
+    () =>
+      [...conversation.messages]
+        .reverse()
+        .find((message) => message.kind === 'result' || !!message.assetName),
     [conversation.messages],
   );
 
   const progress =
-    latestStatusMessage?.progress ?? (conversation.currentProfile ? 100 : latestUpload ? 10 : 0);
+    latestStatusMessage?.progress ??
+    (conversation.currentProfile ? 100 : latestUpload ? 10 : 0);
 
-  const supplementStatus: StepStatus = latestUserMessage ? 'finish' : latestUpload ? 'process' : 'wait';
+  const supplementStatus: StepStatus = latestUserMessage
+    ? 'finish'
+    : latestUpload
+      ? 'process'
+      : 'wait';
   const processStatus: StepStatus =
     latestStatusMessage?.status === 'error'
       ? 'error'
@@ -255,7 +290,8 @@ const ProcessTimelinePanel: React.FC<Props> = ({
               ? 2
               : processStatus === 'process' || processStatus === 'finish'
                 ? 1
-                : supplementStatus === 'finish' || supplementStatus === 'process'
+                : supplementStatus === 'finish' ||
+                    supplementStatus === 'process'
                   ? 0
                   : -1
           }
@@ -265,7 +301,9 @@ const ProcessTimelinePanel: React.FC<Props> = ({
               status: supplementStatus,
               description: buildStepDescription(
                 latestUserMessage?.createdAt || latestUpload?.createdAt,
-                latestUserMessage?.content || latestUpload?.name || '已准备好解析输入',
+                latestUserMessage?.content ||
+                  latestUpload?.name ||
+                  '已准备好解析输入',
               ),
             },
             {
@@ -289,46 +327,81 @@ const ProcessTimelinePanel: React.FC<Props> = ({
               status: resultStatus,
               description: buildStepDescription(
                 latestResultMessage?.createdAt || conversation.updatedAt,
-                latestResultMessage?.assetName || (conversation.currentProfile ? '已完成结果输出' : '等待生成结果'),
+                latestResultMessage?.assetName ||
+                  (conversation.currentProfile
+                    ? '已完成结果输出'
+                    : '等待生成结果'),
               ),
             },
           ]}
         />
       ) : (
         <div className={styles.processHint}>
-          <Typography.Text type="secondary">开始解析后显示过程记录</Typography.Text>
+          <Typography.Text type="secondary">
+            开始解析后显示过程记录
+          </Typography.Text>
         </div>
       )}
 
       {hasMessages && !summaryOnly ? (
         <>
           <div className={styles.detailToggle}>
-            <Button type="link" icon={<FileSearchOutlined />} onClick={() => setDetailOpen(true)}>
+            <Button
+              type="link"
+              icon={<FileSearchOutlined />}
+              onClick={() => setDetailOpen(true)}
+            >
               查看过程明细
             </Button>
           </div>
 
-          <Drawer title="过程明细" open={detailOpen} width={520} onClose={() => setDetailOpen(false)} destroyOnClose>
+          <Drawer
+            title="过程明细"
+            open={detailOpen}
+            width={520}
+            onClose={() => setDetailOpen(false)}
+            destroyOnClose
+          >
             <div ref={messagesViewportRef} className={styles.detailViewport}>
               <Timeline
                 className={styles.timeline}
                 items={conversation.messages.map((message) => {
                   const tone = getMessageTone(message);
-                  const stageLabel = message.stage ? STAGE_LABEL_MAP[message.stage] || message.stage : undefined;
+                  const stageLabel = message.stage
+                    ? STAGE_LABEL_MAP[message.stage] || message.stage
+                    : undefined;
                   const dot =
                     message.role === 'user' ? (
-                      <UserOutlined style={{ color: '#8c8c8c' }} />
+                      <UserOutlined
+                        key={`${message.id}-user-dot`}
+                        style={{ color: '#8c8c8c' }}
+                      />
                     ) : message.status === 'error' ? (
-                      <ExclamationCircleFilled style={{ color: '#ff4d4f' }} />
+                      <ExclamationCircleFilled
+                        key={`${message.id}-error-dot`}
+                        style={{ color: '#ff4d4f' }}
+                      />
                     ) : message.status === 'streaming' ? (
-                      <ClockCircleFilled style={{ color: '#1677ff' }} />
+                      <ClockCircleFilled
+                        key={`${message.id}-streaming-dot`}
+                        style={{ color: '#1677ff' }}
+                      />
                     ) : (
-                      <CheckCircleFilled style={{ color: tone === 'result' ? '#52c41a' : '#8c8c8c' }} />
+                      <CheckCircleFilled
+                        key={`${message.id}-done-dot`}
+                        style={{
+                          color: tone === 'result' ? '#52c41a' : '#8c8c8c',
+                        }}
+                      />
                     );
 
                   const normalizedContent =
                     tone === 'system'
-                      ? normalizeProcessContent(message.stage, message.content, message.status)
+                      ? normalizeProcessContent(
+                          message.stage,
+                          message.content,
+                          message.status,
+                        )
                       : message.content;
 
                   return {
@@ -339,26 +412,43 @@ const ProcessTimelinePanel: React.FC<Props> = ({
                         <div className={styles.timelineHead}>
                           <Space size={[8, 8]} wrap>
                             <Typography.Text strong>
-                              {message.role === 'user' ? '补充描述' : tone === 'result' ? '生成结果' : '过程记录'}
+                              {message.role === 'user'
+                                ? '补充描述'
+                                : tone === 'result'
+                                  ? '生成结果'
+                                  : '过程记录'}
                             </Typography.Text>
-                            {stageLabel && tone === 'system' ? <Tag>{stageLabel}</Tag> : null}
+                            {stageLabel && tone === 'system' ? (
+                              <Tag>{stageLabel}</Tag>
+                            ) : null}
                           </Space>
-                          <Typography.Text type="secondary">{formatTimestamp(message.createdAt)}</Typography.Text>
+                          <Typography.Text type="secondary">
+                            {formatTimestamp(message.createdAt)}
+                          </Typography.Text>
                         </div>
                         <div
                           className={cx(
                             styles.timelineBody,
                             tone === 'user' ? styles.timelineUser : undefined,
-                            tone === 'system' ? styles.timelineSystem : undefined,
+                            tone === 'system'
+                              ? styles.timelineSystem
+                              : undefined,
                           )}
                         >
                           {tone === 'result' ? (
                             <div className={styles.summaryFile}>
                               <FileTextOutlined style={{ color: '#1677ff' }} />
-                              <Typography.Text>{message.assetName || '解析结果'}</Typography.Text>
+                              <Typography.Text>
+                                {message.assetName || '解析结果'}
+                              </Typography.Text>
                             </div>
                           ) : (
-                            <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+                            <Typography.Paragraph
+                              style={{
+                                marginBottom: 0,
+                                whiteSpace: 'pre-wrap',
+                              }}
+                            >
                               {normalizedContent}
                             </Typography.Paragraph>
                           )}
@@ -411,7 +501,9 @@ const ProcessTimelinePanel: React.FC<Props> = ({
                   <span className={styles.summaryIcon}>
                     <FileTextOutlined />
                   </span>
-                  <Typography.Text>{latestResultMessage.assetName}</Typography.Text>
+                  <Typography.Text>
+                    {latestResultMessage.assetName}
+                  </Typography.Text>
                 </div>
               ) : hasCompletedProfile ? (
                 <div className={styles.summaryFile}>
@@ -432,7 +524,9 @@ const ProcessTimelinePanel: React.FC<Props> = ({
                   <span className={styles.summaryIcon}>
                     <FileTextOutlined />
                   </span>
-                  <Typography.Text type="secondary">暂无上传文件</Typography.Text>
+                  <Typography.Text type="secondary">
+                    暂无上传文件
+                  </Typography.Text>
                 </div>
               )}
             </div>
@@ -443,7 +537,9 @@ const ProcessTimelinePanel: React.FC<Props> = ({
               percent={progress}
               size="small"
               showInfo={false}
-              status={latestStatusMessage?.status === 'error' ? 'exception' : 'active'}
+              status={
+                latestStatusMessage?.status === 'error' ? 'exception' : 'active'
+              }
               className={styles.summaryProgress}
             />
           ) : null}
