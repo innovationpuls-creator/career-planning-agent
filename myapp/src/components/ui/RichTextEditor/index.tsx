@@ -136,6 +136,7 @@ const useStyles = createStyles(({ css, token }) => ({
         width: 100%;
         border-collapse: collapse;
         margin: 12px 0;
+        table-layout: fixed;
 
         th {
           background: ${token.colorFillQuaternary};
@@ -144,13 +145,42 @@ const useStyles = createStyles(({ css, token }) => ({
           padding: 10px 14px;
           border: 1px solid ${token.colorBorder};
           font-size: 13px;
+          position: relative;
         }
 
         td {
           padding: 10px 14px;
           border: 1px solid ${token.colorBorderSecondary};
           font-size: 13px;
+          position: relative;
         }
+
+        .selectedCell {
+          background: ${token.colorPrimaryBg};
+          border-color: ${token.colorPrimary};
+        }
+
+        .column-resize-handle {
+          position: absolute;
+          right: -2px;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: ${token.colorPrimary};
+          opacity: 0;
+          transition: opacity 0.15s;
+          cursor: col-resize;
+          z-index: 10;
+
+          &:hover,
+          &.active {
+            opacity: 1;
+          }
+        }
+      }
+
+      .tableWrapper {
+        overflow-x: auto;
       }
 
       a {
