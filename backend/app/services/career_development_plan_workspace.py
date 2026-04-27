@@ -2027,7 +2027,15 @@ def export_docx_bytes(markdown: str) -> bytes:
 def _resolve_pdf_font_path() -> Path:
     if PDF_FONT_PATH.exists():
         return PDF_FONT_PATH
-    raise ValueError(f"PDF 中文字体缺失：{PDF_FONT_PATH}")
+    # Fall back to macOS system Chinese fonts
+    for candidate in (
+        Path("/System/Library/Fonts/STHeiti Medium.ttc"),
+        Path("/System/Library/Fonts/Hiragino Sans GB.ttc"),
+        Path("/System/Library/Fonts/PingFang.ttc"),
+    ):
+        if candidate.exists():
+            return candidate
+    raise ValueError(f"PDF 中文字体缺失：{PDF_FONT_PATH}，且无系统字体可用")
 
 
 def _ensure_pdf_font_registered() -> str:

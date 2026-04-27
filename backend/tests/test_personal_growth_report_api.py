@@ -654,9 +654,12 @@ def test_export_docx_bytes_returns_readable_wordprocessingml():
 
 
 def test_export_pdf_bytes_raises_when_font_missing(monkeypatch):
+    def _raise(*args: object, **kwargs: object) -> None:
+        raise ValueError("PDF 中文字体缺失")
+
     monkeypatch.setattr(
-        "app.services.career_development_plan_workspace.PDF_FONT_PATH",
-        Path("missing-font.ttf"),
+        "app.services.career_development_plan_workspace._resolve_pdf_font_path",
+        _raise,
     )
 
     with pytest.raises(ValueError, match="PDF"):
