@@ -1968,11 +1968,7 @@ const LearningPathPage: React.FC = () => {
               >
                 已打卡
               </Checkbox>
-              <Button
-                type="primary"
-                href={resource.url}
-                target="_blank"
-              >
+              <Button type="primary" href={resource.url} target="_blank">
                 去学习
               </Button>
             </div>
@@ -1982,16 +1978,12 @@ const LearningPathPage: React.FC = () => {
             {detailRows.length ? (
               detailRows.map((item) => (
                 <div key={item.key} className={styles.resourceDetailRow}>
-                  <span className={styles.resourceDetailIcon}>
-                    {item.icon}
-                  </span>
+                  <span className={styles.resourceDetailIcon}>{item.icon}</span>
                   <div className={styles.resourceDetailContent}>
                     <div className={styles.resourceDetailLabel}>
                       {item.label}
                     </div>
-                    <div className={styles.resourceDetailText}>
-                      {item.text}
-                    </div>
+                    <div className={styles.resourceDetailText}>{item.text}</div>
                   </div>
                 </div>
               ))
@@ -2377,10 +2369,10 @@ const LearningPathPage: React.FC = () => {
                     {matchPercent}%
                   </Title>
                   <Progress
-	                    className={styles.compactProgress}
-	                    percent={matchPercent}
-	                    showInfo={false}
-	                  />
+                    className={styles.compactProgress}
+                    percent={matchPercent}
+                    showInfo={false}
+                  />
                 </div>
               </div>
               <div className={styles.metricCell}>

@@ -4,6 +4,7 @@ export type { PageErrorProps } from './PageError';
 export { PageError } from './PageError';
 export type { PageLoadingProps } from './PageLoading';
 export { PageLoading } from './PageLoading';
+export { default as RichTextEditor } from './RichTextEditor';
 export type { SkeletonCardProps } from './SkeletonCard';
 export { SkeletonCard } from './SkeletonCard';
 export type { StatCardProps } from './StatCard';

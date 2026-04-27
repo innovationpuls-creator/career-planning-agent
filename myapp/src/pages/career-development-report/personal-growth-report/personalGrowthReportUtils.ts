@@ -1,5 +1,5 @@
-﻿import TurndownService from 'turndown';
-import { marked } from 'marked';
+﻿import { marked } from 'marked';
+import TurndownService from 'turndown';
 
 const turndownService = new TurndownService({
   headingStyle: 'atx',
@@ -11,7 +11,7 @@ const turndownService = new TurndownService({
 
 // Strikethrough: <s>, <del>, <strike> → ~~text~~
 turndownService.addRule('strikethrough', {
-  filter: ['s', 'del', 'strike'],
+  filter: ['s', 'del'],
   replacement: (content) => `~~${content}~~`,
 });
 

@@ -1,14 +1,14 @@
-import type { Editor } from '@tiptap/react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { Underline } from '@tiptap/extension-underline';
 import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
-import { TaskList } from '@tiptap/extension-task-list';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableRow } from '@tiptap/extension-table-row';
 import { TaskItem } from '@tiptap/extension-task-item';
+import { TaskList } from '@tiptap/extension-task-list';
+import { Underline } from '@tiptap/extension-underline';
+import type { Editor } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { createStyles } from 'antd-style';
 import * as React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
@@ -277,10 +277,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [editor, content]);
 
   return (
-    <div
-      className={cx(styles.shell, className)}
-      data-testid="rich-text-editor"
-    >
+    <div className={cx(styles.shell, className)} data-testid="rich-text-editor">
       {!readonly && editor ? <RichTextToolbar editor={editor} /> : null}
       <EditorContent
         editor={editor}
