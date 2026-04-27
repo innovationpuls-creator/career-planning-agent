@@ -81,7 +81,6 @@ async def run_benchmark(
     results: list[CallResult] = []
 
     async def single_call(call_id: int) -> CallResult:
-        started = perf_counter()
         async with semaphore:
             call_started = perf_counter()
             try:

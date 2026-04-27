@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import socket
 import subprocess
 import sys
@@ -17,6 +16,7 @@ logging.basicConfig(
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 
 from app.api.admin_data_dashboard import router as admin_data_dashboard_router
@@ -31,11 +31,12 @@ from app.api.job_transfer import router as job_transfer_router
 from app.api.jobs import router as jobs_router
 from app.api.snail_learning_path import router as snail_learning_path_router
 from app.api.student_competency_profile import router as student_competency_profile_router
-from app.core.config import settings
+from app.core.config import DATA_DIR, settings
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
 from app.models.career_group_embedding import CareerGroupEmbedding
 from app.models.career_development_favorite_report import CareerDevelopmentFavoriteReport
+from app.models.career_development_goal_planning_task import CareerDevelopmentGoalPlanningTask
 from app.models.career_development_personal_growth_report_task import (
     CareerDevelopmentPersonalGrowthReportTask,
 )
@@ -294,6 +295,7 @@ def init_db() -> None:
         CareerRequirementProfile,
         CareerGroupEmbedding,
         CareerDevelopmentFavoriteReport,
+        CareerDevelopmentGoalPlanningTask,
         CareerDevelopmentPersonalGrowthReportTask,
         CareerDevelopmentPlanWorkspace,
         JobGroupEmbedding,
@@ -332,6 +334,7 @@ def init_db() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    global _neo4j_started_by_backend
     init_db()
     yield
     global _qdrant_process
@@ -357,6 +360,10 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+STATIC_DIR = DATA_DIR / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR.as_posix()), name="static")
 
 app.add_middleware(
     CORSMiddleware,

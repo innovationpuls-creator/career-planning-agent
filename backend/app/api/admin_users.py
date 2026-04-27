@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.auth_dependencies import require_admin_user

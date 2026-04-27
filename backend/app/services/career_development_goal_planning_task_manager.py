@@ -14,7 +14,6 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
 
 from app.db.session import SessionLocal
 from app.models.career_development_goal_planning_task import CareerDevelopmentGoalPlanningTask

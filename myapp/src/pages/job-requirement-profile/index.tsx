@@ -6,7 +6,19 @@ import {
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Graph } from '@antv/g6';
-import { Alert, Card, Collapse, Col, Empty, Row, Space, Spin, Statistic, Tag, Typography } from 'antd';
+import {
+  Alert,
+  Card,
+  Col,
+  Collapse,
+  Empty,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  Typography,
+} from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getJobRequirementProfileGraph } from '@/services/ant-design-pro/api';
@@ -46,7 +58,8 @@ type GraphRenderDatum = {
   data?: Record<string, unknown>;
 };
 
-const getRenderNodeData = (datum: GraphRenderDatum) => datum.data as GraphLayoutNode['data'];
+const getRenderNodeData = (datum: GraphRenderDatum) =>
+  datum.data as GraphLayoutNode['data'];
 
 const GROUP_ANGLES = [-Math.PI / 2, Math.PI / 6, (5 * Math.PI) / 6];
 
@@ -65,7 +78,10 @@ const ICON_TEXT_MAP: Record<string, string> = {
   solution: 'L',
 };
 
-const TYPE_COLORS: Record<GraphNodeType, { fill: string; stroke: string; label: string }> = {
+const TYPE_COLORS: Record<
+  GraphNodeType,
+  { fill: string; stroke: string; label: string }
+> = {
   ProfileRoot: {
     fill: '#e6f4ff',
     stroke: '#1677ff',
@@ -120,8 +136,9 @@ const useStyles = createStyles(({ css, token }) => ({
     margin: 0;
     font-size: 22px;
     font-weight: 700;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
     color: ${token.colorTextHeading};
-    letter-spacing: -0.3px;
   `,
   sectionText: css`
     max-width: 780px;
@@ -183,6 +200,8 @@ const useStyles = createStyles(({ css, token }) => ({
     margin: 0 0 8px;
     font-size: 18px;
     font-weight: 700;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
     color: ${token.colorTextHeading};
   `,
   panelText: css`
@@ -273,6 +292,8 @@ const useStyles = createStyles(({ css, token }) => ({
     gap: 8px;
     margin-bottom: 6px;
     font-weight: 600;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
     color: ${token.colorTextHeading};
   `,
   guideItemBadge: css`
@@ -305,7 +326,12 @@ const getRelatedIds = (nodeId: string, edges: GraphEdge[]) => {
   return relatedIds;
 };
 
-const getOutwardLabelPlacement = (x: number, y: number, centerX: number, centerY: number): LabelPlacement => {
+const getOutwardLabelPlacement = (
+  x: number,
+  y: number,
+  centerX: number,
+  centerY: number,
+): LabelPlacement => {
   const dx = x - centerX;
   const dy = y - centerY;
   if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
@@ -324,10 +350,14 @@ const buildGraphLayout = (
   const groups = payload.nodes.filter((node) => node.type === 'DimensionGroup');
   const groupOrder = new Map(groups.map((group, index) => [group.id, index]));
   const dimensionBuckets = new Map<string, GraphNode[]>();
-  const highlightedIds = activeNodeId ? getRelatedIds(activeNodeId, payload.edges) : new Set<string>();
+  const highlightedIds = activeNodeId
+    ? getRelatedIds(activeNodeId, payload.edges)
+    : new Set<string>();
   const activeEdgeIds = new Set<string>();
 
-  for (const edge of payload.edges.filter((item) => item.type === 'HAS_DIMENSION')) {
+  for (const edge of payload.edges.filter(
+    (item) => item.type === 'HAS_DIMENSION',
+  )) {
     const list = dimensionBuckets.get(edge.source) || [];
     const targetNode = payload.nodes.find((node) => node.id === edge.target);
     if (targetNode) {
@@ -354,7 +384,10 @@ const buildGraphLayout = (
   ) => ({
     ...node,
     emphasis: node.id === activeNodeId,
-    labelPlacement: node.type === 'Dimension' ? getOutwardLabelPlacement(x, y, centerX, centerY) : fallbackPlacement,
+    labelPlacement:
+      node.type === 'Dimension'
+        ? getOutwardLabelPlacement(x, y, centerX, centerY)
+        : fallbackPlacement,
     labelOffset,
     labelMaxWidth,
   });
@@ -366,7 +399,8 @@ const buildGraphLayout = (
     target: edge.target,
     data: {
       ...edge,
-      active: !activeNodeId || activeEdgeIds.has(`${edge.source}-${edge.target}`),
+      active:
+        !activeNodeId || activeEdgeIds.has(`${edge.source}-${edge.target}`),
     },
   }));
 
@@ -396,7 +430,9 @@ const buildGraphLayout = (
 
     dimensions.forEach((dimension, itemIndex) => {
       const childAngle =
-        dimensions.length > 1 ? startAngle + (spread / (dimensions.length - 1)) * itemIndex : angle;
+        dimensions.length > 1
+          ? startAngle + (spread / (dimensions.length - 1)) * itemIndex
+          : angle;
       const childRadius = Math.min(width, height) * 0.4;
       const offsetX = centerX + Math.cos(childAngle) * childRadius;
       const offsetY = centerY + Math.sin(childAngle) * childRadius;
@@ -413,7 +449,8 @@ const buildGraphLayout = (
     const rank = { ProfileRoot: 0, DimensionGroup: 1, Dimension: 2 } as const;
     const rankDiff = rank[a.data.type] - rank[b.data.type];
     if (rankDiff !== 0) return rankDiff;
-    if (a.data.type === 'DimensionGroup') return (groupOrder.get(a.id) || 0) - (groupOrder.get(b.id) || 0);
+    if (a.data.type === 'DimensionGroup')
+      return (groupOrder.get(a.id) || 0) - (groupOrder.get(b.id) || 0);
     return a.data.title.localeCompare(b.data.title);
   });
 
@@ -426,7 +463,8 @@ const JobRequirementProfilePage: React.FC = () => {
   const graphRef = useRef<Graph | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
-  const [graphPayload, setGraphPayload] = useState<API.JobRequirementGraphPayload>();
+  const [graphPayload, setGraphPayload] =
+    useState<API.JobRequirementGraphPayload>();
   const [activeNodeId, setActiveNodeId] = useState<string>();
 
   const activeNode = useMemo(
@@ -454,12 +492,16 @@ const JobRequirementProfilePage: React.FC = () => {
       .then((response) => {
         if (!mounted) return;
         setGraphPayload(response.data);
-        const rootNode = response.data.nodes.find((node) => node.type === 'ProfileRoot');
+        const rootNode = response.data.nodes.find(
+          (node) => node.type === 'ProfileRoot',
+        );
         setActiveNodeId(rootNode?.id || response.data.nodes[0]?.id);
       })
       .catch(() => {
         if (!mounted) return;
-        setError('岗位要求画像图谱暂时无法加载，请确认 Neo4j 服务与后端接口已经启动。');
+        setError(
+          '岗位要求画像图谱暂时无法加载，请确认 Neo4j 服务与后端接口已经启动。',
+        );
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -471,12 +513,18 @@ const JobRequirementProfilePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!containerRef.current || loading || error || !graphPayload) return undefined;
+    if (!containerRef.current || loading || error || !graphPayload)
+      return undefined;
 
     const container = containerRef.current;
     const width = container.clientWidth || 1180;
     const height = 720;
-    const nextData = buildGraphLayout(graphPayload, width, height, activeNodeId);
+    const nextData = buildGraphLayout(
+      graphPayload,
+      width,
+      height,
+      activeNodeId,
+    );
 
     if (graphRef.current) {
       graphRef.current.setData(nextData);
@@ -492,18 +540,31 @@ const JobRequirementProfilePage: React.FC = () => {
       autoFit: 'view',
       data: nextData,
       animation: false,
-      behaviors: [{ type: 'hover-activate', degree: 0, state: 'active', animation: false }],
+      behaviors: [
+        {
+          type: 'hover-activate',
+          degree: 0,
+          state: 'active',
+          animation: false,
+        },
+      ],
       node: {
         type: 'circle',
         style: {
           size: (datum: GraphRenderDatum) => {
             const nodeData = getRenderNodeData(datum);
             const baseSize =
-              nodeData.type === 'ProfileRoot' ? 124 : nodeData.type === 'DimensionGroup' ? 84 : 56;
+              nodeData.type === 'ProfileRoot'
+                ? 124
+                : nodeData.type === 'DimensionGroup'
+                  ? 84
+                  : 56;
             return nodeData.emphasis ? baseSize + 8 : baseSize;
           },
-          fill: (datum: GraphRenderDatum) => TYPE_COLORS[getRenderNodeData(datum).type].fill,
-          stroke: (datum: GraphRenderDatum) => TYPE_COLORS[getRenderNodeData(datum).type].stroke,
+          fill: (datum: GraphRenderDatum) =>
+            TYPE_COLORS[getRenderNodeData(datum).type].fill,
+          stroke: (datum: GraphRenderDatum) =>
+            TYPE_COLORS[getRenderNodeData(datum).type].stroke,
           lineWidth: (datum: GraphRenderDatum) => {
             const nodeData = getRenderNodeData(datum);
             if (nodeData.emphasis) return 5;
@@ -519,18 +580,23 @@ const JobRequirementProfilePage: React.FC = () => {
             if (nodeData.type === 'DimensionGroup') return 12;
             return 6;
           },
-          iconText: (datum: GraphRenderDatum) => ICON_TEXT_MAP[getRenderNodeData(datum).icon] || 'N',
+          iconText: (datum: GraphRenderDatum) =>
+            ICON_TEXT_MAP[getRenderNodeData(datum).icon] || 'N',
           iconFontSize: (datum: GraphRenderDatum) => {
             const nodeData = getRenderNodeData(datum);
             if (nodeData.type === 'ProfileRoot') return 30;
             if (nodeData.type === 'DimensionGroup') return 18;
             return 15;
           },
-          labelText: (datum: GraphRenderDatum) => getRenderNodeData(datum).title,
-          labelPlacement: (datum: GraphRenderDatum) => getRenderNodeData(datum).labelPlacement,
-          labelMaxWidth: (datum: GraphRenderDatum) => getRenderNodeData(datum).labelMaxWidth,
+          labelText: (datum: GraphRenderDatum) =>
+            getRenderNodeData(datum).title,
+          labelPlacement: (datum: GraphRenderDatum) =>
+            getRenderNodeData(datum).labelPlacement,
+          labelMaxWidth: (datum: GraphRenderDatum) =>
+            getRenderNodeData(datum).labelMaxWidth,
           labelWordWrap: true,
-          labelWordWrapWidth: (datum: GraphRenderDatum) => getRenderNodeData(datum).labelMaxWidth,
+          labelWordWrapWidth: (datum: GraphRenderDatum) =>
+            getRenderNodeData(datum).labelMaxWidth,
           labelOffsetX: (datum: GraphRenderDatum) =>
             getRenderNodeData(datum).labelPlacement === 'left'
               ? -getRenderNodeData(datum).labelOffset
@@ -547,7 +613,8 @@ const JobRequirementProfilePage: React.FC = () => {
           labelBackgroundFill: 'rgba(255,255,255,0.95)',
           labelBackgroundRadius: 8,
           labelPadding: [6, 10],
-          labelFill: (datum: GraphRenderDatum) => TYPE_COLORS[getRenderNodeData(datum).type].label,
+          labelFill: (datum: GraphRenderDatum) =>
+            TYPE_COLORS[getRenderNodeData(datum).type].label,
           labelFontSize: (datum: GraphRenderDatum) => {
             const nodeData = getRenderNodeData(datum);
             if (nodeData.type === 'ProfileRoot') return 20;
@@ -581,7 +648,8 @@ const JobRequirementProfilePage: React.FC = () => {
           lineWidth: (datum: any) => (datum.data.active ? 2.6 : 1.3),
           strokeOpacity: (datum: any) => (datum.data.active ? 0.95 : 0.72),
           endArrow: true,
-          endArrowFill: (datum: any) => (datum.data.active ? '#69b1ff' : '#d6e4ff'),
+          endArrowFill: (datum: any) =>
+            datum.data.active ? '#69b1ff' : '#d6e4ff',
         },
       },
     });
@@ -601,7 +669,11 @@ const JobRequirementProfilePage: React.FC = () => {
   }, [activeNodeId, error, graphPayload, loading]);
 
   return (
-    <PageContainer className={styles.pageContainer} title={false} breadcrumbRender={false}>
+    <PageContainer
+      className={styles.pageContainer}
+      title={false}
+      breadcrumbRender={false}
+    >
       <div className={styles.shell}>
         <Card className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
@@ -630,7 +702,12 @@ const JobRequirementProfilePage: React.FC = () => {
               </div>
             </div>
           ) : error ? (
-            <Alert type="error" showIcon message="岗位要求画像图谱加载失败" description={error} />
+            <Alert
+              type="error"
+              showIcon
+              message="岗位要求画像图谱加载失败"
+              description={error}
+            />
           ) : graphPayload ? (
             <>
               <Row gutter={[20, 20]}>
@@ -644,7 +721,8 @@ const JobRequirementProfilePage: React.FC = () => {
                         {activeNode?.title || '岗位要求画像'}
                       </Typography.Title>
                       <Typography.Paragraph className={styles.panelText}>
-                        {activeNode?.description || '请选择图谱中的节点以查看详情。'}
+                        {activeNode?.description ||
+                          '请选择图谱中的节点以查看详情。'}
                       </Typography.Paragraph>
 
                       <div className={styles.panelSection}>
@@ -656,8 +734,19 @@ const JobRequirementProfilePage: React.FC = () => {
                           以下关键词来自公司招聘信息原文的聚合提取，用来概括这个节点在真实招聘描述里最常被强调的能力或要求。
                         </Typography.Paragraph>
                         <Space wrap size={[8, 8]}>
-                          {(activeNode?.keywords?.length ? activeNode.keywords : ['暂无明确招聘关键词']).map((item) => (
-                            <Tag key={item} className={styles.keywordTag} color={item === '暂无明确招聘关键词' ? 'default' : 'blue'}>
+                          {(activeNode?.keywords?.length
+                            ? activeNode.keywords
+                            : ['暂无明确招聘关键词']
+                          ).map((item) => (
+                            <Tag
+                              key={item}
+                              className={styles.keywordTag}
+                              color={
+                                item === '暂无明确招聘关键词'
+                                  ? 'default'
+                                  : 'blue'
+                              }
+                            >
                               {item}
                             </Tag>
                           ))}
@@ -680,7 +769,9 @@ const JobRequirementProfilePage: React.FC = () => {
                               valueStyle={{ fontSize: 22 }}
                               className={styles.statValue}
                             />
-                            <div className={styles.statHint}>有提到该节点的岗位招聘信息总数。</div>
+                            <div className={styles.statHint}>
+                              有提到该节点的岗位招聘信息总数。
+                            </div>
                           </Col>
                           <Col span={12}>
                             <Statistic
@@ -689,7 +780,9 @@ const JobRequirementProfilePage: React.FC = () => {
                               valueStyle={{ fontSize: 22 }}
                               className={styles.statValue}
                             />
-                            <div className={styles.statHint}>明确写出该能力或门槛要求的岗位数。</div>
+                            <div className={styles.statHint}>
+                              明确写出该能力或门槛要求的岗位数。
+                            </div>
                           </Col>
                         </Row>
                       </div>
@@ -704,7 +797,9 @@ const JobRequirementProfilePage: React.FC = () => {
                         </Typography.Paragraph>
                         <Statistic
                           title="覆盖度"
-                          value={((activeNode?.coverage_ratio || 0) * 100).toFixed(1)}
+                          value={(
+                            (activeNode?.coverage_ratio || 0) * 100
+                          ).toFixed(1)}
                           suffix="%"
                           valueStyle={{ fontSize: 24 }}
                           className={styles.statValue}
@@ -718,46 +813,48 @@ const JobRequirementProfilePage: React.FC = () => {
               <Collapse
                 ghost
                 className={styles.guideCollapse}
-                items={[{
-                  key: 'guide',
-                  label: (
-                    <Space>
-                      <InfoCircleOutlined />
-                      <span>图谱阅读指南</span>
-                    </Space>
-                  ),
-                  children: (
-                    <div>
-                      <div className={styles.guideItem}>
-                        <div className={styles.guideItemTitle}>
-                          <span className={styles.guideItemBadge}>1</span>
-                          中心节点：岗位要求画像
+                items={[
+                  {
+                    key: 'guide',
+                    label: (
+                      <Space>
+                        <InfoCircleOutlined />
+                        <span>图谱阅读指南</span>
+                      </Space>
+                    ),
+                    children: (
+                      <div>
+                        <div className={styles.guideItem}>
+                          <div className={styles.guideItemTitle}>
+                            <span className={styles.guideItemBadge}>1</span>
+                            中心节点：岗位要求画像
+                          </div>
+                          <p className={styles.guideItemText}>
+                            从中心节点出发，理解当前岗位市场最常见的能力结构。点击节点可查看详情。
+                          </p>
                         </div>
-                        <p className={styles.guideItemText}>
-                          从中心节点出发，理解当前岗位市场最常见的能力结构。点击节点可查看详情。
-                        </p>
-                      </div>
-                      <div className={styles.guideItem}>
-                        <div className={styles.guideItemTitle}>
-                          <span className={styles.guideItemBadge}>2</span>
-                          能力分组：三大维度视角
+                        <div className={styles.guideItem}>
+                          <div className={styles.guideItemTitle}>
+                            <span className={styles.guideItemBadge}>2</span>
+                            能力分组：三大维度视角
+                          </div>
+                          <p className={styles.guideItemText}>
+                            将岗位要求分为"专业与门槛""协作与适应""成长与职业素养"三个观察视角。
+                          </p>
                         </div>
-                        <p className={styles.guideItemText}>
-                          将岗位要求分为"专业与门槛""协作与适应""成长与职业素养"三个观察视角。
-                        </p>
-                      </div>
-                      <div className={styles.guideItem}>
-                        <div className={styles.guideItemTitle}>
-                          <span className={styles.guideItemBadge}>3</span>
-                          具体维度：{dimensionCount} 个能力点
+                        <div className={styles.guideItem}>
+                          <div className={styles.guideItemTitle}>
+                            <span className={styles.guideItemBadge}>3</span>
+                            具体维度：{dimensionCount} 个能力点
+                          </div>
+                          <p className={styles.guideItemText}>
+                            点击具体维度后，可查看招聘关键词、覆盖度和岗位关注点摘要。
+                          </p>
                         </div>
-                        <p className={styles.guideItemText}>
-                          点击具体维度后，可查看招聘关键词、覆盖度和岗位关注点摘要。
-                        </p>
                       </div>
-                    </div>
-                  ),
-                }]}
+                    ),
+                  },
+                ]}
               />
             </>
           ) : (

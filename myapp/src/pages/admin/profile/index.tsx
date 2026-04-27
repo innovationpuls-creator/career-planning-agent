@@ -1,6 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import dayjs from 'dayjs';
 import {
   Avatar,
   Button,
@@ -9,13 +8,17 @@ import {
   Divider,
   Form,
   Input,
+  message,
   Row,
   Space,
   Typography,
-  message,
 } from 'antd';
+import dayjs from 'dayjs';
 import React, { useEffect, useState } from 'react';
-import { getAdminProfile, updateAdminProfile } from '@/services/ant-design-pro/api';
+import {
+  getAdminProfile,
+  updateAdminProfile,
+} from '@/services/ant-design-pro/api';
 
 const { Password } = Input;
 
@@ -160,13 +163,23 @@ const AdminProfilePage: React.FC = () => {
                   src={avatarUrl || profile?.avatar}
                   style={{ backgroundColor: '#1677ff' }}
                 >
-                  {(profileForm.getFieldValue('display_name') || profile?.username || 'A')
+                  {(
+                    profileForm.getFieldValue('display_name') ||
+                    profile?.username ||
+                    'A'
+                  )
                     .slice(0, 1)
                     .toUpperCase()}
                 </Avatar>
                 <Space direction="vertical" size={4}>
-                  <Typography.Title level={5} style={{ margin: 0 }}>
-                    {profileForm.getFieldValue('display_name') || profile?.username || '管理员'}
+                  <Typography.Title
+                    level={5}
+                    className="heading-3"
+                    style={{ margin: 0 }}
+                  >
+                    {profileForm.getFieldValue('display_name') ||
+                      profile?.username ||
+                      '管理员'}
                   </Typography.Title>
                   <Typography.Text type="secondary">
                     当前仓库暂无头像上传接口，请先使用公开可访问的图片 URL。
@@ -180,7 +193,12 @@ const AdminProfilePage: React.FC = () => {
                 form={profileForm}
                 layout="vertical"
                 onFinish={handleProfileSubmit}
-                initialValues={{ display_name: '', username: '', role: '', avatar: '' }}
+                initialValues={{
+                  display_name: '',
+                  username: '',
+                  role: '',
+                  avatar: '',
+                }}
               >
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
@@ -197,7 +215,11 @@ const AdminProfilePage: React.FC = () => {
 
                 <Row gutter={16}>
                   <Col xs={24} md={12}>
-                    <Form.Item label="昵称" name="display_name" rules={[{ required: true, message: '请输入昵称' }]}>
+                    <Form.Item
+                      label="昵称"
+                      name="display_name"
+                      rules={[{ required: true, message: '请输入昵称' }]}
+                    >
                       <Input placeholder="请输入昵称" maxLength={128} />
                     </Form.Item>
                   </Col>
@@ -223,7 +245,11 @@ const AdminProfilePage: React.FC = () => {
                 </Form.Item>
 
                 <Form.Item style={{ marginBottom: 0 }}>
-                  <Button type="primary" htmlType="submit" loading={profileSubmitting}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={profileSubmitting}
+                  >
                     保存资料
                   </Button>
                 </Form.Item>
@@ -234,7 +260,11 @@ const AdminProfilePage: React.FC = () => {
 
         <Col xs={24} lg={10}>
           <Card title="修改密码" loading={initialLoading}>
-            <Form form={passwordForm} layout="vertical" onFinish={handlePasswordSubmit}>
+            <Form
+              form={passwordForm}
+              layout="vertical"
+              onFinish={handlePasswordSubmit}
+            >
               <Form.Item
                 label="新密码"
                 name="password"
@@ -266,7 +296,11 @@ const AdminProfilePage: React.FC = () => {
                 <Password placeholder="请再次输入新密码" />
               </Form.Item>
 
-              <Button type="primary" htmlType="submit" loading={passwordSubmitting}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={passwordSubmitting}
+              >
                 更新密码
               </Button>
             </Form>

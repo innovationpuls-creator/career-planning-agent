@@ -188,12 +188,12 @@ const RegisterPage: React.FC = () => {
       }
 
       const formData = new FormData();
-      formData.append('full_name', values.full_name);
-      formData.append('school', values.school);
-      formData.append('major', values.major);
-      formData.append('education_level', values.education_level);
-      formData.append('grade', values.grade);
-      formData.append('target_job_title', values.target_job_title);
+      formData.append('full_name', values.full_name ?? '');
+      formData.append('school', values.school ?? '');
+      formData.append('major', values.major ?? '');
+      formData.append('education_level', values.education_level ?? '');
+      formData.append('grade', values.grade ?? '');
+      formData.append('target_job_title', values.target_job_title ?? '');
       fileList.forEach((file) => {
         if (file.originFileObj) {
           formData.append('image_files', file.originFileObj);

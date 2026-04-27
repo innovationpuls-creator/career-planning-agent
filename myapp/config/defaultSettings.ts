@@ -44,9 +44,9 @@ const designToken = {
   fontSize: 14,
   fontSizeSM: 12,
   fontSizeLG: 16,
-  fontSizeXL: 18,
-  fontSizeHeading1: 22,
-  fontSizeHeading2: 18,
+  fontSizeXL: 20,
+  fontSizeHeading1: 24,
+  fontSizeHeading2: 20,
   fontSizeHeading3: 16,
   fontSizeHeading4: 14,
   fontSizeHeading5: 12,
@@ -55,6 +55,15 @@ const designToken = {
   fontWeightRegular: 400,
   fontWeightMedium: 500,
   fontWeightSemibold: 600,
+  fontWeightBold: 700,
+  fontWeightDisplay: 900,
+
+  // === 字体栈 ===
+  fontFamily:
+    '-apple-system, BlinkMacSystemFont, "PingFang SC", "HarmanOS Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
+  fontFamilyCode: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+  fontFamilyHeading:
+    '"STSongti SC", "SimSun", "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif',
 
   // === 行高 ===
   lineHeight: 1.6,

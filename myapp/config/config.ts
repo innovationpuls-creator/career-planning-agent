@@ -119,7 +119,12 @@ export default defineConfig({
       theme: {
         cssVar: true,
         token: {
-          fontFamily: 'AlibabaSans, sans-serif',
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "PingFang SC", "HarmanOS Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
+          fontFamilyCode:
+            "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+          fontFamilyHeading:
+            '"STSongti SC", "SimSun", "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif',
         },
       },
     },

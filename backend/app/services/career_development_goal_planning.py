@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
@@ -45,7 +46,7 @@ from app.schemas.career_development_report import (
     CareerDevelopmentGoalStrengthDirectionItem,
     CareerDevelopmentMatchReport,
 )
-from app.services.llm import ChatMessage, LLMClientError, OpenAICompatibleLLMClient
+from app.services.llm import ChatMessage, OpenAICompatibleLLMClient
 
 
 class CareerDevelopmentGoalPlanningError(RuntimeError):
@@ -486,7 +487,7 @@ def _looks_like_role_title(title: str) -> bool:
 
 
 def _clean_path_segment(segment: str) -> str:
-    lines = [l.strip().strip("-–*# ") for l in segment.strip().splitlines() if l.strip()]
+    lines = [line.strip().strip("-–*# ") for line in segment.strip().splitlines() if line.strip()]
     return " ".join(lines)
 
 
@@ -525,7 +526,7 @@ def _section_lines(markdown: str, keywords: list[str]) -> list[str]:
 
 
 def _summarize_stage_body(lines: list[str]) -> str:
-    body = " ".join(l.strip().strip("-–*# ") for l in lines if l.strip())
+    body = " ".join(line.strip().strip("-–*# ") for line in lines if line.strip())
     return _normalize_sentence(body)
 
 
@@ -632,7 +633,8 @@ def _build_path_stages(
                 step=1,
                 title=favorite.canonical_job_title,
                 stage_label="当前目标",
-                rationale=f"基于{_normalize_sentence(correlation_analysis.foundation.summary, 60)}建立。",
+                path_summary=f"基于{_normalize_sentence(correlation_analysis.foundation.summary, 60)}建立。",
+                readiness_label="当前目标",
             )
         ]
     total = len(entries)
@@ -652,7 +654,11 @@ def _build_path_stages(
                 step=i,
                 title=entry.title or favorite.canonical_job_title,
                 stage_label=_stage_label(i, total),
-                rationale=rationale,
+                path_summary=rationale,
+                focus_tags=focus_tags,
+                readiness_label=readiness,
+                supporting_evidence=strength_pool[:3],
+                gap_notes=gap_notes[:3],
             )
         )
     return result

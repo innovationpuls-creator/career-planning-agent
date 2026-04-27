@@ -38,7 +38,11 @@ const Welcome: React.FC = () => {
 
   return (
     <PageContainer title={false} breadcrumbRender={false}>
-      <Typography.Title level={2} style={{ marginTop: 0 }}>
+      <Typography.Title
+        level={2}
+        className="heading-2"
+        style={{ marginTop: 0 }}
+      >
         首页
       </Typography.Title>
 
@@ -49,7 +53,11 @@ const Welcome: React.FC = () => {
               <Card
                 hoverable
                 actions={[
-                  <Button type="link" key="enter" onClick={() => history.push(item.path)}>
+                  <Button
+                    type="link"
+                    key="enter"
+                    onClick={() => history.push(item.path)}
+                  >
                     进入模块
                   </Button>,
                 ]}

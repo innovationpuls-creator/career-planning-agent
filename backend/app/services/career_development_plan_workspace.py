@@ -7,14 +7,13 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
 from xml.sax.saxutils import escape as xml_escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from reportlab.lib.colors import HexColor
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -29,7 +28,6 @@ from app.schemas.career_development_report import (
     CareerDevelopmentGoalPlanResultPayload,
     GrowthPlanCurrentLearningStep,
     GrowthPlanLearningModule,
-    GrowthPlanLearningResourceItem,
     GrowthPlanMetric,
     GrowthPlanMetricSnapshot,
     GrowthPlanMilestone,
@@ -48,14 +46,6 @@ from app.schemas.career_development_report import (
     ReviewFramework,
 )
 from app.schemas.student_competency_profile import StudentCompetencyComparisonDimensionItem
-from app.services.career_development_learning_resources import (
-    CareerDevelopmentLearningResourceError,
-    DifyKnowsearchClient,
-    filter_learning_resource_recommendations,
-    normalize_learning_resource_domain,
-    normalize_learning_resource_url,
-    parse_learning_resource_recommendations,
-)
 from app.services.snail_learning_resource_library import attach_prebuilt_learning_resources
 from app.services.student_competency_latest_analysis import (
     get_student_competency_latest_profile_record,
@@ -66,7 +56,7 @@ from app.services.career_development_goal_planning import (
     get_favorite_report_record,
     read_favorite_report_payload,
 )
-from app.services.llm import LLMClientError
+from app.services.learning_resource_logos import enrich_learning_resource_logos
 
 
 UTC = timezone.utc
@@ -1386,6 +1376,7 @@ def build_plan_workspace_payload(
     generated_payload = _load_workspace_generated_payload(row)
     current_payload = _load_workspace_current_payload(row)
     phases = _parse_phases(current_payload) or _parse_phases(generated_payload) or build_growth_plan_phases(favorite)
+    phases = enrich_learning_resource_logos(phases)
     review_framework = _parse_review_framework(generated_payload)
     latest_review = _parse_latest_review(row)
     integrity = _parse_integrity(row)
@@ -1912,6 +1903,5 @@ def export_pdf_bytes(markdown: str) -> bytes:
 
 def export_markdown_bytes(markdown: str) -> bytes:
     return (markdown or "").encode("utf-8")
-
 
 

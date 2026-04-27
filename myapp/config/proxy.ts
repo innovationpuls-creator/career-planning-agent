@@ -10,9 +10,19 @@ export default {
       changeOrigin: true,
       pathRewrite: { '^': '' },
     },
+    '/static/': {
+      target: 'http://127.0.0.1:9100',
+      changeOrigin: true,
+      pathRewrite: { '^': '' },
+    },
   },
   test: {
     '/api/': {
+      target: 'http://127.0.0.1:9100',
+      changeOrigin: true,
+      pathRewrite: { '^': '' },
+    },
+    '/static/': {
       target: 'http://127.0.0.1:9100',
       changeOrigin: true,
       pathRewrite: { '^': '' },

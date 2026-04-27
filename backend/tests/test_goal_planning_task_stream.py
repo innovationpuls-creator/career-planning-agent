@@ -12,7 +12,6 @@ from app.models.career_development_plan_workspace import CareerDevelopmentPlanWo
 from app.models.student_competency_user_latest_profile import StudentCompetencyUserLatestProfile
 from app.models.student_profile import StudentProfile
 from app.schemas.career_development_report import (
-    CareerDevelopmentMatchGroupSummary,
     CareerDevelopmentMatchReport,
 )
 from app.schemas.student_competency_profile import StudentCompetencyComparisonDimensionItem

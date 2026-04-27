@@ -8,7 +8,7 @@ import {
   ProDescriptions,
   ProTable,
 } from '@ant-design/pro-components';
-import { Alert, Drawer, Empty, Space, Tag, Typography, message } from 'antd';
+import { Alert, Drawer, Empty, message, Space, Tag, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
 import { getJobPostings } from '@/services/ant-design-pro/api';
 import { INDUSTRY_OPTIONS, JOB_TITLE_OPTIONS } from './constants';
@@ -220,14 +220,22 @@ const JobPostingsPage: React.FC = () => {
               columns={detailColumns}
             />
             <div>
-              <Typography.Title level={5}>岗位描述</Typography.Title>
-              <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
+              <Typography.Title level={5} className="heading-3">
+                岗位描述
+              </Typography.Title>
+              <Typography.Paragraph
+                style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}
+              >
                 {textFallback(currentRow.job_detail)}
               </Typography.Paragraph>
             </div>
             <div>
-              <Typography.Title level={5}>公司介绍</Typography.Title>
-              <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
+              <Typography.Title level={5} className="heading-3">
+                公司介绍
+              </Typography.Title>
+              <Typography.Paragraph
+                style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}
+              >
                 {textFallback(currentRow.company_detail)}
               </Typography.Paragraph>
             </div>

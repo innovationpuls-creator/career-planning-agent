@@ -24,6 +24,12 @@ const useStyles = createStyles(({ css, token }) => ({
   header: css`
     margin-bottom: 20px;
   `,
+  heading2: css`
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-size: 20px;
+  `,
   filterCard: css`
     margin-bottom: 20px;
     border-radius: 16px;
@@ -66,8 +72,12 @@ const useStyles = createStyles(({ css, token }) => ({
 
 const VerticalJobProfilePage: React.FC = () => {
   const { styles } = useStyles();
-  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>([]);
-  const [industryOptions, setIndustryOptions] = useState<API.IndustryOption[]>([]);
+  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>(
+    [],
+  );
+  const [industryOptions, setIndustryOptions] = useState<API.IndustryOption[]>(
+    [],
+  );
   const [loading, setLoading] = useState(false);
   const [industryLoading, setIndustryLoading] = useState(false);
   const [result, setResult] = useState<API.VerticalJobProfilePayload>();
@@ -113,10 +123,18 @@ const VerticalJobProfilePage: React.FC = () => {
   };
 
   return (
-    <PageContainer className={styles.pageContainer} title={false} breadcrumbRender={false}>
+    <PageContainer
+      className={styles.pageContainer}
+      title={false}
+      breadcrumbRender={false}
+    >
       <div className={styles.shell}>
         <div className={styles.header}>
-          <Typography.Title level={2} style={{ marginBottom: 0 }}>
+          <Typography.Title
+            level={2}
+            className={styles.heading2}
+            style={{ marginBottom: 0 }}
+          >
             垂直岗位图谱
           </Typography.Title>
         </div>
@@ -150,19 +168,30 @@ const VerticalJobProfilePage: React.FC = () => {
               </Space>
             </Col>
             <Col xs={24} md={4}>
-              <Button type="primary" loading={loading} onClick={() => void handleSearch()} block>
+              <Button
+                type="primary"
+                loading={loading}
+                onClick={() => void handleSearch()}
+                block
+              >
                 查询
               </Button>
             </Col>
           </Row>
         </Card>
-        <Card title={result?.job_title || '阶段路径'} className={styles.resultCard}>
+        <Card
+          title={result?.job_title || '阶段路径'}
+          className={styles.resultCard}
+        >
           {loading ? (
             <div className={styles.loading}>
               <Spin />
             </div>
           ) : (
-            <VerticalTierComparison comparison={result?.tiered_comparison} mode="detailed" />
+            <VerticalTierComparison
+              comparison={result?.tiered_comparison}
+              mode="detailed"
+            />
           )}
         </Card>
       </div>
