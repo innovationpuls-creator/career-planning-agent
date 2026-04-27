@@ -224,6 +224,9 @@ class GrowthPlanLearningResourceItem(BaseModel):
     step_label: str = ""
     why_first: str = ""
     expected_output: str = ""
+    logo_url: str = ""
+    logo_alt: str = ""
+    logo_source: Literal["local", "fallback"] | None = None
 
 
 class GrowthPlanSubmissionFile(BaseModel):
@@ -448,6 +451,16 @@ class PlanWorkspacePayload(BaseModel):
 class PlanWorkspaceResponse(BaseModel):
     success: bool = True
     data: PlanWorkspacePayload
+
+
+class GoalPlanningTaskStreamEvent(BaseModel):
+    stage: str
+    stage_label: str = ""
+    task_id: str
+    status: str
+    status_text: str
+    progress: int = Field(default=0, ge=0, le=100)
+    created_at: datetime | None = None
 
 
 # ─────────────────────────────────────────────────────────────

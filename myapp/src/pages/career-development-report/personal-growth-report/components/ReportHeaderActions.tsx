@@ -29,9 +29,20 @@ const ReportHeaderActions: React.FC<ReportHeaderActionsProps> = ({
   onRegenerate,
 }) => (
   <div>
-    <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }} wrap>
+    <Space
+      align="start"
+      style={{ width: '100%', justifyContent: 'space-between' }}
+      wrap
+    >
       <div>
-        <Title level={3} style={{ marginBottom: 8 }}>
+        <Title
+          level={3}
+          style={{
+            marginBottom: 8,
+            fontFamily: 'var(--font-heading)',
+            letterSpacing: '0.04em',
+          }}
+        >
           个人职业成长报告
         </Title>
         <Space wrap size={8}>
@@ -43,11 +54,20 @@ const ReportHeaderActions: React.FC<ReportHeaderActionsProps> = ({
         </Space>
       </div>
       <Space wrap>
-        <Button type="primary" icon={<SaveOutlined />} onClick={onSave} loading={saving}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={onSave}
+          loading={saving}
+        >
           保存
         </Button>
         <ExportActions onExport={onExport} />
-        <Button icon={<ReloadOutlined />} onClick={onRegenerate} loading={regenerating}>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={onRegenerate}
+          loading={regenerating}
+        >
           重新生成初稿
         </Button>
       </Space>

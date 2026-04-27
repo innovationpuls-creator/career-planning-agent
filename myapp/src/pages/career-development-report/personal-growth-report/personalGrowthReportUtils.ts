@@ -12,6 +12,12 @@ export type PersonalGrowthSection = {
   completed: boolean;
 };
 
+export type PhasePlanContent = {
+  shortTerm: string;
+  midTerm: string;
+  longTerm: string;
+};
+
 export type PersonalGrowthReportDraft = {
   favoriteId: number;
   workspaceId?: string;
@@ -44,7 +50,14 @@ export const PERSONAL_GROWTH_SECTION_META: Record<
   career_direction_analysis: {
     title: '职业方向分析',
     placeholder: '说明适合的行业、岗位类型和发展方向。',
-    keywords: ['职业方向分析', '职业方向', '行业方向', '岗位类型', '发展方向', '目标定位'],
+    keywords: [
+      '职业方向分析',
+      '职业方向',
+      '行业方向',
+      '岗位类型',
+      '发展方向',
+      '目标定位',
+    ],
   },
   match_assessment: {
     title: '匹配度判断',
@@ -71,9 +84,13 @@ const canUseStorage = () =>
 
 const normalizeText = (value?: string) => (value || '').trim();
 
-const normalizeHeading = (value: string) => value.replace(/\s+/g, '').toLowerCase();
+const normalizeHeading = (value: string) =>
+  value.replace(/\s+/g, '').toLowerCase();
 
-const buildSection = (key: PersonalGrowthSectionKey, content = ''): PersonalGrowthSection => {
+const buildSection = (
+  key: PersonalGrowthSectionKey,
+  content = '',
+): PersonalGrowthSection => {
   const normalized = normalizeText(content);
   return {
     key,
@@ -83,7 +100,9 @@ const buildSection = (key: PersonalGrowthSectionKey, content = ''): PersonalGrow
   };
 };
 
-const findSectionKeyByHeading = (heading: string): PersonalGrowthSectionKey | undefined => {
+const findSectionKeyByHeading = (
+  heading: string,
+): PersonalGrowthSectionKey | undefined => {
   const normalizedHeading = normalizeHeading(heading);
   return PERSONAL_GROWTH_SECTION_ORDER.find((key) =>
     PERSONAL_GROWTH_SECTION_META[key].keywords.some((keyword) =>
@@ -107,7 +126,9 @@ export const normalizePersonalGrowthSections = (
 ): PersonalGrowthSection[] => {
   const sectionMap = new Map(
     (sections || [])
-      .filter((section): section is API.PersonalGrowthReportSection => Boolean(section?.key))
+      .filter((section): section is API.PersonalGrowthReportSection =>
+        Boolean(section?.key),
+      )
       .map((section) => [section.key as PersonalGrowthSectionKey, section]),
   );
 
@@ -116,11 +137,14 @@ export const normalizePersonalGrowthSections = (
   );
 };
 
-export const buildMarkdownFromSections = (sections: PersonalGrowthSection[]) => {
+export const buildMarkdownFromSections = (
+  sections: PersonalGrowthSection[],
+) => {
   const ordered = normalizePersonalGrowthSections(sections);
   const blocks = [DEFAULT_REPORT_TITLE];
   ordered.forEach((section) => {
-    const content = section.content || PERSONAL_GROWTH_SECTION_META[section.key].placeholder;
+    const content =
+      section.content || PERSONAL_GROWTH_SECTION_META[section.key].placeholder;
     blocks.push(`## ${section.title}\n${content}`);
   });
   return blocks.join('\n\n').trim();
@@ -129,7 +153,9 @@ export const buildMarkdownFromSections = (sections: PersonalGrowthSection[]) => 
 export const parsePersonalGrowthMarkdown = (markdown: string) => {
   const cleanedMarkdown = stripCodeFence(markdown);
   const sectionMap = new Map<PersonalGrowthSectionKey, string>();
-  const matches = cleanedMarkdown.matchAll(/(?:^|\n)##\s+([^\n]+)\n([\s\S]*?)(?=\n##\s+|$)/g);
+  const matches = cleanedMarkdown.matchAll(
+    /(?:^|\n)##\s+([^\n]+)\n([\s\S]*?)(?=\n##\s+|$)/g,
+  );
 
   for (const match of matches) {
     const heading = match[1] || '';
@@ -140,8 +166,12 @@ export const parsePersonalGrowthMarkdown = (markdown: string) => {
     }
   }
 
-  const sections = PERSONAL_GROWTH_SECTION_ORDER.map((key) => buildSection(key, sectionMap.get(key) || ''));
-  const missingSectionKeys = sections.filter((section) => !section.completed).map((section) => section.key);
+  const sections = PERSONAL_GROWTH_SECTION_ORDER.map((key) =>
+    buildSection(key, sectionMap.get(key) || ''),
+  );
+  const missingSectionKeys = sections
+    .filter((section) => !section.completed)
+    .map((section) => section.key);
 
   return {
     sections,
@@ -150,34 +180,48 @@ export const parsePersonalGrowthMarkdown = (markdown: string) => {
   };
 };
 
-export const createPersonalGrowthReportTemplate = (sections?: API.PersonalGrowthReportSection[]) => {
+export const createPersonalGrowthReportTemplate = (
+  sections?: API.PersonalGrowthReportSection[],
+) => {
   const normalizedSections = normalizePersonalGrowthSections(sections);
   const actionPlanContent =
-    normalizedSections.find((section) => section.key === 'action_plan')?.content ||
-    ['### 短期行动（0-3个月）', '- ', '', '### 中期行动（3-9个月）', '- ', '', '### 长期行动（9-24个月）', '- ']
+    normalizedSections.find((section) => section.key === 'action_plan')
+      ?.content ||
+    [
+      '### 短期行动（0-3个月）',
+      '- ',
+      '',
+      '### 中期行动（3-9个月）',
+      '- ',
+      '',
+      '### 长期行动（9-24个月）',
+      '- ',
+    ]
       .join('\n')
       .trim();
 
   return buildMarkdownFromSections([
     buildSection(
       'self_cognition',
-      normalizedSections.find((section) => section.key === 'self_cognition')?.content ||
-        '请结合兴趣、优势、性格和能力特点整理。',
+      normalizedSections.find((section) => section.key === 'self_cognition')
+        ?.content || '请结合兴趣、优势、性格和能力特点整理。',
     ),
     buildSection(
       'career_direction_analysis',
-      normalizedSections.find((section) => section.key === 'career_direction_analysis')?.content ||
-        '请说明适合的行业、岗位类型和发展方向。',
+      normalizedSections.find(
+        (section) => section.key === 'career_direction_analysis',
+      )?.content || '请说明适合的行业、岗位类型和发展方向。',
     ),
     buildSection(
       'match_assessment',
-      normalizedSections.find((section) => section.key === 'match_assessment')?.content ||
-        '请说明当前匹配项、关键差距和不足。',
+      normalizedSections.find((section) => section.key === 'match_assessment')
+        ?.content || '请说明当前匹配项、关键差距和不足。',
     ),
     buildSection(
       'development_suggestions',
-      normalizedSections.find((section) => section.key === 'development_suggestions')?.content ||
-        '请说明重点提升项、补短板策略和具体建议。',
+      normalizedSections.find(
+        (section) => section.key === 'development_suggestions',
+      )?.content || '请说明重点提升项、补短板策略和具体建议。',
     ),
     buildSection('action_plan', actionPlanContent),
   ]);
@@ -224,7 +268,10 @@ export const formatPersonalGrowthDateTime = (value?: string) =>
 export const hasAnySectionContent = (sections: PersonalGrowthSection[]) =>
   sections.some((section) => Boolean(normalizeText(section.content)));
 
-export const getSectionDraftStorageKey = (favoriteId: number, workspaceId?: string) =>
+export const getSectionDraftStorageKey = (
+  favoriteId: number,
+  workspaceId?: string,
+) =>
   `${PERSONAL_GROWTH_DRAFT_STORAGE_PREFIX}${favoriteId}_${workspaceId || 'pending'}`;
 
 export const readPersonalGrowthDraft = (
@@ -233,7 +280,9 @@ export const readPersonalGrowthDraft = (
 ): PersonalGrowthReportDraft | undefined => {
   if (!canUseStorage() || !favoriteId) return undefined;
   try {
-    const raw = window.localStorage.getItem(getSectionDraftStorageKey(favoriteId, workspaceId));
+    const raw = window.localStorage.getItem(
+      getSectionDraftStorageKey(favoriteId, workspaceId),
+    );
     if (!raw) return undefined;
     return JSON.parse(raw) as PersonalGrowthReportDraft;
   } catch {
@@ -243,25 +292,42 @@ export const readPersonalGrowthDraft = (
 
 export const savePersonalGrowthDraft = (draft: PersonalGrowthReportDraft) => {
   if (!canUseStorage()) return;
-  window.localStorage.setItem(getSectionDraftStorageKey(draft.favoriteId, draft.workspaceId), JSON.stringify(draft));
+  window.localStorage.setItem(
+    getSectionDraftStorageKey(draft.favoriteId, draft.workspaceId),
+    JSON.stringify(draft),
+  );
 };
 
-export const clearPersonalGrowthDraft = (favoriteId?: number, workspaceId?: string) => {
+export const clearPersonalGrowthDraft = (
+  favoriteId?: number,
+  workspaceId?: string,
+) => {
   if (!canUseStorage() || !favoriteId) return;
-  window.localStorage.removeItem(getSectionDraftStorageKey(favoriteId, workspaceId));
+  window.localStorage.removeItem(
+    getSectionDraftStorageKey(favoriteId, workspaceId),
+  );
 };
 
 export const getPersonalGrowthTaskStorageKey = (favoriteId: number) =>
   `${PERSONAL_GROWTH_TASK_STORAGE_PREFIX}${favoriteId}`;
 
-export const savePersonalGrowthTaskId = (favoriteId: number, taskId: string) => {
+export const savePersonalGrowthTaskId = (
+  favoriteId: number,
+  taskId: string,
+) => {
   if (!canUseStorage()) return;
-  window.localStorage.setItem(getPersonalGrowthTaskStorageKey(favoriteId), taskId);
+  window.localStorage.setItem(
+    getPersonalGrowthTaskStorageKey(favoriteId),
+    taskId,
+  );
 };
 
 export const readPersonalGrowthTaskId = (favoriteId?: number) => {
   if (!canUseStorage() || !favoriteId) return undefined;
-  return window.localStorage.getItem(getPersonalGrowthTaskStorageKey(favoriteId)) || undefined;
+  return (
+    window.localStorage.getItem(getPersonalGrowthTaskStorageKey(favoriteId)) ||
+    undefined
+  );
 };
 
 export const clearPersonalGrowthTaskId = (favoriteId?: number) => {

@@ -12,6 +12,7 @@ from app.models.career_requirement_profile import CareerRequirementProfile
 from app.models.job_requirement_profile import JobRequirementProfile
 from app.models.student_competency_user_latest_profile import StudentCompetencyUserLatestProfile
 from app.schemas.career_development_report import (
+    CareerDevelopmentFavoritePayload,
     CareerDevelopmentMatchCustomPayload,
     CareerDevelopmentMatchEvidenceCard,
     CareerDevelopmentMatchGroupSummary,
@@ -30,16 +31,14 @@ from app.schemas.student_competency_profile import (
     StudentCompetencyComparisonDimensionItem,
     StudentCompetencyNarrativePayload,
 )
-from app.services.embeddings import EmbeddingClientError, OpenAICompatibleEmbeddingClient
+from app.services.embeddings import OpenAICompatibleEmbeddingClient
 from app.services.job_requirement_profile_read import (
-    build_effective_dimension_payload,
     parse_effective_dimension_value,
 )
 from app.services.job_requirement_vertical import get_vertical_job_profile
 from app.services.job_transfer import JobTransferService
 from app.services.job_transfer_groups import (
     DIMENSION_LABELS,
-    DIMENSION_TO_GROUP_KEY,
     GROUP_LABELS,
     TRANSFER_GROUPS,
 )

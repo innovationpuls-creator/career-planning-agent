@@ -90,6 +90,37 @@ declare namespace API {
       file_path: string;
     }>;
     vertical_profile?: VerticalJobProfilePayload;
+    planning_progress?: HomeV2PlanningProgress;
+  };
+
+  type HomeV2ProgressStep = {
+    key: string;
+    label: string;
+    status: 'done' | 'current' | 'todo';
+    description: string;
+    href: string;
+  };
+
+  type HomeV2NextAction = {
+    label: string;
+    description: string;
+    href: string;
+    button_text: string;
+  };
+
+  type HomeV2ActiveTarget = {
+    favorite_id: number;
+    target_title: string;
+    canonical_job_title: string;
+    overall_match: number;
+    industry?: string;
+  };
+
+  type HomeV2PlanningProgress = {
+    completion_percent: number;
+    active_target?: HomeV2ActiveTarget;
+    steps: HomeV2ProgressStep[];
+    next_action: HomeV2NextAction;
   };
 
   type HomeV2Response = {
@@ -208,6 +239,7 @@ declare namespace API {
     selected_industries: string[];
     available_industries: string[];
     groups: VerticalJobProfileGroup[];
+    tiered_comparison?: TieredVerticalComparisonPayload;
     meta: {
       total_industries: number;
       total_companies: number;
@@ -439,6 +471,9 @@ declare namespace API {
     step_label: string;
     why_first: string;
     expected_output: string;
+    logo_url?: string;
+    logo_alt?: string;
+    logo_source?: 'local' | 'fallback';
   };
 
   type GrowthPlanSubmissionFile = {
@@ -865,6 +900,26 @@ declare namespace API {
     action_keywords: string[];
   };
 
+  type LearningPathPhaseKey = 'short_term' | 'mid_term' | 'long_term';
+
+  type SalaryTierItem = {
+    industry: string;
+    company_name: string;
+    salary_range?: string;
+    salary_sort_value?: number;
+    salary_sort_label: string;
+  };
+
+  type SalaryTierGroup = {
+    level: string;
+    items: SalaryTierItem[];
+  };
+
+  type TieredVerticalComparisonPayload = {
+    job_title: string;
+    tiers: SalaryTierGroup[];
+  };
+
   type SnailLearningPathReviewPayload = {
     review_id: number;
     workspace_id: string;
@@ -1196,6 +1251,15 @@ declare namespace API {
   type RegisterParams = {
     username?: string;
     password?: string;
+  };
+
+  type OnboardingProfileRequest = {
+    full_name?: string;
+    school?: string;
+    major?: string;
+    education_level?: string;
+    grade?: string;
+    target_job_title?: string;
   };
 
   type RegisterResult = {

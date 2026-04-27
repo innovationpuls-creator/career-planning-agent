@@ -1,6 +1,16 @@
 import {
   ArrowLeftOutlined,
+  BookOutlined,
+  CalendarOutlined,
   CheckCircleFilled,
+  EditOutlined,
+  FileDoneOutlined,
+  FlagOutlined,
+  InfoCircleOutlined,
+  RocketOutlined,
+  SendOutlined,
+  ThunderboltOutlined,
+  TrophyOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
@@ -22,7 +32,6 @@ import {
   Skeleton,
   Space,
   Spin,
-  Steps,
   Tabs,
   Tag,
   Typography,
@@ -52,7 +61,6 @@ import {
   getModuleDisplayDescription,
   getModuleDisplayTitle,
   getModuleResources,
-  getOverallProgress,
   getPhaseProgress,
   getResourceCompletionId,
   type LearningPathPhaseKey,
@@ -77,6 +85,14 @@ type PreparationState = {
   hasLatestAnalysis: boolean;
   hasWorkspace: boolean;
 };
+type LearningResource = ReturnType<typeof getModuleResources>[number];
+type ActiveResourceDetail = {
+  phaseKey: LearningPathPhaseKey;
+  moduleId: string;
+  moduleTitle: string;
+  resource: LearningResource;
+  resourceIndex: number;
+};
 
 const MONTHLY_RECOMMENDATION_LABELS: Record<
   API.SnailMonthlyReviewReport['recommendation'],
@@ -87,56 +103,461 @@ const MONTHLY_RECOMMENDATION_LABELS: Record<
   advance: '准备进入下一阶段',
 };
 
+const METRIC_COUNT = 5;
+
+const getResourceLogoFallbackText = (title: string) => {
+  const words = title.match(/[A-Za-z0-9]+/g);
+  if (words?.length) {
+    return words.length > 1
+      ? words
+          .slice(0, 2)
+          .map((word) => word[0])
+          .join('')
+          .toUpperCase()
+      : words[0].slice(0, 3).toUpperCase();
+  }
+  return title.trim().slice(0, 2) || '学';
+};
+
+const getPhaseVisualIcon = (phaseKey: LearningPathPhaseKey) => {
+  if (phaseKey === 'short_term') return <BookOutlined />;
+  if (phaseKey === 'mid_term') return <TrophyOutlined />;
+  return <RocketOutlined />;
+};
+
 const useStyles = createStyles(({ css, token }) => ({
   page: css`
-    max-width: 1120px;
+    position: relative;
+    isolation: isolate;
+    max-width: 1200px;
+    min-height: calc(100vh - 72px);
     margin: 0 auto;
+    padding: 24px 24px 160px;
+    background: transparent;
+    &::before {
+      content: '';
+      position: absolute;
+      z-index: -1;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 100vw;
+      transform: translateX(-50%);
+      background:
+        radial-gradient(circle at 12% 0, color-mix(in srgb, ${token.colorPrimaryBg} 72%, transparent) 0, transparent 320px),
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, ${token.colorPrimaryBg} 60%, ${token.colorBgLayout} 40%) 0,
+          color-mix(in srgb, ${token.colorBgLayout} 72%, ${token.colorBgContainer} 28%) 420px,
+          ${token.colorBgLayout} 100%
+        );
+    }
+    @media (max-width: 768px) {
+      padding: 14px 12px 128px;
+    }
   `,
-  introCard: css`
+  statusStrip: css`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
     margin-bottom: 16px;
+    padding: 14px 18px;
+    border: 1px solid color-mix(in srgb, ${token.colorBorderSecondary} 66%, ${token.colorPrimaryBg} 34%);
+    border-radius: 18px;
+    background: color-mix(in srgb, ${token.colorBgContainer} 88%, ${token.colorPrimaryBg} 12%);
+    box-shadow: 0 10px 30px color-mix(in srgb, ${token.colorPrimary} 6%, transparent);
+    backdrop-filter: blur(12px);
+    @media (max-width: 860px) {
+      grid-template-columns: 1fr;
+    }
   `,
-  introHeader: css`
+  statusItems: css`
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    gap: 8px 16px;
+    flex-wrap: wrap;
+    min-width: 0;
+  `,
+  statusItem: css`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+    white-space: nowrap;
+  `,
+  statusItemReady: css`
+    color: ${token.colorTextSecondary};
+  `,
+  statusDot: css`
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: ${token.colorTextQuaternary};
+  `,
+  statusDotReady: css`
+    background: ${token.colorSuccess};
+  `,
+  topStatusPrimary: css`
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  `,
+  statusRing: css`
+    width: 54px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: ${token.colorBgContainer};
+    box-shadow: inset 0 0 0 1px ${token.colorBorderSecondary};
+  `,
+  statusTitleLine: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+  `,
+  statusTitle: css`
+    font-family: var(--font-heading, "Noto Serif SC", "Songti SC", serif);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: ${token.colorText};
+  `,
+  statusTargetCard: css`
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    align-items: center;
     gap: 16px;
+    padding: 10px 12px 10px 16px;
+    border-radius: 14px;
+    background: ${token.colorBgContainer};
+    border: 1px solid ${token.colorBorderSecondary};
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  `,
+  statusActionGroup: css`
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
     flex-wrap: wrap;
   `,
-  summaryRow: css`
+  heroPanel: css`
+    position: relative;
+    margin-bottom: 16px;
+    padding: 30px 30px 24px;
+    border: 1px solid color-mix(in srgb, ${token.colorPrimaryBorder} 44%, ${token.colorBorderSecondary} 56%);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 92% 18%, color-mix(in srgb, ${token.colorSuccessBg} 70%, transparent) 0, transparent 230px),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, ${token.colorPrimaryBg} 70%, ${token.colorBgContainer} 30%),
+        ${token.colorBgContainer} 45%,
+        color-mix(in srgb, ${token.colorInfoBg} 28%, ${token.colorBgContainer} 72%)
+      );
+    box-shadow: 0 18px 44px color-mix(in srgb, ${token.colorPrimary} 10%, transparent);
+    &::before {
+      content: '';
+      position: absolute;
+      top: 22px;
+      bottom: 22px;
+      left: 0;
+      width: 4px;
+      border-radius: 0 999px 999px 0;
+      background: ${token.colorPrimary};
+    }
+  `,
+  heroTop: css`
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) repeat(2, minmax(180px, 0.85fr));
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 24px;
+    align-items: start;
+    @media (max-width: 860px) {
+      grid-template-columns: 1fr;
+    }
+  `,
+  heroMeta: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  `,
+  heroTitle: css`
+    font-family: var(--font-heading, "Noto Serif SC", "Songti SC", serif);
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 1.12;
+    margin: 0;
+    font-size: clamp(36px, 4.8vw, 48px);
+  `,
+  heroSubtitle: css`
+    display: block;
+    max-width: 620px;
+    margin-top: 12px;
+    color: ${token.colorTextSecondary};
+    font-size: 17px;
+    line-height: 1.75;
+  `,
+  heroGoalPanel: css`
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 18px;
+    background: color-mix(in srgb, ${token.colorBgContainer} 88%, ${token.colorPrimaryBg} 12%);
+    border: 1px solid color-mix(in srgb, ${token.colorPrimaryBorder} 36%, ${token.colorBorderSecondary} 64%);
+    box-shadow: 0 12px 30px color-mix(in srgb, ${token.colorPrimary} 7%, transparent);
+  `,
+  heroGoalLine: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    margin-top: 16px;
+    min-width: 0;
+  `,
+  heroActions: css`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  `,
+  metricGrid: css`
+    display: grid;
+    grid-template-columns: minmax(240px, 1.2fr) repeat(4, minmax(140px, 0.8fr));
+    gap: 12px;
+    margin-top: 24px;
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
     }
   `,
-  summaryPrimary: css`
-    border-color: ${token.colorPrimaryBorder};
-    background: ${token.colorPrimaryBg};
-  `,
-  summaryLead: css`
+  metricCell: css`
     display: grid;
-    gap: 10px;
-  `,
-  summaryStageMeta: css`
-    display: flex;
-    justify-content: space-between;
+    grid-template-columns: 34px minmax(0, 1fr);
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
+    min-width: 0;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, ${token.colorBorderSecondary} 80%, ${token.colorPrimaryBg} 20%);
+    background: color-mix(in srgb, ${token.colorBgContainer} 92%, ${token.colorPrimaryBg} 8%);
   `,
-  summaryNextModule: css`
-    display: grid;
-    gap: 6px;
+  metricCellPrimary: css`
+    background: color-mix(in srgb, ${token.colorPrimaryBg} 42%, ${token.colorBgContainer} 58%);
+    border-color: ${token.colorPrimaryBorder};
+  `,
+  metricIcon: css`
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: ${token.colorPrimary};
+    background: ${token.colorPrimaryBg};
   `,
   metricValue: css`
-    margin: 8px 0 10px;
+    margin: 0;
     line-height: 1;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  `,
+  compactProgress: css`
+    margin-top: 2px;
+  `,
+  phaseTimeline: css`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 18px;
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  `,
+  phaseNode: css`
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px;
+    gap: 12px;
+    min-height: 142px;
+    padding: 18px;
+    cursor: pointer;
+    text-align: left;
+    border: 1px solid color-mix(in srgb, ${token.colorBorderSecondary} 82%, ${token.colorPrimaryBg} 18%);
+    border-radius: 18px;
+    background: ${token.colorBgContainer};
+    transition:
+      background var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      border-color var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      box-shadow var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      transform var(--motion-fast, 0.15s) var(--ease-standard, ease);
+    &:hover {
+      transform: translateY(-1px);
+      border-color: ${token.colorBorder};
+      box-shadow: ${token.boxShadowTertiary};
+    }
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 16px;
+      right: 16px;
+      height: 4px;
+      border-radius: 0 0 999px 999px;
+      background: ${token.colorPrimary};
+      opacity: 0.72;
+    }
+    @media (max-width: 900px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  `,
+  phaseNodeActive: css`
+    border-color: ${token.colorPrimaryBorder};
+    box-shadow:
+      0 0 0 2px ${token.colorPrimaryBg},
+      0 12px 28px color-mix(in srgb, ${token.colorPrimary} 10%, transparent);
+    transition:
+      background var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      border-color var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      box-shadow var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      transform var(--motion-fast, 0.15s) var(--ease-standard, ease);
+  `,
+  phaseNodeShort: css`
+    background: linear-gradient(135deg, color-mix(in srgb, ${token.colorSuccessBg} 34%, ${token.colorBgContainer} 66%), ${token.colorBgContainer});
+    &::before {
+      background: ${token.colorSuccess};
+    }
+  `,
+  phaseNodeMid: css`
+    background: linear-gradient(135deg, color-mix(in srgb, ${token.colorPrimaryBg} 36%, ${token.colorBgContainer} 64%), ${token.colorBgContainer});
+    &::before {
+      background: ${token.colorPrimary};
+    }
+  `,
+  phaseNodeLong: css`
+    background: linear-gradient(135deg, color-mix(in srgb, ${token.colorPrimaryBg} 20%, ${token.colorErrorBg} 16%), ${token.colorBgContainer});
+    &::before {
+      background: color-mix(in srgb, ${token.colorPrimary} 64%, ${token.colorError} 36%);
+    }
+  `,
+  phaseNodeContent: css`
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  `,
+  phaseNodeHead: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  `,
+  phaseIndex: css`
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid ${token.colorBorderSecondary};
+    font-size: 12px;
+    font-weight: 600;
+    color: ${token.colorText};
+    background: ${token.colorBgContainer};
+  `,
+  phaseIndexActive: css`
+    border-color: ${token.colorPrimary};
+    color: ${token.colorBgContainer};
+    background: ${token.colorPrimary};
+  `,
+  phaseNodeTitle: css`
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  `,
+  phaseNodeFooter: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+  `,
+  phaseVisual: css`
+    align-self: center;
+    justify-self: end;
+    width: 70px;
+    height: 70px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 22px;
+    color: ${token.colorPrimary};
+    background:
+      linear-gradient(145deg, ${token.colorBgContainer}, color-mix(in srgb, ${token.colorPrimaryBg} 54%, ${token.colorBgContainer} 46%));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, ${token.colorPrimaryBorder} 42%, transparent),
+      0 12px 26px color-mix(in srgb, ${token.colorPrimary} 10%, transparent);
+    font-size: 32px;
+    @media (max-width: 900px) {
+      display: none;
+    }
   `,
   phaseMotion: css`
-    animation: phaseFadeIn 180ms ease-out;
-    @keyframes phaseFadeIn {
+    will-change: opacity, transform;
+  `,
+  phaseWorkspaceEnter: css`
+    animation: phaseWorkspaceEnter 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    @keyframes phaseWorkspaceEnter {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `,
+  phaseWorkspaceLeave: css`
+    animation: phaseWorkspaceLeave 200ms ease-in both;
+    @keyframes phaseWorkspaceLeave {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+  `,
+  moduleItemMotion: css`
+    animation: moduleItemIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--module-index, 0) * 60ms);
+    @keyframes moduleItemIn {
+      from {
+        opacity: 0;
+        transform: translateX(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  `,
+  resourceItemMotion: css`
+    animation: resourceItemIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--resource-index, 0) * 60ms);
+    @keyframes resourceItemIn {
       from {
         opacity: 0;
         transform: translateY(10px);
@@ -147,93 +568,399 @@ const useStyles = createStyles(({ css, token }) => ({
       }
     }
   `,
-  currentPhaseCard: css`
-    border-color: ${token.colorPrimaryBorder};
-    box-shadow: 0 0 0 2px ${token.colorPrimaryBg};
-  `,
-  section: css`
-    margin-bottom: 20px;
-  `,
-  routeList: css`
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
+  workspaceShell: css`
     overflow: hidden;
+    border: 1px solid color-mix(in srgb, ${token.colorBorderSecondary} 82%, ${token.colorPrimaryBg} 18%);
+    border-radius: 22px;
+    background: ${token.colorBgContainer};
+    box-shadow: 0 18px 44px color-mix(in srgb, ${token.colorText} 7%, transparent);
   `,
-  routeItem: css`
+  workspaceHeader: css`
     display: flex;
     justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 22px 26px 18px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
-    &:last-child {
-      border-bottom: none;
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, ${token.colorPrimaryBg} 34%, ${token.colorBgContainer} 66%),
+        ${token.colorBgContainer} 56%
+      );
+  `,
+  reviewToolbar: css`
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  `,
+  workspaceBody: css`
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+    gap: 1px;
+    background: color-mix(in srgb, ${token.colorBorderSecondary} 72%, ${token.colorPrimaryBg} 28%);
+    @media (max-width: 960px) {
+      grid-template-columns: 1fr;
     }
   `,
-  routeItemCurrent: css`
+  workspacePane: css`
+    min-width: 0;
+    padding: 22px 26px;
+    background: ${token.colorBgContainer};
+  `,
+  workspacePaneMuted: css`
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, ${token.colorBgLayout} 44%, ${token.colorBgContainer} 56%),
+        ${token.colorBgContainer} 48%
+      );
+  `,
+  section: css`
+    margin-bottom: 24px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  `,
+  sectionHeader: css`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  `,
+  moduleRail: css`
+    position: relative;
+    display: grid;
+    gap: 12px;
+    &::before {
+      content: '';
+      position: absolute;
+      left: 13px;
+      top: 18px;
+      bottom: 18px;
+      width: 1px;
+      background: ${token.colorBorderSecondary};
+    }
+  `,
+  moduleStep: css`
+    position: relative;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 12px 14px 0;
+    cursor: pointer;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: color-mix(in srgb, ${token.colorBgContainer} 84%, ${token.colorPrimaryBg} 16%);
+    transition:
+      background-color var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      border-color var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      box-shadow var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      transform var(--motion-fast, 0.15s) var(--ease-standard, ease);
+    &:hover {
+      background: ${token.colorBgContainer};
+      border-color: ${token.colorPrimaryBorder};
+      box-shadow: inset 3px 0 0 ${token.colorPrimaryBorder};
+      transform: translateY(-1px);
+    }
+    &:focus-visible {
+      outline: 2px solid ${token.colorPrimaryBorder};
+      outline-offset: 2px;
+    }
+  `,
+  moduleStepSelected: css`
+    background: ${token.colorBgContainer};
+    border-color: ${token.colorPrimaryBorder};
+    box-shadow:
+      inset 3px 0 0 ${token.colorPrimary},
+      0 10px 22px color-mix(in srgb, ${token.colorPrimary} 9%, transparent);
+  `,
+  moduleDot: css`
+    position: relative;
+    z-index: 1;
+    width: 27px;
+    height: 27px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid ${token.colorBorderSecondary};
+    color: ${token.colorText};
+    background: ${token.colorBgContainer};
+    font-size: 11px;
+    font-weight: 600;
+  `,
+  moduleDotCurrent: css`
+    border-color: ${token.colorPrimaryBorder};
+    color: ${token.colorPrimary};
     background: ${token.colorPrimaryBg};
   `,
-  routeItemMeta: css`
+  moduleDotDone: css`
+    border-color: ${token.colorSuccess};
+    color: ${token.colorBgContainer};
+    background: ${token.colorSuccess};
+  `,
+  moduleMeta: css`
     display: grid;
     gap: 6px;
     min-width: 0;
   `,
-  routeItemHead: css`
+  moduleHead: css`
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
   `,
-  routeItemDesc: css`
+  clampText: css`
     color: ${token.colorTextSecondary};
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   `,
-  routeItemStats: css`
+  moduleStats: css`
     display: grid;
     justify-items: end;
     gap: 6px;
-    min-width: 88px;
+    min-width: 64px;
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
   `,
-  resourceModule: css`
+  phaseGoalBox: css`
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 14px;
     border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
-    padding: 14px 16px;
+    background: color-mix(in srgb, ${token.colorBgContainer} 72%, ${token.colorPrimaryBg} 28%);
   `,
-  resourceRow: css`
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    width: 100%;
+  resourceGroup: css`
+    display: grid;
+    gap: 12px;
+    padding: 16px 0 0;
+    animation: resourceFadeIn 180ms var(--ease-standard, ease);
+    @keyframes resourceFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `,
+  resourceLine: css`
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    border-radius: 16px;
+    background: ${token.colorBgContainer};
+    border: 1px solid ${token.colorBorderSecondary};
+    box-shadow: 0 8px 20px color-mix(in srgb, ${token.colorText} 4%, transparent);
+    transition:
+      border-color var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      box-shadow var(--motion-fast, 0.15s) var(--ease-standard, ease),
+      transform var(--motion-fast, 0.15s) var(--ease-standard, ease);
+    &:hover {
+      border-color: color-mix(in srgb, ${token.colorPrimaryBorder} 54%, ${token.colorBorderSecondary} 46%);
+      box-shadow:
+        inset 3px 0 0 ${token.colorPrimaryBorder},
+        0 14px 28px color-mix(in srgb, ${token.colorPrimary} 8%, transparent);
+      transform: translateY(-2px) scale(1.01);
+    }
     @media (max-width: 768px) {
-      flex-direction: column;
+      grid-template-columns: 40px minmax(0, 1fr);
+    }
+  `,
+  resourceLogo: css`
+    position: relative;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, ${token.colorBorderSecondary} 70%, ${token.colorPrimaryBg} 30%);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, ${token.colorPrimaryBg} 74%, ${token.colorBgContainer} 26%),
+      ${token.colorBgContainer}
+    );
+    box-shadow: 0 6px 16px color-mix(in srgb, ${token.colorPrimary} 8%, transparent);
+    flex: none;
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: ${token.colorBgContainer};
+    }
+    span {
+      position: absolute;
+      inset: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: ${token.colorPrimary};
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
     }
   `,
   resourceMeta: css`
     display: grid;
     gap: 4px;
+    min-width: 0;
   `,
-  compactPhaseRow: css`
+  resourceActions: css`
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
     gap: 10px;
-    margin-bottom: 12px;
+    min-width: 160px;
+    padding-left: 8px;
+    @media (max-width: 768px) {
+      grid-column: 2;
+      justify-content: flex-start;
+      padding-left: 0;
+    }
   `,
-  compactPhaseTag: css`
+  resourceDetailButton: css`
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    justify-content: center;
+  `,
+  resourceDrawerTitle: css`
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  `,
+  resourceDrawerHeader: css`
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+    padding: 2px 0 18px;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+  `,
+  resourceDrawerActions: css`
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  `,
+  drawerClosing: css`
+    animation: resourceDrawerSlideOut 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    @keyframes resourceDrawerSlideOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(24px);
+      }
+    }
+  `,
+  resourceDrawerLogo: css`
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  `,
+  resourceDetailPanel: css`
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+    animation: resourceExpandFadeIn var(--motion-duration-normal, 0.25s) var(--ease-out, ease);
+    @keyframes resourceExpandFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `,
+  resourceDetailRow: css`
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid ${token.colorBorderSecondary};
+    background: color-mix(in srgb, ${token.colorBgContainer} 82%, ${token.colorPrimaryBg} 18%);
+  `,
+  resourceDetailIcon: css`
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+    font-size: 14px;
+  `,
+  resourceDetailContent: css`
+    flex: 1;
+    min-width: 0;
+  `,
+  resourceDetailLabel: css`
+    font-size: 12px;
+    color: ${token.colorTextTertiary};
+    margin-bottom: 4px;
+  `,
+  resourceDetailText: css`
+    font-size: 14px;
+    color: ${token.colorText};
+    line-height: 1.5;
+  `,
+  taskLine: css`
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+    border: 1px solid ${token.colorBorderSecondary};
+    background: ${token.colorBgContainer};
+  `,
+  taskIndex: css`
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 999px;
-    border: 1px solid ${token.colorSuccessBorder};
-    background: ${token.colorSuccessBg};
-    color: ${token.colorSuccessText};
+    border: 1px solid ${token.colorBorderSecondary};
+    color: ${token.colorText};
+    background: ${token.colorBgContainer};
+    font-size: 12px;
+    font-weight: 600;
+  `,
+  taskIndexPrimary: css`
+    border-color: ${token.colorPrimaryBorder};
+    color: ${token.colorPrimary};
+    background: ${token.colorPrimaryBg};
   `,
   reviewBox: css`
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: ${token.borderRadiusLG}px;
     padding: 16px;
-    background: #fff;
+    background: ${token.colorBgContainer};
   `,
   phaseCardTitle: css`
     display: flex;
@@ -242,7 +969,43 @@ const useStyles = createStyles(({ css, token }) => ({
     flex-wrap: wrap;
   `,
   phaseCardTitleText: css`
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.04em;
     margin: 0;
+  `,
+  reviewMetaBlock: css`
+    margin-top: 8px;
+  `,
+  reviewActions: css`
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  `,
+  motionSafe: css`
+    @media (prefers-reduced-motion: reduce) {
+      &,
+      * {
+        animation: none !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  `,
+  pageEnterItem: css`
+    will-change: opacity, transform;
+    animation: pageEnterItemFade 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--page-stagger, 0ms);
+    @keyframes pageEnterItemFade {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   `,
 }));
 
@@ -261,6 +1024,10 @@ const LearningPathPage: React.FC = () => {
     new Set(),
   );
   const [activePhaseKey, setActivePhaseKey] = useState<LearningPathPhaseKey>();
+  const [phaseMotionState, setPhaseMotionState] = useState<
+    'idle' | 'leaving' | 'entering'
+  >('idle');
+  const [selectedModuleId, setSelectedModuleId] = useState<string>();
   const [reviewHistory, setReviewHistory] = useState<
     API.SnailLearningPathReviewPayload[]
   >([]);
@@ -272,11 +1039,16 @@ const LearningPathPage: React.FC = () => {
   const [activeReviewTab, setActiveReviewTab] = useState<'weekly' | 'monthly'>(
     'weekly',
   );
+  const [activeResourceDetail, setActiveResourceDetail] =
+    useState<ActiveResourceDetail>();
+  const [resourceDrawerOpen, setResourceDrawerOpen] = useState(false);
+  const [resourceDrawerClosing, setResourceDrawerClosing] = useState(false);
   const [weeklyFileList, setWeeklyFileList] = useState<UploadFile[]>([]);
   const [monthlyFileList, setMonthlyFileList] = useState<UploadFile[]>([]);
   const [weeklyForm] = Form.useForm<ReviewFormValues>();
   const [monthlyForm] = Form.useForm<ReviewFormValues>();
   const learningRouteRef = useRef<HTMLDivElement | null>(null);
+  const phaseMotionTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const favoriteId = useMemo(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const favoriteIdValue = Number(searchParams.get('favorite_id'));
@@ -285,6 +1057,21 @@ const LearningPathPage: React.FC = () => {
     // URL 无参数时，fallback 到 localStorage（tab 切换后 URL 可能丢失参数）
     return loadFavoriteId();
   }, []);
+
+  const clearPhaseMotionTimers = () => {
+    for (const timer of phaseMotionTimersRef.current) {
+      clearTimeout(timer);
+    }
+    phaseMotionTimersRef.current = [];
+  };
+
+  useEffect(
+    () => () => {
+      clearPhaseMotionTimers();
+    },
+    [],
+  );
+
   // 每次有有效 favoriteId 时同步到 localStorage
   useEffect(() => {
     if (favoriteId) saveFavoriteId(favoriteId);
@@ -406,10 +1193,6 @@ const LearningPathPage: React.FC = () => {
     () => getCompletedModuleIds(phases, resourceCompletedSet),
     [phases, resourceCompletedSet],
   );
-  const overallProgress = useMemo(
-    () => getOverallProgress(phases, completedSet),
-    [phases, completedSet],
-  );
   const currentPhaseKey = useMemo(
     () => getCurrentPhaseKey(phases, completedSet),
     [phases, completedSet],
@@ -447,6 +1230,41 @@ const LearningPathPage: React.FC = () => {
       ),
     [activePhase, completedSet],
   );
+  useEffect(() => {
+    if (!activePhase?.learning_modules.length) {
+      setSelectedModuleId(undefined);
+      return;
+    }
+    setSelectedModuleId((previous) => {
+      if (
+        previous &&
+        activePhase.learning_modules.some(
+          (module) => module.module_id === previous,
+        )
+      ) {
+        return previous;
+      }
+      return nextModule?.module_id || activePhase.learning_modules[0].module_id;
+    });
+  }, [activePhase, nextModule]);
+  const selectedModule = useMemo(
+    () =>
+      activePhase?.learning_modules.find(
+        (module) => module.module_id === selectedModuleId,
+      ) ||
+      nextModule ||
+      activePhase?.learning_modules[0],
+    [activePhase, nextModule, selectedModuleId],
+  );
+  const selectedModuleResources = useMemo(
+    () =>
+      selectedModule && activePhase
+        ? getModuleResources(selectedModule, activePhase.phase_key, {
+            allowFallback: false,
+          })
+        : [],
+    [activePhase, selectedModule],
+  );
   const activePhaseProgress = useMemo(
     () =>
       activePhase
@@ -458,17 +1276,6 @@ const LearningPathPage: React.FC = () => {
     () => getCheckedResourceUrlsForPhase(activePhase, resourceCompletedSet),
     [activePhase, resourceCompletedSet],
   );
-  const completedPhasesBeforeActive = useMemo(() => {
-    if (!activePhase) return [];
-    const activeIndex = phases.findIndex(
-      (item) => item.phase_key === activePhase.phase_key,
-    );
-    return phases.slice(0, activeIndex).filter((phase) => {
-      const progress = getPhaseProgress(phase, completedSet);
-      return progress.total > 0 && progress.completed === progress.total;
-    });
-  }, [activePhase, completedSet, phases]);
-
   useEffect(() => {
     if (!workspace?.workspace_id || !activePhase?.phase_key) return;
     setReviewLoading(true);
@@ -499,9 +1306,37 @@ const LearningPathPage: React.FC = () => {
   const handlePhaseChange = (nextIndex: number) => {
     const phase = phases[nextIndex];
     if (!phase) return;
-    setActivePhaseKey(phase.phase_key);
-    saveActivePhaseKey(storageKey, phase.phase_key);
+    if (phaseMotionState === 'leaving') return;
+    if (phase.phase_key === activePhase?.phase_key) return;
+
+    clearPhaseMotionTimers();
+    const prefersReducedMotion = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+
+    if (prefersReducedMotion) {
+      setActivePhaseKey(phase.phase_key);
+      saveActivePhaseKey(storageKey, phase.phase_key);
+      setReviewDrawerOpen(false);
+      setResourceDrawerOpen(false);
+      setActiveResourceDetail(undefined);
+      return;
+    }
+
+    setPhaseMotionState('leaving');
+    phaseMotionTimersRef.current = [
+      setTimeout(() => {
+        setActivePhaseKey(phase.phase_key);
+        saveActivePhaseKey(storageKey, phase.phase_key);
+        setPhaseMotionState('entering');
+      }, 200),
+      setTimeout(() => {
+        setPhaseMotionState('idle');
+      }, 620),
+    ];
     setReviewDrawerOpen(false);
+    setResourceDrawerOpen(false);
+    setActiveResourceDetail(undefined);
   };
 
   const handleToggleResource = (
@@ -527,6 +1362,63 @@ const LearningPathPage: React.FC = () => {
     });
   };
 
+  const handleToggleModuleResources = (
+    phaseKey: LearningPathPhaseKey,
+    module: API.GrowthPlanLearningModule,
+    checked: boolean,
+  ) => {
+    const resources = getModuleResources(module, phaseKey, {
+      allowFallback: false,
+    });
+    if (!resources.length) return;
+    setResourceCompletedSet((previous) => {
+      const next = new Set(previous);
+      resources.forEach((resource, index) => {
+        const resourceId = getResourceCompletionId(
+          phaseKey,
+          module.module_id,
+          resource,
+          index,
+        );
+        if (checked) next.add(resourceId);
+        else next.delete(resourceId);
+      });
+      saveCompletedResources(storageKey, next);
+      saveCompletedModules(storageKey, getCompletedModuleIds(phases, next));
+      return next;
+    });
+  };
+
+  const openResourceDetail = (
+    phaseKey: LearningPathPhaseKey,
+    module: API.GrowthPlanLearningModule,
+    resource: LearningResource,
+    resourceIndex: number,
+  ) => {
+    setActiveResourceDetail({
+      phaseKey,
+      moduleId: module.module_id,
+      moduleTitle: getModuleDisplayTitle(module),
+      resource,
+      resourceIndex,
+    });
+    setResourceDrawerOpen(true);
+  };
+
+  const handleResourceDrawerClose = () => {
+    setResourceDrawerClosing(true);
+    setResourceDrawerOpen(false);
+  };
+
+  const handleResourceDrawerAfterOpenChange = (open: boolean) => {
+    if (open) {
+      setResourceDrawerClosing(false);
+    } else {
+      setResourceDrawerClosing(false);
+      setActiveResourceDetail(undefined);
+    }
+  };
+
   const uploadProps = (
     fileList: UploadFile[],
     setter: React.Dispatch<React.SetStateAction<UploadFile[]>>,
@@ -541,7 +1433,8 @@ const LearningPathPage: React.FC = () => {
   const nativeFiles = (fileList: UploadFile[]) =>
     fileList
       .map((item) => item.originFileObj)
-      .filter((item): item is File => item instanceof File);
+      .filter(Boolean)
+      .map((item) => item as File);
 
   const submitReview = async (reviewType: 'weekly' | 'monthly') => {
     if (!workspace?.workspace_id || !activePhase || !report) return;
@@ -847,7 +1740,7 @@ const LearningPathPage: React.FC = () => {
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <div>
               <Text type="secondary">本次将用于分析的网站</Text>
-              <div style={{ marginTop: 8 }}>
+              <div className={styles.reviewMetaBlock}>
                 {checkedResourceUrls.length ? (
                   <Space wrap>
                     {checkedResourceUrls.map((url) => (
@@ -891,14 +1784,7 @@ const LearningPathPage: React.FC = () => {
               支持 txt / md / docx / json / csv / html /
               代码文件，系统会抽取可读文本后参与分析。
             </Text>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 12,
-                flexWrap: 'wrap',
-              }}
-            >
+            <div className={styles.reviewActions}>
               <Text type="secondary">
                 当前阶段：
                 {activePhase?.phase_label ||
@@ -992,6 +1878,135 @@ const LearningPathPage: React.FC = () => {
     );
   };
 
+  const renderResourceDetailDrawer = () => {
+    if (!activeResourceDetail) return null;
+    const { phaseKey, moduleId, moduleTitle, resource, resourceIndex } =
+      activeResourceDetail;
+    const resourceId = getResourceCompletionId(
+      phaseKey,
+      moduleId,
+      resource,
+      resourceIndex,
+    );
+    const checked = resourceCompletedSet.has(resourceId);
+    const detailRows = [
+      {
+        key: 'whyLearn',
+        label: '为什么学这条资源？',
+        text: resource.whyLearn,
+        icon: <ThunderboltOutlined />,
+      },
+      {
+        key: 'learnWhat',
+        label: '学习内容',
+        text: resource.learnWhat,
+        icon: <BookOutlined />,
+      },
+      {
+        key: 'doneWhen',
+        label: '完成后你能做到',
+        text: resource.doneWhen,
+        icon: <FileDoneOutlined />,
+      },
+    ].filter((item) => item.text);
+
+    return (
+      <Drawer
+        title={
+          <div className={styles.resourceDrawerTitle}>
+            <Text strong>{resource.title}</Text>
+            <Text type="secondary">{moduleTitle}</Text>
+          </div>
+        }
+        placement="right"
+        width={460}
+        open={resourceDrawerOpen}
+        onClose={handleResourceDrawerClose}
+        afterOpenChange={handleResourceDrawerAfterOpenChange}
+        destroyOnClose
+      >
+        <div
+          data-testid="resource-detail-drawer"
+          className={resourceDrawerClosing ? styles.drawerClosing : undefined}
+        >
+          <div className={styles.resourceDrawerHeader}>
+            <div
+              className={cx(styles.resourceLogo, styles.resourceDrawerLogo)}
+              aria-hidden={!resource.logoUrl}
+            >
+              <span>{getResourceLogoFallbackText(resource.title)}</span>
+              {resource.logoUrl ? (
+                <img
+                  src={resource.logoUrl}
+                  alt={resource.logoAlt || `${resource.title} logo`}
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+            </div>
+            <div className={styles.resourceMeta}>
+              <Text strong>{resource.title}</Text>
+              <Text type="secondary">{resource.url}</Text>
+            </div>
+            <div className={styles.resourceDrawerActions}>
+              <Tag color={checked ? 'success' : 'default'}>
+                {checked ? '已完成' : '未完成'}
+              </Tag>
+              <Checkbox
+                checked={checked}
+                onChange={(event) =>
+                  handleToggleResource(
+                    phaseKey,
+                    moduleId,
+                    resource,
+                    resourceIndex,
+                    event.target.checked,
+                  )
+                }
+              >
+                已打卡
+              </Checkbox>
+              <Button
+                type="primary"
+                href={resource.url}
+                target="_blank"
+              >
+                去学习
+              </Button>
+            </div>
+          </div>
+
+          <div className={styles.resourceDetailPanel}>
+            {detailRows.length ? (
+              detailRows.map((item) => (
+                <div key={item.key} className={styles.resourceDetailRow}>
+                  <span className={styles.resourceDetailIcon}>
+                    {item.icon}
+                  </span>
+                  <div className={styles.resourceDetailContent}>
+                    <div className={styles.resourceDetailLabel}>
+                      {item.label}
+                    </div>
+                    <div className={styles.resourceDetailText}>
+                      {item.text}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="暂无资源详情"
+              />
+            )}
+          </div>
+        </div>
+      </Drawer>
+    );
+  };
+
   const openReviewDrawer = (reviewType: 'weekly' | 'monthly' = 'weekly') => {
     setActiveReviewTab(reviewType);
     setReviewDrawerOpen(true);
@@ -1005,8 +2020,6 @@ const LearningPathPage: React.FC = () => {
       description: preparation.hasFavorite
         ? '当前目标岗位已绑定到本次学习路径。'
         : '请先前往"职业匹配"选择推荐岗位并完成收藏。',
-      actionText: '前往职业匹配',
-      actionPath: '/student-competency-profile',
     },
     {
       key: 'profile',
@@ -1015,8 +2028,6 @@ const LearningPathPage: React.FC = () => {
       description: preparation.hasProfile
         ? '我的资料已补充完成。'
         : '请先前往"首页"完善姓名、学校、专业、学历、年级和目标岗位。',
-      actionText: '前往首页',
-      actionPath: '/',
     },
     {
       key: 'analysis',
@@ -1025,8 +2036,6 @@ const LearningPathPage: React.FC = () => {
       description: preparation.hasLatestAnalysis
         ? '已读取最新的 12 维解析结果。'
         : '请先前往"简历解析"完成 12 维解析。',
-      actionText: '前往简历解析',
-      actionPath: '/student-competency-profile',
     },
     {
       key: 'workspace',
@@ -1035,8 +2044,6 @@ const LearningPathPage: React.FC = () => {
       description: preparation.hasWorkspace
         ? '当前目标岗位已生成专属学习路径工作台。'
         : '满足前置条件后，系统会自动初始化蜗牛学习路径工作台。',
-      actionText: '返回职业匹配',
-      actionPath: '/student-competency-profile',
     },
   ];
   const primaryGuidancePath = !preparation.hasFavorite
@@ -1050,83 +2057,93 @@ const LearningPathPage: React.FC = () => {
       ? '前往首页'
       : '前往简历解析';
   const preparationCard = (
-    <Card className={styles.introCard} title="开始前准备">
-      <List
-        dataSource={preparationItems}
-        renderItem={(item) => (
-          <List.Item
-            actions={
-              item.ready
-                ? [
-                    <Tag color="success" key={`${item.key}-ready`}>
-                      已就绪
-                    </Tag>,
-                  ]
-                : [
-                    <Button
-                      key={`${item.key}-action`}
-                      type="link"
-                      onClick={() => history.push(item.actionPath)}
-                    >
-                      {item.actionText}
-                    </Button>,
-                  ]
-            }
+    <div className={styles.statusStrip}>
+      <div className={styles.statusItems}>
+        {preparationItems.map((item) => (
+          <span
+            key={item.key}
+            className={cx(
+              styles.statusItem,
+              item.ready && styles.statusItemReady,
+            )}
+            title={item.description}
           >
-            <List.Item.Meta title={item.label} description={item.description} />
-          </List.Item>
-        )}
-      />
-    </Card>
+            <span
+              className={cx(
+                styles.statusDot,
+                item.ready && styles.statusDotReady,
+              )}
+            />
+            {item.label}
+          </span>
+        ))}
+      </div>
+      {!preparationItems.every((item) => item.ready) ? (
+        <Button
+          type="link"
+          size="small"
+          onClick={() => history.push(primaryGuidancePath)}
+        >
+          {primaryGuidanceText}
+        </Button>
+      ) : (
+        <Tag color="success">准备完成</Tag>
+      )}
+    </div>
   );
 
   if (loading) {
     return (
       <PageContainer title={false}>
         <div className={styles.page} data-testid="learning-path-skeleton">
-          <Card className={styles.introCard}>
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              <div className={styles.introHeader}>
-                <div style={{ minWidth: 280 }}>
-                  <Skeleton.Button
-                    active
-                    size="small"
-                    style={{ width: 140, marginBottom: 12 }}
-                  />
-                  <Skeleton.Input active style={{ width: 260, height: 32 }} />
-                </div>
-                <Space direction="vertical" size={8} align="end">
-                  <Skeleton.Button active size="small" style={{ width: 96 }} />
-                  <Skeleton.Button active size="small" style={{ width: 128 }} />
-                </Space>
-              </div>
-              <div className={styles.summaryRow}>
-                {[0, 1, 2].map((item) => (
-                  <Card key={item}>
-                    <Skeleton active paragraph={{ rows: 2 }} title={false} />
-                  </Card>
-                ))}
-              </div>
-            </Space>
-          </Card>
-          <Card className={styles.section}>
-            <Skeleton active title paragraph={{ rows: 1 }} />
-          </Card>
-          <Card className={styles.currentPhaseCard}>
-            <Space direction="vertical" size={20} style={{ width: '100%' }}>
-              <Skeleton active paragraph={{ rows: 2 }} />
+          <div className={styles.statusStrip}>
+            <Skeleton.Button
+              active
+              size="small"
+              style={{ width: 560, maxWidth: '100%' }}
+            />
+            <Skeleton.Button active size="small" style={{ width: 88 }} />
+          </div>
+          <div className={styles.heroPanel}>
+            <div className={styles.heroTop}>
               <div>
-                <Title level={5}>去哪里学</Title>
-                <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                  {[0, 1].map((item) => (
-                    <div key={item} className={styles.resourceModule}>
-                      <Skeleton active paragraph={{ rows: 3 }} />
-                    </div>
-                  ))}
-                </Space>
+                <Skeleton.Button
+                  active
+                  size="small"
+                  style={{ width: 160, marginBottom: 12 }}
+                />
+                <Skeleton.Input active style={{ width: 280, height: 32 }} />
               </div>
-            </Space>
-          </Card>
+              <Skeleton.Button active size="small" style={{ width: 136 }} />
+            </div>
+            <div className={styles.metricGrid}>
+              {[...Array(METRIC_COUNT).keys()].map((item) => (
+                <div key={item} className={styles.metricCell}>
+                  <Skeleton active paragraph={{ rows: 1 }} title={false} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={styles.phaseTimeline}>
+            {[0, 1, 2].map((item) => (
+              <div key={item} className={styles.phaseNode}>
+                <Skeleton active paragraph={{ rows: 2 }} title={false} />
+              </div>
+            ))}
+          </div>
+          <div className={styles.workspaceShell}>
+            <div className={styles.workspaceHeader}>
+              <Skeleton active paragraph={{ rows: 1 }} />
+            </div>
+            <div className={styles.workspaceBody}>
+              <div className={styles.workspacePane}>
+                <Skeleton active paragraph={{ rows: 5 }} />
+              </div>
+              <div className={styles.workspacePane}>
+                <Skeleton active paragraph={{ rows: 7 }} />
+              </div>
+            </div>
+          </div>
         </div>
       </PageContainer>
     );
@@ -1179,9 +2196,6 @@ const LearningPathPage: React.FC = () => {
     );
   }
 
-  const activeIndex = phases.findIndex(
-    (item) => item.phase_key === activePhase.phase_key,
-  );
   const activeStatus =
     activePhaseProgress.total > 0 &&
     activePhaseProgress.completed === activePhaseProgress.total
@@ -1189,16 +2203,109 @@ const LearningPathPage: React.FC = () => {
       : activePhase.phase_key === currentPhaseKey
         ? '进行中'
         : '查看中';
+  const activeStageTitle =
+    activePhase.phase_label || PHASE_LABELS[activePhase.phase_key];
+  const activePhaseCompletionPercent = activePhaseProgress.percent;
+  const matchPercent = Math.round(report.overall_match);
+  const topStatusBar = (
+    <div
+      className={cx(styles.pageEnterItem)}
+      style={{ '--page-stagger': '0ms' } as React.CSSProperties}
+    >
+      <div className={styles.statusStrip}>
+        <div className={styles.topStatusPrimary}>
+          <span
+            className={styles.statusRing}
+            role="img"
+            aria-label={`当前阶段完成度 ${activePhaseCompletionPercent}%`}
+          >
+            <Progress
+              type="circle"
+              size={44}
+              percent={activePhaseCompletionPercent}
+              strokeWidth={10}
+            />
+          </span>
+          <div>
+            <div className={styles.statusTitleLine}>
+              <span className={styles.statusTitle}>
+                {activeStageTitle} · {activePhase.time_horizon}
+              </span>
+              <Tag color={activeStatus === '已完成' ? 'success' : 'processing'}>
+                {activeStatus}
+              </Tag>
+            </div>
+            <div className={styles.statusItems}>
+              {preparationItems.map((item) => (
+                <span
+                  key={item.key}
+                  className={cx(
+                    styles.statusItem,
+                    item.ready && styles.statusItemReady,
+                  )}
+                  title={item.description}
+                >
+                  <span
+                    className={cx(
+                      styles.statusDot,
+                      item.ready && styles.statusDotReady,
+                    )}
+                  />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className={styles.statusTargetCard}>
+          <div>
+            <Text type="secondary">专注职业目标</Text>
+            <div>
+              <Text strong>
+                当前目标为{report.target_title}，推进基础知识学习。
+              </Text>
+            </div>
+          </div>
+          <div className={styles.statusActionGroup}>
+            <Button
+              icon={<SendOutlined />}
+              onClick={() => openReviewDrawer('weekly')}
+            >
+              提交学习进度
+            </Button>
+            <Button
+              icon={<EditOutlined />}
+              onClick={() =>
+                history.push(
+                  `/personal-growth-report?favorite_id=${favoriteId}`,
+                )
+              }
+            >
+              编辑计划
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <PageContainer title={false}>
-      <div className={styles.page}>
-        {preparationCard}
-        <Card className={styles.introCard}>
-          <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <div className={styles.introHeader}>
+      <div className={cx(styles.page, styles.motionSafe)}>
+        <div
+          className={cx(styles.pageEnterItem)}
+          style={{ '--page-stagger': '0ms' } as React.CSSProperties}
+        >
+          {topStatusBar}
+        </div>
+        <div
+          className={cx(styles.pageEnterItem)}
+          style={{ '--page-stagger': '70ms' } as React.CSSProperties}
+        >
+          <div className={styles.heroPanel}>
+            <div className={styles.heroTop}>
               <div>
-                <Space wrap size={12}>
+                <div className={styles.heroMeta}>
                   <Button
                     type="text"
                     icon={<ArrowLeftOutlined />}
@@ -1208,328 +2315,567 @@ const LearningPathPage: React.FC = () => {
                   </Button>
                   <Tag color="processing">{report.target_title}</Tag>
                   {report.industry ? <Tag>{report.industry}</Tag> : null}
-                </Space>
-                <Title level={3} style={{ margin: '8px 0 0' }}>
+                </div>
+                <Title level={2} className={styles.heroTitle}>
                   蜗牛学习路径
                 </Title>
-              </div>
-              <Space direction="vertical" size={8} align="end">
-                <Text type="secondary">
-                  匹配度 {Math.round(report.overall_match)}%
+                <Text className={styles.heroSubtitle}>
+                  根据你的职业目标和学习进度，蜗牛帮助你规划合理的学习路径，逐步完成能力提升。
                 </Text>
-              </Space>
-            </div>
-            <div className={styles.summaryRow}>
-              <Card size="small" className={styles.summaryPrimary}>
-                <div className={styles.summaryLead}>
-                  <div className={styles.summaryStageMeta}>
-                    <Text type="secondary">阶段</Text>
-                    <Tag color="blue">{activePhase.time_horizon}</Tag>
+              </div>
+              <div className={styles.heroGoalPanel}>
+                <div className={styles.heroGoalLine}>
+                  <Text type="secondary">当前目标</Text>
+                  <Tag color="blue">{report.target_title}</Tag>
+                </div>
+                <div className={styles.heroGoalLine}>
+                  <Text type="secondary">当前阶段</Text>
+                  <Text strong>
+                    {activeStageTitle}（{activePhase.time_horizon}）
+                  </Text>
+                </div>
+                <div>
+                  <div className={styles.heroGoalLine}>
+                    <Text type="secondary">目标完成度</Text>
+                    <Text strong>{activePhaseCompletionPercent}%</Text>
                   </div>
-                  <Title level={2} className={styles.phaseCardTitleText}>
-                    {activePhase.phase_label ||
-                      PHASE_LABELS[activePhase.phase_key]}
+                  <Progress
+                    percent={activePhaseCompletionPercent}
+                    showInfo={false}
+                  />
+                </div>
+                <div className={styles.heroActions}>
+                  <Button onClick={() => openReviewDrawer('weekly')}>
+                    提交进度
+                  </Button>
+                  <Button type="primary" onClick={handleContinue}>
+                    继续学习
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className={styles.metricGrid}>
+              <div className={cx(styles.metricCell, styles.metricCellPrimary)}>
+                <span className={styles.metricIcon}>
+                  <CalendarOutlined />
+                </span>
+                <div>
+                  <Text type="secondary">当前阶段</Text>
+                  <Title level={3} className={styles.metricValue}>
+                    {activeStageTitle}
                   </Title>
-                  <div className={styles.summaryNextModule}>
-                    <Text type="secondary">当前模块</Text>
+                  <Text type="secondary">{activePhase.time_horizon}</Text>
+                </div>
+              </div>
+              <div className={styles.metricCell}>
+                <span className={styles.metricIcon}>
+                  <FlagOutlined />
+                </span>
+                <div>
+                  <Text type="secondary">匹配度</Text>
+                  <Title level={3} className={styles.metricValue}>
+                    {matchPercent}%
+                  </Title>
+                  <Progress
+	                    className={styles.compactProgress}
+	                    percent={matchPercent}
+	                    showInfo={false}
+	                  />
+                </div>
+              </div>
+              <div className={styles.metricCell}>
+                <span className={styles.metricIcon}>
+                  <FileDoneOutlined />
+                </span>
+                <div>
+                  <Text type="secondary">内容完成度</Text>
+                  <Title level={3} className={styles.metricValue}>
+                    {Math.round(
+                      workspace?.metric_snapshot?.learning_completion_rate ?? 0,
+                    )}
+                    %
+                  </Title>
+                  <Progress
+                    className={styles.compactProgress}
+                    percent={Math.round(
+                      workspace?.metric_snapshot?.learning_completion_rate ?? 0,
+                    )}
+                    showInfo={false}
+                  />
+                </div>
+              </div>
+              <div className={styles.metricCell}>
+                <span className={styles.metricIcon}>
+                  <ThunderboltOutlined />
+                </span>
+                <div>
+                  <Text type="secondary">实践完成度</Text>
+                  <Title level={3} className={styles.metricValue}>
+                    {Math.round(
+                      workspace?.metric_snapshot?.practice_completion_rate ?? 0,
+                    )}
+                    %
+                  </Title>
+                  <Progress
+                    className={styles.compactProgress}
+                    percent={Math.round(
+                      workspace?.metric_snapshot?.practice_completion_rate ?? 0,
+                    )}
+                    showInfo={false}
+                  />
+                </div>
+              </div>
+              <div className={styles.metricCell}>
+                <span className={styles.metricIcon}>
+                  <BookOutlined />
+                </span>
+                <div>
+                  <Text type="secondary">当前模块</Text>
+                  <div>
                     <Text strong>
                       {nextModule
                         ? getModuleDisplayTitle(nextModule)
                         : '已完成'}
                     </Text>
                   </div>
-                  <Button type="primary" onClick={handleContinue}>
-                    继续学习
-                  </Button>
+                  <Text type="secondary">
+                    {activePhaseProgress.completed}/{activePhaseProgress.total}{' '}
+                    个模块
+                  </Text>
                 </div>
-              </Card>
-              <Card size="small">
-                <Text type="secondary">整体进度</Text>
-                <Title level={3} className={styles.metricValue}>
-                  {overallProgress.percent}%
-                </Title>
-                <Progress percent={overallProgress.percent} showInfo={false} />
-              </Card>
-              <Card size="small">
-                <Text type="secondary">当前阶段进度</Text>
-                <Title level={3} className={styles.metricValue}>
-                  {activePhaseProgress.completed}/{activePhaseProgress.total}
-                </Title>
-                <Progress
-                  percent={activePhaseProgress.percent}
-                  showInfo={false}
-                />
-              </Card>
-            </div>
-          </Space>
-        </Card>
-
-        <Card
-          title="路径总览"
-          style={{ marginBottom: 16 }}
-          extra={
-            <Button type="primary" onClick={() => openReviewDrawer('weekly')}>
-              周检查 / 月检查
-            </Button>
-          }
-        >
-          <Steps
-            type="navigation"
-            current={Math.max(activeIndex, 0)}
-            onChange={handlePhaseChange}
-            items={phases.map((phase) => {
-              const progress = getPhaseProgress(phase, completedSet);
-              return {
-                title: phase.phase_label || PHASE_LABELS[phase.phase_key],
-                description:
-                  progress.total > 0 && progress.completed === progress.total
-                    ? '已完成'
-                    : phase.time_horizon,
-                status:
-                  progress.total > 0 && progress.completed === progress.total
-                    ? 'finish'
-                    : phase.phase_key === activePhase.phase_key ||
-                        phase.phase_key === currentPhaseKey
-                      ? 'process'
-                      : 'wait',
-              };
-            })}
-          />
-        </Card>
-
-        {completedPhasesBeforeActive.length ? (
-          <div className={styles.compactPhaseRow}>
-            {completedPhasesBeforeActive.map((phase) => (
-              <div key={phase.phase_key} className={styles.compactPhaseTag}>
-                <CheckCircleFilled />
-                <span>
-                  已完成 {phase.phase_label || PHASE_LABELS[phase.phase_key]}{' '}
-                  计划
-                </span>
               </div>
-            ))}
+            </div>
           </div>
-        ) : null}
+        </div>
 
-        <div className={styles.phaseMotion}>
-          <Card
-            className={styles.currentPhaseCard}
-            title={
+        <div
+          className={cx(styles.pageEnterItem)}
+          style={{ '--page-stagger': '140ms' } as React.CSSProperties}
+        >
+          <div className={styles.phaseTimeline}>
+            {phases.map((phase, index) => {
+              const progress = getPhaseProgress(phase, completedSet);
+              const isActive = phase.phase_key === activePhase.phase_key;
+              const isDone =
+                progress.total > 0 && progress.completed === progress.total;
+              const isCurrent = phase.phase_key === currentPhaseKey;
+              const stateText = isDone
+                ? '已完成'
+                : isCurrent
+                  ? '进行中'
+                  : '未开始';
+              return (
+                <button
+                  key={phase.phase_key}
+                  type="button"
+                  className={cx(
+                    styles.phaseNode,
+                    phase.phase_key === 'short_term' && styles.phaseNodeShort,
+                    phase.phase_key === 'mid_term' && styles.phaseNodeMid,
+                    phase.phase_key === 'long_term' && styles.phaseNodeLong,
+                    isActive && styles.phaseNodeActive,
+                  )}
+                  onClick={() => handlePhaseChange(index)}
+                >
+                  <div className={styles.phaseNodeContent}>
+                    <div className={styles.phaseNodeHead}>
+                      <span
+                        className={cx(
+                          styles.phaseIndex,
+                          isActive && styles.phaseIndexActive,
+                        )}
+                      >
+                        {isDone ? <CheckCircleFilled /> : index + 1}
+                      </span>
+                      <Tag
+                        color={
+                          isDone
+                            ? 'success'
+                            : isCurrent
+                              ? 'processing'
+                              : 'default'
+                        }
+                      >
+                        {stateText}
+                      </Tag>
+                    </div>
+                    <div className={styles.phaseNodeTitle}>
+                      <Text strong>
+                        {phase.phase_label || PHASE_LABELS[phase.phase_key]}
+                      </Text>
+                      <Text type="secondary">{phase.time_horizon}</Text>
+                    </div>
+                    <Progress
+                      percent={progress.percent}
+                      showInfo={false}
+                      size="small"
+                    />
+                    <div className={styles.phaseNodeFooter}>
+                      <span>
+                        {progress.completed}/{progress.total} 模块
+                      </span>
+                      <span>{progress.percent}%</span>
+                    </div>
+                  </div>
+                  <div className={styles.phaseVisual}>
+                    {getPhaseVisualIcon(phase.phase_key)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={cx(styles.pageEnterItem)}
+        style={{ '--page-stagger': '210ms' } as React.CSSProperties}
+      >
+        <div
+          className={cx(
+            styles.phaseMotion,
+            phaseMotionState === 'leaving'
+              ? styles.phaseWorkspaceLeave
+              : styles.phaseWorkspaceEnter,
+          )}
+          key={activePhase.phase_key}
+        >
+          <div className={styles.workspaceShell}>
+            <div className={styles.workspaceHeader}>
               <div className={styles.phaseCardTitle}>
                 <Title level={2} className={styles.phaseCardTitleText}>
                   {activePhase.phase_label ||
                     PHASE_LABELS[activePhase.phase_key]}
                 </Title>
                 <Tag>{activePhase.time_horizon}</Tag>
+                <Tag color={activeStatus === '已完成' ? 'success' : 'blue'}>
+                  {activeStatus}
+                </Tag>
               </div>
-            }
-            extra={
-              <Tag color={activeStatus === '已完成阶段' ? 'success' : 'blue'}>
-                {activeStatus}
-              </Tag>
-            }
-          >
-            <div className={styles.section}>
-              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                <Title level={5} style={{ margin: 0 }}>
-                  阶段进度
-                </Title>
-                <Text type="secondary">
-                  {activePhaseProgress.completed}/{activePhaseProgress.total}
-                </Text>
-              </Space>
-              <Progress percent={activePhaseProgress.percent} />
+              <div className={styles.reviewToolbar}>
+                <Button onClick={() => openReviewDrawer('weekly')}>
+                  提交周检查
+                </Button>
+                <Button onClick={() => openReviewDrawer('monthly')}>
+                  提交月评
+                </Button>
+              </div>
             </div>
-
-            <div className={styles.section} ref={learningRouteRef}>
-              <Title level={5}>学习模块</Title>
-              {activePhase.learning_modules.length ? (
-                <div className={styles.routeList}>
-                  {activePhase.learning_modules.map((module) => {
-                    const moduleStatus = getModuleCompletionStatus(
-                      activePhase.phase_key,
-                      module,
-                      resourceCompletedSet,
-                    );
-                    const isCurrentModule =
-                      !moduleStatus.done &&
-                      nextModule?.module_id === module.module_id;
-                    const moduleStateLabel = moduleStatus.done
-                      ? '已完成'
-                      : isCurrentModule
-                        ? '进行中'
-                        : '未开始';
-                    const moduleStateColor = moduleStatus.done
-                      ? 'success'
-                      : isCurrentModule
-                        ? 'processing'
-                        : 'default';
-                    return (
-                      <div
-                        key={module.module_id}
-                        className={cx(
-                          styles.routeItem,
-                          isCurrentModule && styles.routeItemCurrent,
-                        )}
-                      >
-                        <div className={styles.routeItemMeta}>
-                          <div className={styles.routeItemHead}>
-                            <Text strong>{getModuleDisplayTitle(module)}</Text>
-                            <Tag color={moduleStateColor}>
-                              {moduleStateLabel}
-                            </Tag>
-                          </div>
-                          <div className={styles.routeItemDesc}>
-                            {getModuleDisplayDescription(module)}
-                          </div>
-                        </div>
-                        <div className={styles.routeItemStats}>
-                          <Text strong>
-                            {moduleStatus.completed}/{moduleStatus.total}
-                          </Text>
-                          <Text type="secondary">进度</Text>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className={styles.workspaceBody}>
+              <div
+                className={cx(styles.workspacePane, styles.workspacePaneMuted)}
+                ref={learningRouteRef}
+              >
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <Title level={5} className={styles.phaseCardTitleText}>
+                      学习模块
+                    </Title>
+                    <Text type="secondary">
+                      {activePhaseProgress.completed}/
+                      {activePhaseProgress.total}
+                    </Text>
+                  </div>
+                  <Progress percent={activePhaseProgress.percent} />
+                  <div className={styles.phaseGoalBox}>
+                    <Text strong>本阶段目标</Text>
+                    <Text className={styles.clampText}>
+                      {activePhase.goal_statement ||
+                        '完成当前阶段学习模块，沉淀可复用的学习证据。'}
+                    </Text>
+                  </div>
                 </div>
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="暂无学习模块"
-                />
-              )}
-            </div>
-
-            <div className={styles.section}>
-              <Title level={5}>去哪里学</Title>
-              <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                {activePhase.learning_modules.length ? (
-                  activePhase.learning_modules.map((module) => {
-                    const resources = getModuleResources(
-                      module,
-                      activePhase.phase_key,
-                      { allowFallback: false },
-                    );
-                    return (
-                      <div
-                        key={module.module_id}
-                        className={styles.resourceModule}
-                      >
-                        <Space
-                          direction="vertical"
-                          size={12}
-                          style={{ width: '100%' }}
-                        >
-                          <div>
-                            <Text strong>{getModuleDisplayTitle(module)}</Text>
-                          </div>
-                          {resources.length ? (
-                            <List
-                              dataSource={resources}
-                              renderItem={(resource, index) => {
-                                const resourceId = getResourceCompletionId(
-                                  activePhase.phase_key,
-                                  module.module_id,
-                                  resource,
-                                  index,
-                                );
-                                const checked =
-                                  resourceCompletedSet.has(resourceId);
-                                return (
-                                  <List.Item>
-                                    <div className={styles.resourceRow}>
-                                      <div className={styles.resourceMeta}>
-                                        <Text strong>{resource.title}</Text>
-                                        <Text type="secondary">
-                                          学什么：{resource.learnWhat}
-                                        </Text>
-                                        <Text type="secondary">
-                                          为什么学：{resource.whyLearn}
-                                        </Text>
-                                        <Text type="secondary">
-                                          完成标准：{resource.doneWhen}
-                                        </Text>
-                                      </div>
-                                      <Space
-                                        direction="vertical"
-                                        size={8}
-                                        align="end"
-                                      >
-                                        <Checkbox
-                                          checked={checked}
-                                          onChange={(event) =>
-                                            handleToggleResource(
-                                              activePhase.phase_key,
-                                              module.module_id,
-                                              resource,
-                                              index,
-                                              event.target.checked,
-                                            )
-                                          }
-                                        >
-                                          已打卡
-                                        </Checkbox>
-                                        <Button
-                                          type="link"
-                                          href={resource.url}
-                                          target="_blank"
-                                        >
-                                          去学习
-                                        </Button>
-                                      </Space>
-                                    </div>
-                                  </List.Item>
-                                );
-                              }}
-                            />
-                          ) : (
-                            <div
-                              data-testid={`resource-empty-${module.module_id}`}
+                <div className={styles.section}>
+                  {activePhase.learning_modules.length ? (
+                    <div className={styles.moduleRail}>
+                      {activePhase.learning_modules.map((module, index) => {
+                        const moduleStatus = getModuleCompletionStatus(
+                          activePhase.phase_key,
+                          module,
+                          resourceCompletedSet,
+                        );
+                        const isCurrentModule =
+                          !moduleStatus.done &&
+                          nextModule?.module_id === module.module_id;
+                        const moduleStateLabel = moduleStatus.done
+                          ? '已完成'
+                          : isCurrentModule
+                            ? '进行中'
+                            : '未开始';
+                        const moduleStateColor = moduleStatus.done
+                          ? 'success'
+                          : isCurrentModule
+                            ? 'processing'
+                            : 'default';
+                        const isSelectedModule =
+                          selectedModule?.module_id === module.module_id;
+                        return (
+                          <button
+                            key={module.module_id}
+                            type="button"
+                            className={cx(
+                              styles.moduleStep,
+                              styles.moduleItemMotion,
+                              isSelectedModule && styles.moduleStepSelected,
+                            )}
+                            style={
+                              {
+                                '--module-index': index,
+                              } as React.CSSProperties
+                            }
+                            aria-pressed={isSelectedModule}
+                            onClick={() =>
+                              setSelectedModuleId(module.module_id)
+                            }
+                          >
+                            <span
+                              className={cx(
+                                styles.moduleDot,
+                                moduleStatus.done && styles.moduleDotDone,
+                                isCurrentModule && styles.moduleDotCurrent,
+                              )}
                             >
-                              <Empty
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                description={
-                                  module.resource_status === 'failed'
-                                    ? module.resource_error_message ||
-                                      '暂未生成可用学习资源'
-                                    : '暂未生成可用学习资源'
+                              {moduleStatus.done ? (
+                                <CheckCircleFilled />
+                              ) : (
+                                index + 1
+                              )}
+                            </span>
+                            <div className={styles.moduleMeta}>
+                              <div className={styles.moduleHead}>
+                                <Text strong>
+                                  {getModuleDisplayTitle(module)}
+                                </Text>
+                                <Tag color={moduleStateColor}>
+                                  {moduleStateLabel}
+                                </Tag>
+                              </div>
+                              <Text className={styles.clampText}>
+                                {getModuleDisplayDescription(module)}
+                              </Text>
+                            </div>
+                            <div className={styles.moduleStats}>
+                              <Checkbox
+                                checked={moduleStatus.done}
+                                indeterminate={
+                                  moduleStatus.completed > 0 &&
+                                  !moduleStatus.done
+                                }
+                                disabled={!moduleStatus.total}
+                                onClick={(event) => event.stopPropagation()}
+                                onChange={(event) =>
+                                  handleToggleModuleResources(
+                                    activePhase.phase_key,
+                                    module,
+                                    event.target.checked,
+                                  )
                                 }
                               />
+                              <Text strong>
+                                {moduleStatus.completed}/{moduleStatus.total}
+                              </Text>
+                              <span>资源</span>
                             </div>
-                          )}
-                        </Space>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="暂无学习资源"
-                  />
-                )}
-              </Space>
-            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="暂无学习模块"
+                    />
+                  )}
+                </div>
 
-            <div className={styles.section}>
-              <Title level={5}>动手任务</Title>
-              <List
-                size="small"
-                dataSource={activePhase.practice_actions}
-                locale={{ emptyText: '暂无动手任务' }}
-                renderItem={(action) => (
-                  <List.Item>
-                    <Space direction="vertical" size={4}>
-                      <Text strong>{getActionTaskTitle(action)}</Text>
-                      <Text type="secondary">
-                        {getActionTaskDescription(action)}
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <Title level={5} className={styles.phaseCardTitleText}>
+                      动手任务
+                    </Title>
+                  </div>
+                  {activePhase.practice_actions.length ? (
+                    activePhase.practice_actions.map((action, index) => (
+                      <div
+                        key={`${action.action_type}-${action.title}`}
+                        className={cx(styles.taskLine, styles.moduleItemMotion)}
+                        style={
+                          {
+                            '--module-index':
+                              activePhase.learning_modules.length + index,
+                          } as React.CSSProperties
+                        }
+                      >
+                        <span
+                          className={cx(
+                            styles.taskIndex,
+                            index === 0 && styles.taskIndexPrimary,
+                          )}
+                        >
+                          {index + 1}
+                        </span>
+                        <div className={styles.moduleMeta}>
+                          <Text strong>{getActionTaskTitle(action)}</Text>
+                          <Text className={styles.clampText}>
+                            {getActionTaskDescription(action)}
+                          </Text>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="暂无动手任务"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.workspacePane}>
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <Title level={5} className={styles.phaseCardTitleText}>
+                      去哪里学
+                    </Title>
+                    <Text type="secondary">打卡后用于周/月复盘</Text>
+                  </div>
+                  {selectedModule ? (
+                    <div
+                      key={selectedModule.module_id}
+                      className={styles.resourceGroup}
+                    >
+                      <Text strong>
+                        {getModuleDisplayTitle(selectedModule)}
                       </Text>
-                    </Space>
-                  </List.Item>
-                )}
-              />
+                      {selectedModuleResources.length ? (
+                        selectedModuleResources.map((resource, index) => {
+                          const resourceId = getResourceCompletionId(
+                            activePhase.phase_key,
+                            selectedModule.module_id,
+                            resource,
+                            index,
+                          );
+                          const checked = resourceCompletedSet.has(resourceId);
+
+                          return (
+                            <div
+                              key={resourceId}
+                              className={cx(
+                                styles.resourceLine,
+                                styles.resourceItemMotion,
+                              )}
+                              style={
+                                {
+                                  '--resource-index': index,
+                                } as React.CSSProperties
+                              }
+                            >
+                              <div
+                                className={styles.resourceLogo}
+                                aria-hidden={!resource.logoUrl}
+                              >
+                                <span>
+                                  {getResourceLogoFallbackText(resource.title)}
+                                </span>
+                                {resource.logoUrl ? (
+                                  <img
+                                    src={resource.logoUrl}
+                                    alt={
+                                      resource.logoAlt ||
+                                      `${resource.title} logo`
+                                    }
+                                    loading="lazy"
+                                    onError={(event) => {
+                                      event.currentTarget.style.display =
+                                        'none';
+                                    }}
+                                  />
+                                ) : null}
+                              </div>
+                              <div className={styles.resourceMeta}>
+                                <Text strong>{resource.title}</Text>
+                                <Text className={styles.clampText}>
+                                  学什么：{resource.learnWhat}
+                                </Text>
+                                <Text
+                                  type="secondary"
+                                  className={styles.clampText}
+                                >
+                                  完成标准：{resource.doneWhen}
+                                </Text>
+                              </div>
+                              <div className={styles.resourceActions}>
+                                <Tag color={checked ? 'success' : 'default'}>
+                                  {checked ? '已完成' : '未完成'}
+                                </Tag>
+                                <Checkbox
+                                  checked={checked}
+                                  onChange={(event) =>
+                                    handleToggleResource(
+                                      activePhase.phase_key,
+                                      selectedModule.module_id,
+                                      resource,
+                                      index,
+                                      event.target.checked,
+                                    )
+                                  }
+                                >
+                                  已打卡
+                                </Checkbox>
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  href={resource.url}
+                                  target="_blank"
+                                >
+                                  去学习
+                                </Button>
+                                <Button
+                                  size="small"
+                                  icon={<InfoCircleOutlined />}
+                                  data-testid="resource-detail-trigger"
+                                  className={styles.resourceDetailButton}
+                                  onClick={() =>
+                                    openResourceDetail(
+                                      activePhase.phase_key,
+                                      selectedModule,
+                                      resource,
+                                      index,
+                                    )
+                                  }
+                                >
+                                  详情
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div
+                          data-testid={`resource-empty-${selectedModule.module_id}`}
+                        >
+                          <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={
+                              selectedModule.resource_status === 'failed'
+                                ? selectedModule.resource_error_message ||
+                                  '暂未生成可用学习资源'
+                                : '暂未生成可用学习资源'
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="暂无学习资源"
+                    />
+                  )}
+                </div>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         <Drawer
@@ -1557,6 +2903,7 @@ const LearningPathPage: React.FC = () => {
             ]}
           />
         </Drawer>
+        {renderResourceDetailDrawer()}
       </div>
     </PageContainer>
   );

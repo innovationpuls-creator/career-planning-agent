@@ -914,7 +914,7 @@ def _build_personal_growth_base_goal_plan_result(
             matched_keywords=[],
             evidence_companies=[],
             supporting_metrics=[f"当前岗位匹配度 {favorite.overall_match:.2f}%"],
-            reasoning=f"该方向已体现在当前职业匹配结果中，可作为后续成长规划的支撑点。",
+            reasoning="该方向已体现在当前职业匹配结果中，可作为后续成长规划的支撑点。",
         )
         for title in strengths[:3]
     ]

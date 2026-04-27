@@ -34,6 +34,9 @@ from app.services.career_development_goal_planning import (
     read_favorite_report_payload,
     upsert_favorite_report,
 )
+from app.services.career_development_goal_planning_task_manager import (
+    career_development_goal_planning_task_manager,
+)
 from app.services.career_development_personal_growth_report import (
     assert_personal_growth_prerequisites,
     build_personal_growth_report_payload,
@@ -184,6 +187,46 @@ def get_career_development_plan_workspace(
             favorite_id=favorite_id,
         )
     )
+
+
+@router.get("/api/career-development-report/goal-setting-path-planning/tasks/{task_id}/stream")
+async def stream_goal_planning_task(
+    task_id: str,
+    current_user: User = Depends(require_standard_user),
+) -> StreamingResponse:
+    snapshot = await career_development_goal_planning_task_manager.get_snapshot(
+        user_id=current_user.id,
+        task_id=task_id,
+    )
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="目标岗位规划任务不存在。")
+
+    async def event_stream():
+        queue, current_snapshot = await career_development_goal_planning_task_manager.subscribe(
+            user_id=current_user.id,
+            task_id=task_id,
+        )
+        if current_snapshot is None:
+            yield json.dumps({"stage": "not_found", "task_id": task_id}, ensure_ascii=False) + "\n"
+            return
+
+        yield json.dumps(current_snapshot.model_dump(mode="json"), ensure_ascii=False) + "\n"
+        if current_snapshot.status in {"completed", "cancelled", "failed"}:
+            return
+
+        try:
+            while True:
+                event = await queue.get()
+                if event.get("stage") == "__end__":
+                    break
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+        finally:
+            await career_development_goal_planning_task_manager.unsubscribe(
+                task_id=task_id,
+                queue=queue,
+            )
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
 
 
 @router.post(
@@ -461,4 +504,3 @@ def export_personal_growth_report_workspace(
         media_type=media_type,
         headers={"Content-Disposition": disposition},
     )
-
