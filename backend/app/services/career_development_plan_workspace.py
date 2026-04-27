@@ -1448,6 +1448,8 @@ class MarkdownRun:
     bold: bool = False
     italic: bool = False
     code: bool = False
+    strikethrough: bool = False
+    link_url: str | None = None
 
 
 @dataclass
@@ -1457,9 +1459,15 @@ class MarkdownBlock:
     level: int = 0
     ordered: bool = False
     number: int | None = None
+    checked: bool = False
+    table_header: list[str] = field(default_factory=list)
+    table_rows: list[list[str]] = field(default_factory=list)
 
 
-INLINE_MARKDOWN_PATTERN = re.compile(r"(\*\*.+?\*\*|`.+?`|\*.+?\*)")
+# Order matters: bold before italic, strikethrough before italic
+INLINE_MARKDOWN_PATTERN = re.compile(
+    r"(\*\*.+?\*\*|~~.+?~~|`.+?`|\[.+?\]\(.+?\)|\*.+?\*)"
+)
 UNORDERED_LIST_PATTERN = re.compile(r"^(?P<indent>\s*)[-*+]\s+(?P<content>.+)$")
 ORDERED_LIST_PATTERN = re.compile(r"^(?P<indent>\s*)(?P<number>\d+)\.\s+(?P<content>.+)$")
 
@@ -1479,6 +1487,13 @@ def _parse_inline_markdown(text: str) -> list[MarkdownRun]:
         token = match.group(0)
         if token.startswith("**") and token.endswith("**") and len(token) > 4:
             runs.append(MarkdownRun(text=token[2:-2], bold=True))
+        elif token.startswith("~~") and token.endswith("~~") and len(token) > 4:
+            runs.append(MarkdownRun(text=token[2:-2], strikethrough=True))
+        elif token.startswith("[") and "](" in token and token.endswith(")"):
+            bracket_end = token.index("](")
+            link_text = token[1:bracket_end]
+            link_url = token[bracket_end + 2 : -1]
+            runs.append(MarkdownRun(text=link_text, link_url=link_url))
         elif token.startswith("*") and token.endswith("*") and len(token) > 2:
             runs.append(MarkdownRun(text=token[1:-1], italic=True))
         elif token.startswith("`") and token.endswith("`") and len(token) > 2:
@@ -1496,6 +1511,8 @@ def _parse_inline_markdown(text: str) -> list[MarkdownRun]:
 def _parse_markdown_blocks(markdown: str) -> list[MarkdownBlock]:
     blocks: list[MarkdownBlock] = []
     paragraph_lines: list[str] = []
+    in_code_block = False
+    code_lines: list[str] = []
 
     def flush_paragraph() -> None:
         nonlocal paragraph_lines
@@ -1506,26 +1523,117 @@ def _parse_markdown_blocks(markdown: str) -> list[MarkdownBlock]:
             blocks.append(MarkdownBlock(kind="paragraph", runs=_parse_inline_markdown(text)))
         paragraph_lines = []
 
-    for raw_line in (markdown or "").splitlines():
-        line = raw_line.rstrip()
+    lines = (markdown or "").splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
         stripped = line.strip()
-        if not stripped:
+
+        # Fenced code block
+        if stripped.startswith("```"):
             flush_paragraph()
+            if in_code_block:
+                in_code_block = False
+                blocks.append(
+                    MarkdownBlock(
+                        kind="code_block",
+                        runs=[MarkdownRun(text="\n".join(code_lines))],
+                    )
+                )
+                code_lines = []
+            else:
+                in_code_block = True
+            i += 1
             continue
 
+        if in_code_block:
+            code_lines.append(lines[i])
+            i += 1
+            continue
+
+        if not stripped:
+            flush_paragraph()
+            i += 1
+            continue
+
+        # Headings
         if stripped.startswith("# "):
             flush_paragraph()
-            blocks.append(MarkdownBlock(kind="title", runs=_parse_inline_markdown(stripped[2:].strip())))
+            blocks.append(MarkdownBlock(kind="title", runs=_parse_inline_markdown(stripped[2:])))
+            i += 1
             continue
         if stripped.startswith("## "):
             flush_paragraph()
-            blocks.append(MarkdownBlock(kind="heading2", runs=_parse_inline_markdown(stripped[3:].strip())))
+            blocks.append(MarkdownBlock(kind="heading2", runs=_parse_inline_markdown(stripped[3:])))
+            i += 1
             continue
         if stripped.startswith("### "):
             flush_paragraph()
-            blocks.append(MarkdownBlock(kind="heading3", runs=_parse_inline_markdown(stripped[4:].strip())))
+            blocks.append(MarkdownBlock(kind="heading3", runs=_parse_inline_markdown(stripped[4:])))
+            i += 1
             continue
 
+        # Task list: - [x] text  or  - [ ] text
+        task_match = re.match(r"^[-*+]\s*\[([ xX])\]\s+(.+)$", stripped)
+        if task_match:
+            flush_paragraph()
+            blocks.append(
+                MarkdownBlock(
+                    kind="task_item",
+                    runs=_parse_inline_markdown(task_match.group(2)),
+                    checked=task_match.group(1).lower() == "x",
+                )
+            )
+            i += 1
+            continue
+
+        # Blockquote
+        if stripped.startswith("> "):
+            flush_paragraph()
+            blocks.append(
+                MarkdownBlock(
+                    kind="blockquote",
+                    runs=_parse_inline_markdown(stripped[2:]),
+                )
+            )
+            i += 1
+            continue
+
+        # Horizontal rule
+        if re.match(r"^[-*_]{3,}$", stripped):
+            flush_paragraph()
+            blocks.append(MarkdownBlock(kind="horizontal_rule"))
+            i += 1
+            continue
+
+        # GFM table: detect header row + separator + data rows
+        if "|" in stripped and i + 1 < len(lines):
+            # Collect consecutive lines with pipes
+            table_lines = [stripped]
+            j = i + 1
+            while j < len(lines):
+                nl = lines[j].rstrip().strip()
+                if "|" in nl:
+                    table_lines.append(nl)
+                    j += 1
+                else:
+                    break
+
+            if len(table_lines) >= 2 and _is_table_separator(table_lines[1]):
+                header_cells = _split_table_row(table_lines[0])
+                data_rows = [_split_table_row(r) for r in table_lines[2:]]
+                flush_paragraph()
+                blocks.append(
+                    MarkdownBlock(
+                        kind="table",
+                        table_header=header_cells,
+                        table_rows=data_rows,
+                    )
+                )
+                i = j
+                continue
+
+        # Unordered list (exclude task items already matched above)
         unordered_match = UNORDERED_LIST_PATTERN.match(line)
         if unordered_match:
             flush_paragraph()
@@ -1538,8 +1646,10 @@ def _parse_markdown_blocks(markdown: str) -> list[MarkdownBlock]:
                     ordered=False,
                 )
             )
+            i += 1
             continue
 
+        # Ordered list
         ordered_match = ORDERED_LIST_PATTERN.match(line)
         if ordered_match:
             flush_paragraph()
@@ -1553,12 +1663,32 @@ def _parse_markdown_blocks(markdown: str) -> list[MarkdownBlock]:
                     number=int(ordered_match.group("number")),
                 )
             )
+            i += 1
             continue
 
         paragraph_lines.append(stripped)
+        i += 1
 
     flush_paragraph()
     return blocks
+
+
+def _is_table_separator(line: str) -> bool:
+    """Check if a line is a GFM table separator like | --- | --- | or | :--- | ---: |."""
+    cells = _split_table_row(line)
+    if not cells:
+        return False
+    return all(re.match(r"^:?-{3,}:?$", c) for c in cells)
+
+
+def _split_table_row(line: str) -> list[str]:
+    """Split a GFM table row into cells, stripping leading/trailing pipes."""
+    s = line.strip()
+    if s.startswith("|"):
+        s = s[1:]
+    if s.endswith("|"):
+        s = s[:-1]
+    return [c.strip() for c in s.split("|")]
 
 
 def _docx_runs_xml(runs: list[MarkdownRun]) -> str:
@@ -1569,15 +1699,17 @@ def _docx_runs_xml(runs: list[MarkdownRun]) -> str:
             properties.append("<w:b/>")
         if run.italic:
             properties.append("<w:i/>")
+        if run.strikethrough:
+            properties.append("<w:strike/>")
+        if run.link_url:
+            properties.append('<w:u w:val="single"/>')
+            properties.append('<w:color w:val="0563C1"/>')
         if run.code:
             properties.append('<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Microsoft YaHei"/>')
         run_pr = f"<w:rPr>{''.join(properties)}</w:rPr>" if properties else ""
+        escaped_text = xml_escape(run.text or " ")
         run_parts.append(
-            "<w:r>"
-            + run_pr
-            + '<w:t xml:space="preserve">'
-            + xml_escape(run.text or " ")
-            + "</w:t></w:r>"
+            f"<w:r>{run_pr}<w:t xml:space=\"preserve\">{escaped_text}</w:t></w:r>"
         )
     return "".join(run_parts)
 
@@ -1603,6 +1735,65 @@ def _docx_paragraph_xml(
         run_xml += _docx_runs_xml([MarkdownRun(text=prefix)])
     run_xml += _docx_runs_xml(runs)
     return f"<w:p><w:pPr>{''.join(ppr_parts)}</w:pPr>{run_xml}</w:p>"
+
+
+def _docx_table_xml(header: list[str], rows: list[list[str]]) -> str:
+    """Build OOXML table markup for a GFM table."""
+    grid_cols = "".join(
+        f'<w:gridCol w:w="{_table_col_width(len(header))}"/>' for _ in header
+    )
+    tbl_parts = [
+        "<w:tbl>",
+        "<w:tblPr>",
+        '<w:tblW w:w="9000" w:type="dxa"/>',
+        '<w:tblBorders>'
+        '<w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        '<w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        '<w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        "</w:tblBorders>",
+        "</w:tblPr>",
+        "<w:tblGrid>",
+        grid_cols,
+        "</w:tblGrid>",
+    ]
+
+    # Header row
+    tbl_parts.append("<w:tr>")
+    for cell in header:
+        tbl_parts.append(
+            "<w:tc>"
+            "<w:tcPr><w:shd w:val=\"clear\" w:fill=\"D9E2F3\"/></w:tcPr>"
+            f"<w:p><w:pPr><w:spacing w:after=\"40\" w:line=\"280\" w:lineRule=\"auto\"/></w:pPr>"
+            f"<w:r><w:rPr><w:b/></w:rPr><w:t xml:space=\"preserve\">{xml_escape(cell)}</w:t></w:r>"
+            "</w:p>"
+            "</w:tc>"
+        )
+    tbl_parts.append("</w:tr>")
+
+    # Data rows
+    for row in rows:
+        tbl_parts.append("<w:tr>")
+        for cell in row:
+            tbl_parts.append(
+                "<w:tc>"
+                "<w:tcPr/>"
+                f"<w:p><w:pPr><w:spacing w:after=\"40\" w:line=\"280\" w:lineRule=\"auto\"/></w:pPr>"
+                f"<w:r><w:t xml:space=\"preserve\">{xml_escape(cell)}</w:t></w:r>"
+                "</w:p>"
+                "</w:tc>"
+            )
+        tbl_parts.append("</w:tr>")
+
+    tbl_parts.append("</w:tbl>")
+    return "".join(tbl_parts)
+
+
+def _table_col_width(num_cols: int) -> str:
+    """Distribute 9000 dxa across columns."""
+    return str(9000 // max(num_cols, 1))
 
 
 def _docx_styles_xml() -> str:
@@ -1668,6 +1859,18 @@ def _docx_styles_xml() -> str:
       <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei"/>
     </w:rPr>
   </w:style>
+  <w:style w:type="paragraph" w:styleId="Quote">
+    <w:name w:val="Quote"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr>
+      <w:spacing w:before="80" w:after="80"/>
+      <w:ind w:left="720"/>
+    </w:pPr>
+    <w:rPr>
+      <w:i/>
+      <w:color w:val="595959"/>
+    </w:rPr>
+  </w:style>
 </w:styles>"""
 
 
@@ -1696,6 +1899,67 @@ def _docx_document_xml(markdown: str) -> str:
                     prefix=prefix,
                 )
             )
+            continue
+        if block.kind == "task_item":
+            left_indent = 720
+            prefix = "☑ " if block.checked else "☐ "
+            # Render strikethrough on checked items
+            runs = block.runs
+            if block.checked:
+                runs = [
+                    MarkdownRun(
+                        text=r.text,
+                        bold=r.bold,
+                        italic=r.italic,
+                        code=r.code,
+                        strikethrough=True,
+                        link_url=r.link_url,
+                    )
+                    for r in runs
+                ]
+            body_parts.append(
+                _docx_paragraph_xml(
+                    runs=runs,
+                    left_indent=left_indent,
+                    hanging=360,
+                    prefix=prefix,
+                )
+            )
+            continue
+        if block.kind == "blockquote":
+            body_parts.append(
+                _docx_paragraph_xml(
+                    runs=block.runs,
+                    left_indent=720,
+                    style="Quote",
+                )
+            )
+            continue
+        if block.kind == "code_block":
+            # Use Consolas monospace font for code block text
+            code_runs = [
+                MarkdownRun(text=block.runs[0].text, code=True) if block.runs else MarkdownRun(text=" ", code=True)
+            ]
+            body_parts.append(
+                _docx_paragraph_xml(
+                    runs=code_runs,
+                    left_indent=360,
+                )
+            )
+            continue
+        if block.kind == "horizontal_rule":
+            # Render as a paragraph with bottom border
+            body_parts.append(
+                "<w:p>"
+                "<w:pPr>"
+                '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/></w:pBdr>'
+                "<w:spacing w:before=\"120\" w:after=\"120\"/>"
+                "</w:pPr>"
+                "</w:p>"
+            )
+            continue
+        if block.kind == "table":
+            body_parts.append(_docx_table_xml(block.table_header, block.table_rows))
             continue
         body_parts.append(_docx_paragraph_xml(runs=block.runs))
 
@@ -1794,7 +2058,10 @@ def _runs_to_pdf_markup(runs: list[MarkdownRun]) -> str:
     parts: list[str] = []
     for run in runs or [MarkdownRun(text=" ")]:
         text = _normalize_pdf_text(run.text or " ")
-        # Font is set at ParagraphStyle level; only apply bold/italic markup here
+        if run.link_url:
+            text = f'<a href="{run.link_url}" color="blue"><u>{text}</u></a>'
+        if run.strikethrough:
+            text = f"<strike>{text}</strike>"
         if run.italic:
             if run.bold:
                 text = f"<b><i>{text}</i></b>"
@@ -1804,6 +2071,51 @@ def _runs_to_pdf_markup(runs: list[MarkdownRun]) -> str:
             text = f"<b>{text}</b>"
         parts.append(text)
     return "".join(parts) or " "
+
+
+def _build_pdf_table(
+    header: list[str],
+    rows: list[list[str]],
+    base_style: ParagraphStyle,
+    font_name: str,
+) -> Any:
+    """Build a reportlab Table object for PDF export."""
+    from reportlab.platypus import Table as PdfTable
+
+    header_style = ParagraphStyle(
+        "FeatureMapPdfTableHeader",
+        parent=base_style,
+        fontName=font_name,
+        fontSize=10,
+        leading=14,
+    )
+    cell_style = ParagraphStyle(
+        "FeatureMapPdfTableCell",
+        parent=base_style,
+        fontName=font_name,
+        fontSize=10,
+        leading=14,
+    )
+
+    col_width = 460 / max(len(header), 1)
+    table_data = [
+        [Paragraph(_normalize_pdf_text(c), header_style) for c in header]
+    ] + [
+        [Paragraph(_normalize_pdf_text(c), cell_style) for c in row]
+        for row in rows
+    ]
+
+    return PdfTable(
+        table_data,
+        colWidths=[col_width] * len(header),
+        style=[
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#D9E2F3")),
+            ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#BFBFBF")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ],
+    )
 
 
 def _build_pdf_story(markdown: str, *, font_name: str) -> list[Any]:
@@ -1851,7 +2163,7 @@ def _build_pdf_story(markdown: str, *, font_name: str) -> list[Any]:
     blocks = _parse_markdown_blocks(markdown)
     list_styles: dict[int, ParagraphStyle] = {}
 
-    def list_style(level: int) -> ParagraphStyle:
+    def make_list_style(level: int) -> ParagraphStyle:
         if level not in list_styles:
             list_styles[level] = ParagraphStyle(
                 f"FeatureMapPdfList{level}",
@@ -1861,6 +2173,25 @@ def _build_pdf_story(markdown: str, *, font_name: str) -> list[Any]:
                 spaceAfter=2,
             )
         return list_styles[level]
+
+    code_style = ParagraphStyle(
+        "FeatureMapPdfCode",
+        parent=body_style,
+        fontName="Courier",
+        fontSize=9,
+        leading=13,
+        leftIndent=12,
+        backColor=HexColor("#F5F5F5"),
+        spaceAfter=4,
+    )
+    quote_style = ParagraphStyle(
+        "FeatureMapPdfQuote",
+        parent=body_style,
+        leftIndent=24,
+        textColor=HexColor("#595959"),
+        spaceBefore=4,
+        spaceAfter=4,
+    )
 
     for block in blocks:
         if block.kind == "title":
@@ -1875,7 +2206,45 @@ def _build_pdf_story(markdown: str, *, font_name: str) -> list[Any]:
             continue
         if block.kind == "list_item":
             prefix = f"{block.number}. " if block.ordered and block.number is not None else "• "
-            story.append(Paragraph(_normalize_pdf_text(prefix) + _runs_to_pdf_markup(block.runs), list_style(block.level)))
+            story.append(
+                Paragraph(
+                    _normalize_pdf_text(prefix) + _runs_to_pdf_markup(block.runs),
+                    make_list_style(block.level),
+                )
+            )
+            continue
+        if block.kind == "task_item":
+            prefix = "☑ " if block.checked else "☐ "
+            story.append(
+                Paragraph(
+                    _normalize_pdf_text(prefix) + _runs_to_pdf_markup(block.runs),
+                    make_list_style(0),
+                )
+            )
+            continue
+        if block.kind == "blockquote":
+            story.append(Paragraph(_runs_to_pdf_markup(block.runs), quote_style))
+            continue
+        if block.kind == "code_block":
+            code_text = block.runs[0].text if block.runs else ""
+            for line in code_text.split("\n"):
+                story.append(
+                    Paragraph(_normalize_pdf_text(line) or " ", code_style)
+                )
+            continue
+        if block.kind == "horizontal_rule":
+            story.append(Spacer(1, 2 * mm))
+            story.append(
+                Paragraph(
+                    "<hr width=\"100%\" size=\"1\" color=\"#D9D9D9\"/>",
+                    body_style,
+                )
+            )
+            story.append(Spacer(1, 2 * mm))
+            continue
+        if block.kind == "table":
+            story.append(_build_pdf_table(block.table_header, block.table_rows, body_style, font_name))
+            story.append(Spacer(1, 3 * mm))
             continue
         story.append(Paragraph(_runs_to_pdf_markup(block.runs), body_style))
 

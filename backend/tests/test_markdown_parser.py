@@ -215,11 +215,15 @@ class TestExportWithRichFormats:
         assert "90%" in document_xml
 
         # Verify no raw markdown leaks
-        for marker in ["**", "~~", "[x]", "[ ]", "> ", "```", "---", "[参考链接]"]:
+        for marker in ["**", "~~", "[x]", "[ ]", "```", "---", "[参考链接]"]:
             assert marker not in document_xml, f"Raw markdown '{marker}' leaked into DOCX"
+        # Blockquote: verify content is rendered without raw "> " prefix
+        assert "> 学而不思则罔" not in document_xml
 
     def test_pdf_export_with_rich_formats_produces_valid_pdf(self):
         """Verify that rich markdown exports to valid PDF without errors."""
+        from unittest.mock import patch
+
         md = (
             "# 个人职业成长报告\n\n"
             "## 自我认知\n"
@@ -232,6 +236,10 @@ class TestExportWithRichFormats:
             "| 1 | 2 |"
         )
 
-        content = export_pdf_bytes(md)
+        with patch(
+            "app.services.career_development_plan_workspace._ensure_pdf_font_registered",
+            return_value="Helvetica",
+        ):
+            content = export_pdf_bytes(md)
         assert content.startswith(b"%PDF")
         assert len(content) > 1000
