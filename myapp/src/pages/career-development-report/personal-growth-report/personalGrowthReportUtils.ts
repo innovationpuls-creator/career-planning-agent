@@ -1,4 +1,85 @@
-﻿export type PersonalGrowthSectionKey =
+﻿import TurndownService from 'turndown';
+import { marked } from 'marked';
+
+const turndownService = new TurndownService({
+  headingStyle: 'atx',
+  bulletListMarker: '-',
+  codeBlockStyle: 'fenced',
+  emDelimiter: '*',
+  hr: '---',
+});
+
+// Strikethrough: <s>, <del>, <strike> → ~~text~~
+turndownService.addRule('strikethrough', {
+  filter: ['s', 'del', 'strike'],
+  replacement: (content) => `~~${content}~~`,
+});
+
+// Underline: no standard markdown — keep as passthrough <u> HTML
+turndownService.addRule('underline', {
+  filter: ['u'],
+  replacement: (content) => `<u>${content}</u>`,
+});
+
+// GFM tables: <table> → pipe table
+turndownService.addRule('table', {
+  filter: 'table',
+  replacement: (_content, node) => {
+    const el = node as HTMLElement;
+    const rows: string[] = [];
+
+    el.querySelectorAll('tr').forEach((tr, rowIdx) => {
+      const cells: string[] = [];
+      tr.querySelectorAll('th, td').forEach((cell) => {
+        cells.push((cell.textContent || '').trim());
+      });
+      if (!cells.length) return;
+      rows.push('| ' + cells.join(' | ') + ' |');
+      // Header separator after thead row
+      if (rowIdx === 0 && tr.closest('thead')) {
+        rows.push('| ' + cells.map(() => '---').join(' | ') + ' |');
+      }
+    });
+
+    return rows.length ? '\n' + rows.join('\n') + '\n' : '';
+  },
+});
+
+const TASK_CHECKED_TOKEN = 'CHECKED';
+const TASK_UNCHECKED_TOKEN = 'UNCHECKED';
+
+// Pre-process TipTap task-list HTML so turndown doesn't escape the [x]/[ ] markers
+function preprocessTaskLists(html: string): string {
+  return html.replace(
+    /<li\s+data-type="taskItem"\s+data-checked="([^"]*)"\s*>/g,
+    (_m, checked) =>
+      `<li>${checked === 'true' ? TASK_CHECKED_TOKEN : TASK_UNCHECKED_TOKEN}`,
+  );
+}
+
+// Post-process: replace placeholder tokens and collapse extra whitespace
+function postprocessMarkdown(markdown: string): string {
+  return markdown
+    .replace(new RegExp(TASK_CHECKED_TOKEN, 'g'), '[x] ')
+    .replace(new RegExp(TASK_UNCHECKED_TOKEN, 'g'), '[ ] ')
+    .replace(/^(-) {2,}/gm, '$1 ');
+}
+
+export const htmlToMarkdown = (html: string): string => {
+  const trimmed = html.trim();
+  if (!trimmed) return '';
+  const preprocessed = preprocessTaskLists(trimmed);
+  const rawMarkdown = turndownService.turndown(preprocessed);
+  return postprocessMarkdown(rawMarkdown);
+};
+
+export const markdownToHtml = (markdown: string): string => {
+  const trimmed = markdown.trim();
+  if (!trimmed) return '';
+  return marked.parse(trimmed, { async: false }) as string;
+};
+
+export type PersonalGrowthSectionKey =
   | 'self_cognition'
   | 'career_direction_analysis'
   | 'match_assessment'
@@ -334,3 +415,14 @@ export const clearPersonalGrowthTaskId = (favoriteId?: number) => {
   if (!canUseStorage() || !favoriteId) return;
   window.localStorage.removeItem(getPersonalGrowthTaskStorageKey(favoriteId));
 };
+
+export const normalizeReportMarkdown = (
+  workspace?: API.PersonalGrowthReportPayload,
+) =>
+  workspace?.edited_markdown?.trim() ||
+  workspace?.generated_markdown?.trim() ||
+  '';
+
+export const hasPersistedReportContent = (
+  workspace?: API.PersonalGrowthReportPayload,
+) => Boolean(normalizeReportMarkdown(workspace));
