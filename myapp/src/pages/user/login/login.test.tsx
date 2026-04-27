@@ -156,7 +156,7 @@ describe('Login And Register Pages', () => {
       />,
     );
 
-    await rootContainer.findByTestId('login-page-title');
+    await rootContainer.findByTestId('login-form-card');
     expect(rootContainer.getByTestId('register-account-link')).toBeTruthy();
     rootContainer.unmount();
   });
@@ -172,7 +172,7 @@ describe('Login And Register Pages', () => {
       />,
     );
 
-    await rootContainer.findByTestId('login-page-title');
+    await rootContainer.findByTestId('login-form-card');
 
     await act(async () => {
       fireEvent.click(rootContainer.getByTestId('register-account-link'));
@@ -199,7 +199,7 @@ describe('Login And Register Pages', () => {
       <TestBrowser historyRef={historyRef} location={{ pathname: '/user/login' }} />,
     );
 
-    await rootContainer.findByTestId('login-page-title');
+    await rootContainer.findByTestId('login-form-card');
     fillLoginForm(rootContainer, { username: 'admin', password: '123456' });
 
     await act(async () => {
@@ -235,7 +235,7 @@ describe('Login And Register Pages', () => {
       <TestBrowser historyRef={historyRef} location={{ pathname: '/user/login' }} />,
     );
 
-    await rootContainer.findByTestId('login-page-title');
+    await rootContainer.findByTestId('login-form-card');
     fillLoginForm(rootContainer, { username: 'user-demo', password: 'user-password' });
 
     await act(async () => {

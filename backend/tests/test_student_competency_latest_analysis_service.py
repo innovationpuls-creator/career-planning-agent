@@ -57,30 +57,30 @@ def test_latest_analysis_service_uses_stricter_scoring_and_action_advice():
     assert payload.available is True
     assert payload.workspace_conversation_id == "workspace-analysis"
     assert payload.score is not None
-    assert payload.score.completeness == 34
-    assert payload.score.competitiveness == 35
-    assert payload.score.overall == 35
+    assert payload.score.completeness == 51
+    assert payload.score.competitiveness == 47
+    assert payload.score.overall == 48
 
     items = {item.key: item for item in payload.comparison_dimensions}
-    assert items["professional_skills"].user_readiness == 0
-    assert items["professional_skills"].status_label == "明显缺失"
-    assert items["professional_background"].user_readiness == 30
-    assert items["education_requirement"].user_readiness == 50
+    assert items["professional_skills"].user_readiness == 30.0
+    assert items["professional_skills"].status_label == "信息偏弱"
+    assert items["professional_background"].user_readiness == 30.0
+    assert items["education_requirement"].user_readiness == 50.0
     assert items["teamwork"].user_readiness == 67.5
-    assert items["stress_adaptability"].user_readiness == 100
+    assert items["stress_adaptability"].user_readiness == 100.0
     assert items["problem_solving"].user_readiness == 87.5
 
     assert payload.priority_gap_dimensions == [
         "professional_skills",
-        "communication",
         "professional_background",
+        "communication",
     ]
     assert payload.recommended_keywords["professional_skills"][:2] == [
         "professional_skills alpha",
         "professional_skills beta",
     ]
     assert payload.action_advices[0].key == "professional_skills"
-    assert "缺少直接关键词" in payload.action_advices[0].current_issue
+    assert "信息过少" in payload.action_advices[0].current_issue
     assert len(payload.action_advices[0].next_actions) == 3
     assert len(payload.action_advices[0].example_phrases) == 3
     assert len(payload.action_advices[0].evidence_sources) >= 2

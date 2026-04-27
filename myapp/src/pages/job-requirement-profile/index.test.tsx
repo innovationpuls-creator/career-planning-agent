@@ -107,7 +107,9 @@ describe('JobRequirementProfilePage', () => {
     expect(screen.queryByText('构建就业岗位要求画像')).toBeNull();
     expect(screen.queryByText('重置视图')).toBeNull();
     expect(screen.queryByText('点击节点查看右侧详情')).toBeNull();
-    expect(screen.getByText('图谱阅读指南')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('图谱阅读指南')).toBeTruthy();
+    });
 
     await waitFor(() => {
       expect(mockedGetJobRequirementProfileGraph).toHaveBeenCalled();

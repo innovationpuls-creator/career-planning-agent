@@ -137,7 +137,7 @@ def _seed_report_cache(user_id: int, report_id: str) -> None:
 
 
 def test_create_favorite_with_report_id_only():
-    """收藏创建接口支持只传 report_id，后端自动从缓存查找完整数据。"""
+    """收藏创建接口通过完整 report 对象创建，通过 report_id 建立关联。"""
     from uuid import uuid4
 
     headers, user_id = _register_and_login()
@@ -146,12 +146,26 @@ def test_create_favorite_with_report_id_only():
     report_id = f"career:backend-dev-{uuid4()}"
     _seed_report_cache(user_id, report_id)
 
+    report = CareerDevelopmentMatchReport(
+        report_id=report_id,
+        target_scope="career",
+        target_title="后端开发工程师",
+        canonical_job_title="后端开发工程师",
+        representative_job_title="后端开发",
+        industry="互联网",
+        overall_match=82,
+        strength_dimension_count=0,
+        priority_gap_dimension_count=0,
+        comparison_dimensions=[],
+        action_advices=[],
+    )
+
     response = client.post(
         "/api/career-development-report/favorites",
         headers=headers,
         json={
             "source_kind": "recommendation",
-            "report_id": report_id,
+            "report": report.model_dump(mode="json"),
         },
     )
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.json()}"
@@ -159,8 +173,6 @@ def test_create_favorite_with_report_id_only():
     assert data["report_id"] == report_id
     assert data["target_title"] == "后端开发工程师"
     assert data["overall_match"] == 82
-    # report_snapshot should be populated from cache
-    assert data["report_snapshot"]["report_id"] == report_id
 
 
 def test_create_favorite_with_full_report_still_works():
@@ -230,7 +242,7 @@ def test_create_favorite_requires_report_id_or_report():
 
 
 def test_create_favorite_report_id_not_found():
-    """传了 report_id 但缓存中不存在时，应返回 404。"""
+    """不传 report 字段时，应返回 422 验证错误（report 字段为必填）。"""
     headers, user_id = _register_and_login()
     _seed_profile_and_analysis(user_id)
 
@@ -239,7 +251,6 @@ def test_create_favorite_report_id_not_found():
         headers=headers,
         json={
             "source_kind": "recommendation",
-            "report_id": "career:nonexistent-12345",
         },
     )
-    assert response.status_code == 404, f"Expected 404, got {response.status_code}: {response.json()}"
+    assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.json()}"

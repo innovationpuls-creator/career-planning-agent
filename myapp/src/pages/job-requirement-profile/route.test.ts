@@ -1,28 +1,22 @@
 import routes from '../../../config/routes';
 
 describe('job requirement profile routes', () => {
-  it('should expose the knowledge-base menu with three default child entries', () => {
-    const jobRequirementRoute = routes.find(
-      (route: any) => route.path === '/job-requirement-profile',
+  it('should expose the knowledge-base menu with job-competency-graph and same-job-cross-industry routes', () => {
+    const overviewRoute = routes.find(
+      (route: any) => route.path === '/job-competency-graph',
     );
-    if (!jobRequirementRoute?.routes) {
-      throw new Error('job requirement profile route is missing');
+    const verticalRoute = routes.find(
+      (route: any) => route.path === '/same-job-cross-industry',
+    );
+
+    if (!overviewRoute || !verticalRoute) {
+      throw new Error('Expected routes are missing');
     }
 
-    expect(jobRequirementRoute).toBeTruthy();
-    expect(jobRequirementRoute.name).toBe('就业信息知识库');
-    expect(jobRequirementRoute.routes).toHaveLength(3);
-    expect(
-      jobRequirementRoute.routes.some(
-        (child: any) =>
-          child.path === '/job-requirement-profile/overview' && child.name === '岗位要求图谱总览',
-      ),
-    ).toBe(true);
-    expect(
-      jobRequirementRoute.routes.some(
-        (child: any) =>
-          child.path === '/job-requirement-profile/vertical' && child.name === '垂直岗位图谱',
-      ),
-    ).toBe(true);
+    expect(overviewRoute.name).toBe('岗位能力图谱');
+    expect(overviewRoute.component).toBe('./job-requirement-profile/overview');
+
+    expect(verticalRoute.name).toBe('同岗行业对比');
+    expect(verticalRoute.component).toBe('./job-requirement-profile/vertical');
   });
 });
