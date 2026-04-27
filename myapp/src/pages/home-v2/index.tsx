@@ -1,10 +1,23 @@
+import {
+  ArrowRightOutlined,
+  CheckCircleFilled,
+  ClockCircleOutlined,
+  FileDoneOutlined,
+  FileSearchOutlined,
+  FlagOutlined,
+  ReadOutlined,
+  RocketOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import {
   App,
   Button,
   Drawer,
   Form,
   Input,
+  Progress,
   Select,
   Space,
   Spin,
@@ -18,7 +31,6 @@ import {
   getOrderedTiers,
   getStageKeyByLevel,
   getTierSalarySummary,
-  STAGE_TO_LEVEL,
 } from '@/components/VerticalTierComparison';
 import {
   getHomeV2,
@@ -27,17 +39,64 @@ import {
 } from '@/services/ant-design-pro/api';
 
 const STAGE_ORDER: Array<'low' | 'middle' | 'high'> = ['low', 'middle', 'high'];
+const HOME_STAGE_LABELS: Record<(typeof STAGE_ORDER)[number], string> = {
+  low: '初级阶段',
+  middle: '进阶阶段',
+  high: '高阶阶段',
+};
 
-const formatHeroJobTitle = (title?: string) => {
-  if (!title) {
-    return '';
-  }
-  if (!/[A-Za-z]/.test(title)) {
-    return title;
-  }
-  return title
-    .replace(/\s*(开发工程师|研发工程师|工程师|开发岗|开发方向|开发)$/u, '')
-    .trim();
+const FALLBACK_PROGRESS_STEPS: API.HomeV2ProgressStep[] = [
+  {
+    key: 'profile',
+    label: '完善资料',
+    status: 'current',
+    description: '补齐姓名、学校、专业、学历、年级和目标岗位。',
+    href: '/',
+  },
+  {
+    key: 'analysis',
+    label: '简历解析',
+    status: 'todo',
+    description: '完成 12 维能力画像。',
+    href: '/student-competency-profile',
+  },
+  {
+    key: 'favorite',
+    label: '职业匹配',
+    status: 'todo',
+    description: '选择并收藏目标岗位。',
+    href: '/student-competency-profile',
+  },
+  {
+    key: 'learning_path',
+    label: '蜗牛学习路径',
+    status: 'todo',
+    description: '生成阶段学习路径。',
+    href: '/snail-learning-path',
+  },
+  {
+    key: 'growth_report',
+    label: '成长报告',
+    status: 'todo',
+    description: '生成个人职业成长报告。',
+    href: '/personal-growth-report',
+  },
+];
+
+const FALLBACK_NEXT_ACTION: API.HomeV2NextAction = {
+  label: '完善个人资料',
+  description: '先设置目标岗位，首页会据此生成职业阶段与薪资参考。',
+  href: '/',
+  button_text: '完善资料',
+};
+
+const getProgressStepIcon = (key: string) => {
+  if (key === 'profile') return <UserOutlined />;
+  if (key === 'analysis') return <FileSearchOutlined />;
+  if (key === 'favorite') return <FlagOutlined />;
+  if (key === 'learning_path') return <RocketOutlined />;
+  if (key === 'growth_report') return <FileDoneOutlined />;
+  return <ReadOutlined />;
 };
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -49,7 +108,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   shell: css`
     min-height: calc(100vh - 112px);
-    padding: 28px 32px 40px;
+    padding: calc(var(--header-height, 56px) + 28px) 32px 40px;
     position: relative;
     overflow: hidden;
     background:
@@ -82,7 +141,7 @@ const useStyles = createStyles(({ css, token }) => ({
     }
 
     @media (max-width: 900px) {
-      padding: 18px 16px 28px;
+      padding: calc(var(--header-height, 56px) + 18px) 16px 28px;
     }
   `,
   content: css`
@@ -388,17 +447,18 @@ const useStyles = createStyles(({ css, token }) => ({
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.04);
   `,
   heroTitle: css`
-    font-size: clamp(88px, 8vw, 112px);
-    font-weight: 800;
+    font-family: var(--font-heading);
+    font-size: clamp(72px, 7vw, 96px);
+    font-weight: 900;
     color: var(--career-ink);
-    line-height: 0.9;
+    line-height: 1.12;
     margin: 0 0 30px;
     word-break: keep-all;
-    letter-spacing: -0.055em;
+    letter-spacing: 0.06em;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.68);
 
     @media (max-width: 640px) {
-      font-size: clamp(64px, 18vw, 88px);
+      font-size: clamp(56px, 18vw, 80px);
     }
   `,
   heroSubtitle: css`
@@ -407,6 +467,22 @@ const useStyles = createStyles(({ css, token }) => ({
     margin: 0;
     line-height: 1.75;
     max-width: 420px;
+  `,
+  heroStatusLine: css`
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+    color: rgba(38, 52, 82, 0.58);
+    font-size: 14px;
+    line-height: 1.4;
+  `,
+  heroStatusDot: css`
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.42);
   `,
   noTargetHint: css`
     font-size: 16px;
@@ -466,10 +542,10 @@ const useStyles = createStyles(({ css, token }) => ({
   // metricCard 主排：当前阶段 | 分隔线 | 薪资参考 | 完善信息
   metricMainRow: css`
     display: grid;
-    grid-template-columns: 150px 1px minmax(220px, 1fr) 168px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     align-items: center;
-    gap: 28px;
-    padding: 34px 34px 27px;
+    gap: 22px;
+    padding: 30px 34px 24px;
 
     @media (max-width: 760px) {
       grid-template-columns: 1fr;
@@ -557,11 +633,76 @@ const useStyles = createStyles(({ css, token }) => ({
 
   // metricCard 副排：已匹配岗位
   metricSubRow: css`
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 21px 34px 28px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    padding: 0;
     border-top: 1px solid rgba(226, 232, 240, 0.88);
+    background: rgba(226, 232, 240, 0.72);
+
+    @media (max-width: 760px) {
+      grid-template-columns: 1fr;
+    }
+  `,
+  planningMetric: css`
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+  `,
+  planningMetricLabel: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(34, 48, 79, 0.58);
+  `,
+  planningTargetTitle: css`
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--career-ink);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  planningTargetMeta: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: rgba(38, 52, 82, 0.56);
+    font-size: 13px;
+    line-height: 1.4;
+  `,
+  planningPercent: css`
+    font-size: 44px;
+    font-weight: 900;
+    color: var(--career-blue);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  `,
+  nextActionPanel: css`
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    background: linear-gradient(135deg, rgba(239, 246, 255, 0.88), rgba(255, 255, 255, 0.72));
+  `,
+  nextActionTitle: css`
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--career-ink);
+  `,
+  nextActionDesc: css`
+    color: rgba(38, 52, 82, 0.62);
+    line-height: 1.6;
+  `,
+  metricMiniCard: css`
+    display: grid;
+    gap: 8px;
+    padding: 18px 22px;
+    background: rgba(255, 255, 255, 0.78);
   `,
   matchedLabel: css`
     font-size: 16px;
@@ -584,6 +725,140 @@ const useStyles = createStyles(({ css, token }) => ({
   growthSection: css`
     margin-bottom: 26px;
   `,
+  planningSection: css`
+    margin-top: 24px;
+    margin-bottom: 26px;
+    position: relative;
+  `,
+  planningPathSection: css`
+    min-height: 150px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(30, 88, 214, 0.08);
+    border-radius: 24px;
+    padding: 28px 32px 30px;
+    box-shadow: var(--career-card-shadow);
+
+    @media (max-width: 980px) {
+      overflow-x: auto;
+      padding: 24px;
+    }
+  `,
+  planningSectionHeader: css`
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 0 0 22px;
+
+    @media (max-width: 720px) {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+    }
+  `,
+  planningSectionCopy: css`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  `,
+  planningSectionSubtitle: css`
+    margin: 0;
+    color: rgba(38, 52, 82, 0.56);
+    font-size: 14px;
+    line-height: 1.5;
+  `,
+  planningRoad: css`
+    display: grid;
+    grid-template-columns: repeat(5, minmax(132px, 1fr));
+    gap: 14px;
+
+    @media (max-width: 980px) {
+      min-width: 760px;
+    }
+  `,
+  planningStep: css`
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto minmax(38px, 1fr) auto;
+    gap: 10px;
+    min-height: 172px;
+    padding: 16px 14px 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(198, 211, 232, 0.72);
+    background: rgba(255, 255, 255, 0.76);
+    transition:
+      transform 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+    text-align: left;
+
+    &:hover {
+      transform: translateY(-1px);
+      border-color: rgba(37, 99, 235, 0.24);
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
+    }
+  `,
+  planningStepDone: css`
+    border-color: rgba(34, 197, 94, 0.24);
+    background: linear-gradient(135deg, rgba(240, 253, 244, 0.82), rgba(255, 255, 255, 0.84));
+  `,
+  planningStepCurrent: css`
+    border-color: rgba(37, 99, 235, 0.48);
+    background: linear-gradient(135deg, rgba(232, 242, 255, 0.98), rgba(255, 255, 255, 0.92));
+    box-shadow:
+      0 0 0 4px rgba(37, 99, 235, 0.1),
+      0 16px 32px rgba(37, 99, 235, 0.14);
+  `,
+  planningStepIcon: css`
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: rgba(37, 99, 235, 0.78);
+    background: rgba(37, 99, 235, 0.08);
+  `,
+  planningStepIconDone: css`
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.12);
+  `,
+  planningStepTitle: css`
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--career-ink);
+  `,
+  planningStepDesc: css`
+    font-size: 12px;
+    color: rgba(38, 52, 82, 0.54);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  `,
+  planningStepStatus: css`
+    justify-self: start;
+  `,
+  planningStepAction: css`
+    justify-self: stretch;
+    height: 38px;
+    margin-top: 2px;
+    padding-inline: 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #2f73ff 0%, #1558d6 100%);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+
+    &:hover {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #3b82ff 0%, #1d63e6 100%);
+    }
+  `,
   sectionTitle: css`
     display: flex;
     flex-direction: column;
@@ -592,11 +867,12 @@ const useStyles = createStyles(({ css, token }) => ({
     margin: 0 0 16px 4px;
   `,
   sectionTitleText: css`
+    font-family: var(--font-heading);
     margin: 0;
     color: var(--career-ink);
     font-size: 22px;
-    font-weight: 800;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
   `,
   sectionTitleLine: css`
     width: 34px;
@@ -686,18 +962,21 @@ const useStyles = createStyles(({ css, token }) => ({
     min-width: 0;
   `,
   roadNodeName: css`
+    font-family: var(--font-heading);
     font-size: 19px;
     font-weight: 800;
     color: rgba(16, 27, 63, 0.72);
     line-height: 1;
   `,
   roadNodeNameActive: css`
+    font-family: var(--font-heading);
     font-size: 21px;
     font-weight: 800;
     color: var(--career-blue);
     line-height: 1;
   `,
   roadNodeNameMuted: css`
+    font-family: var(--font-heading);
     font-size: 19px;
     font-weight: 800;
     color: rgba(16, 27, 63, 0.48);
@@ -846,6 +1125,21 @@ const useStyles = createStyles(({ css, token }) => ({
     line-height: 1;
     white-space: nowrap;
   `,
+  profileBarUploadLink: css`
+    margin-top: -4px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--career-blue);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--career-blue-deep);
+    }
+  `,
   profileBarAction: css`
     margin-left: auto;
     padding-left: 24px;
@@ -875,9 +1169,13 @@ const useStyles = createStyles(({ css, token }) => ({
     font-size: 12px;
     color: ${token.colorTextTertiary};
   `,
+  attachmentEmpty: css`
+    margin-top: 8px;
+    font-size: 12px;
+    color: ${token.colorTextTertiary};
+  `,
 }));
 
-// @ts-expect-error — OnboardingProfileRequest is used by the register page too but missing from typings
 type ProfileFormValues = API.OnboardingProfileRequest & {
   image_files?: UploadFile[];
 };
@@ -926,10 +1224,8 @@ const HomeV2Page: React.FC = () => {
   const orderedTiers = useMemo(
     () =>
       getOrderedTiers(
-        // @ts-expect-error — tiered_comparison not in current typings
         payload?.vertical_profile?.tiered_comparison?.tiers || [],
       ),
-    // @ts-expect-error
     [payload?.vertical_profile?.tiered_comparison?.tiers],
   );
 
@@ -937,35 +1233,83 @@ const HomeV2Page: React.FC = () => {
     | 'low'
     | 'middle'
     | 'high';
-  const currentStageLabel = STAGE_TO_LEVEL[currentStageKey] || '低级';
+  const currentStageLabel = HOME_STAGE_LABELS[currentStageKey] || '初级阶段';
   const currentTier =
     orderedTiers.find(
       (tier) => getStageKeyByLevel(tier.level) === currentStageKey,
     ) || orderedTiers[0];
   const salaryReference = currentTier ? getTierSalarySummary(currentTier) : '-';
   const matchedCount = currentTier?.items.length || 0;
-  const targetJobTitle = payload?.profile?.target_job_title;
-  const heroJobTitle = formatHeroJobTitle(targetJobTitle) || targetJobTitle;
+  const profileTargetTitle = payload?.profile?.target_job_title;
   const currentStageIndex = STAGE_ORDER.indexOf(currentStageKey);
+  const planningProgress = payload?.planning_progress || {
+    completion_percent: payload?.onboarding_completed ? 20 : 0,
+    active_target: undefined,
+    steps: FALLBACK_PROGRESS_STEPS.map((step, index) => ({
+      ...step,
+      status:
+        payload?.onboarding_completed && index === 0
+          ? 'done'
+          : !payload?.onboarding_completed && index === 0
+            ? 'current'
+            : payload?.onboarding_completed && index === 1
+              ? 'current'
+              : 'todo',
+    })),
+    next_action: payload?.onboarding_completed
+      ? {
+          label: '完成简历解析',
+          description: '用最新简历生成 12 维能力画像，为岗位匹配做准备。',
+          href: '/student-competency-profile',
+          button_text: '去解析简历',
+        }
+      : FALLBACK_NEXT_ACTION,
+  };
+  const activeTarget = planningProgress.active_target;
+  const matchPercent = activeTarget
+    ? Math.round(activeTarget.overall_match)
+    : 0;
+  const targetTitle =
+    activeTarget?.target_title || profileTargetTitle || '设置目标岗位';
+  const canonicalJobTitle = activeTarget?.canonical_job_title;
+  const hasTargetTitle = Boolean(activeTarget?.target_title || profileTargetTitle);
+  const completedStepCount = planningProgress.steps.filter(
+    (step) => step.status === 'done',
+  ).length;
   const profileItems = [
     { label: '姓名', value: payload?.profile?.full_name || '-' },
     { label: '学校', value: payload?.profile?.school || '-' },
     { label: '专业', value: payload?.profile?.major || '-' },
     { label: '学历', value: payload?.profile?.education_level || '-' },
     { label: '年级', value: payload?.profile?.grade || '-' },
+    {
+      label: '简历附件',
+      value: payload?.attachments?.length
+        ? `${payload.attachments.length} 份`
+        : '暂无附件',
+      action: payload?.attachments?.length ? undefined : '上传简历 →',
+    },
   ];
+
+  const handleNavigate = (href?: string) => {
+    if (!href || href === '/') {
+      setProfileDrawerOpen(true);
+      return;
+    }
+    history.push(href);
+  };
 
   const handleProfileSave = async () => {
     const values = await form.validateFields();
     setSaving(true);
     try {
       const body = new FormData();
-      body.append('full_name', values.full_name);
-      body.append('school', values.school);
-      body.append('major', values.major);
-      body.append('education_level', values.education_level);
-      body.append('grade', values.grade);
-      body.append('target_job_title', values.target_job_title);
+      body.append('full_name', values.full_name ?? '');
+      body.append('school', values.school ?? '');
+      body.append('major', values.major ?? '');
+      body.append('education_level', values.education_level ?? '');
+      body.append('grade', values.grade ?? '');
+      body.append('target_job_title', values.target_job_title ?? '');
       fileList.forEach((file) => {
         if (file.originFileObj) {
           body.append('image_files', file.originFileObj);
@@ -1019,79 +1363,205 @@ const HomeV2Page: React.FC = () => {
                   <div className={styles.heroLeft}>
                     <div className={styles.heroBadgeRow}>
                       <span className={styles.heroBadgeLabel}>目标岗位</span>
-                      {payload?.profile?.target_job_title && (
+                      {hasTargetTitle && (
                         <Tag className={styles.stageBadge}>
                           {currentStageLabel}
                         </Tag>
                       )}
                     </div>
 
-                    {targetJobTitle ? (
+                    {hasTargetTitle ? (
                       <>
                         <h1
                           className={styles.heroTitle}
-                          aria-label={targetJobTitle}
-                          title={targetJobTitle}
+                          aria-label={targetTitle}
+                          title={targetTitle}
                         >
-                          {heroJobTitle}
-                          {heroJobTitle !== targetJobTitle ? (
-                            <span className={styles.visuallyHidden}>
-                              {targetJobTitle}
-                            </span>
-                          ) : null}
+                          {targetTitle}
                         </h1>
                         <p className={styles.heroSubtitle}>
-                          清晰的成长路径，助力你的职业进阶
+                          以目标岗位为中心，串联资料、解析、匹配、学习路径与成长报告。
                         </p>
+                        <div className={styles.heroStatusLine}>
+                          <span>
+                            全流程完成度 {planningProgress.completion_percent}%
+                          </span>
+                          <span className={styles.heroStatusDot} />
+                          <span>
+                            下一步：{planningProgress.next_action.label}
+                          </span>
+                        </div>
                       </>
                     ) : (
-                      <p className={styles.noTargetHint}>尚未设置目标岗位</p>
+                      <>
+                        <h1 className={styles.heroTitle}>完善资料</h1>
+                        <p className={styles.noTargetHint}>
+                          先设置目标岗位，首页会生成你的职业规划进度。
+                        </p>
+                        <div className={styles.heroStatusLine}>
+                          <span>
+                            全流程完成度 {planningProgress.completion_percent}%
+                          </span>
+                          <span className={styles.heroStatusDot} />
+                          <span>
+                            下一步：{planningProgress.next_action.label}
+                          </span>
+                        </div>
+                      </>
                     )}
                   </div>
 
                   {/* 右侧：嵌入式半透信息层 */}
-                  {targetJobTitle && (
-                    <div className={styles.heroRight}>
-                      <div className={styles.metricsCard}>
-                        <div className={styles.metricMainRow}>
-                          <div className={styles.metricBlock}>
-                            <span className={styles.metricLabel}>当前阶段</span>
-                            <span className={styles.metricValue}>
-                              {currentStageLabel}
+                  <div className={styles.heroRight}>
+                    <div className={styles.metricsCard}>
+                      <div className={styles.metricMainRow}>
+                        <div className={styles.planningMetric}>
+                          <span className={styles.planningMetricLabel}>
+                            <FlagOutlined />
+                            当前目标
+                          </span>
+                          <span className={styles.planningTargetTitle}>
+                            {targetTitle}
+                          </span>
+                          {canonicalJobTitle ? (
+                            <span className={styles.planningTargetMeta}>
+                              标准岗位：{canonicalJobTitle}
                             </span>
-                          </div>
-                          <div className={styles.metricDivider} />
-                          <div className={styles.metricBlock}>
-                            <span className={styles.metricLabel}>薪资参考</span>
-                            <span className={styles.metricSub}>
-                              {salaryReference}
-                            </span>
-                          </div>
-                          <div className={styles.metricBtnWrap}>
-                            <button
-                              type="button"
-                              className={styles.primaryButton}
-                              onClick={() => setProfileDrawerOpen(true)}
-                            >
-                              完善信息
-                              <span className={styles.buttonArrow}>›</span>
-                            </button>
-                          </div>
+                          ) : null}
+                          <span className={styles.planningTargetMeta}>
+                            当前阶段：{currentStageLabel}
+                          </span>
+                          <Space wrap size={8}>
+                            {activeTarget?.industry ? (
+                              <Tag>{activeTarget.industry}</Tag>
+                            ) : null}
+                            <Tag>匹配度 {matchPercent}%</Tag>
+                          </Space>
                         </div>
-                        <div className={styles.metricSubRow}>
-                          <span className={styles.matchedLabel}>
-                            已匹配岗位
+                        <div className={styles.nextActionPanel}>
+                          <span className={styles.nextActionTitle}>
+                            {planningProgress.next_action.label}
                           </span>
-                          <span className={styles.matchedCount}>
-                            {matchedCount}
+                          <span className={styles.nextActionDesc}>
+                            {planningProgress.next_action.description}
                           </span>
-                          <span className={styles.matchedUnit}>个</span>
+                          <Button
+                            type="primary"
+                            icon={<ArrowRightOutlined />}
+                            onClick={() =>
+                              handleNavigate(planningProgress.next_action.href)
+                            }
+                          >
+                            {planningProgress.next_action.button_text}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className={styles.metricSubRow}>
+                        <div className={styles.metricMiniCard}>
+                          <span className={styles.metricLabel}>规划进度</span>
+                          <span className={styles.planningPercent}>
+                            {planningProgress.completion_percent}%
+                          </span>
+                          <Progress
+                            percent={planningProgress.completion_percent}
+                            showInfo={false}
+                          />
+                        </div>
+                        <div className={styles.metricMiniCard}>
+                          <span className={styles.metricLabel}>薪资参考</span>
+                          <span className={styles.metricSub}>
+                            {salaryReference}
+                          </span>
+                        </div>
+                        <div className={styles.metricMiniCard}>
+                          <span className={styles.metricLabel}>已匹配岗位</span>
+                          <span>
+                            <span className={styles.matchedCount}>
+                              {matchedCount}
+                            </span>
+                            <span className={styles.matchedUnit}> 个</span>
+                          </span>
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
+
+              {/* ── B. 职业规划进度 — 真实流程状态 ── */}
+              <section className={styles.planningSection}>
+                <div className={styles.planningPathSection}>
+                  <div className={styles.planningSectionHeader}>
+                    <div className={styles.planningSectionCopy}>
+                      <h2 className={styles.sectionTitleText}>职业规划进度</h2>
+                      <p className={styles.planningSectionSubtitle}>
+                        已完成 {completedStepCount}/5 步，下一步：
+                        {planningProgress.next_action.label}
+                      </p>
+                      <span className={styles.sectionTitleLine} />
+                    </div>
+                  </div>
+                  <div className={styles.planningRoad}>
+                    {planningProgress.steps.map((step) => {
+                      const isDone = step.status === 'done';
+                      const isCurrent = step.status === 'current';
+                      return (
+                        <div
+                          key={step.key}
+                          className={`${styles.planningStep} ${
+                            isDone
+                              ? styles.planningStepDone
+                              : isCurrent
+                                ? styles.planningStepCurrent
+                                : ''
+                          }`}
+                        >
+                          <span
+                            className={`${styles.planningStepIcon} ${
+                              isDone ? styles.planningStepIconDone : ''
+                            }`}
+                          >
+                            {isDone ? (
+                              <CheckCircleFilled />
+                            ) : isCurrent ? (
+                              <ClockCircleOutlined />
+                            ) : (
+                              getProgressStepIcon(step.key)
+                            )}
+                          </span>
+                          <span className={styles.planningStepTitle}>
+                            {step.label}
+                          </span>
+                          <span className={styles.planningStepDesc}>
+                            {step.description}
+                          </span>
+                          {isCurrent ? (
+                            <Button
+                              size="small"
+                              className={styles.planningStepAction}
+                              onClick={() =>
+                                handleNavigate(
+                                  planningProgress.next_action.href ||
+                                    step.href,
+                                )
+                              }
+                            >
+                              {planningProgress.next_action.button_text}
+                            </Button>
+                          ) : (
+                            <Tag
+                              className={styles.planningStepStatus}
+                              color={isDone ? 'success' : 'default'}
+                            >
+                              {isDone ? '已完成' : '待开始'}
+                            </Tag>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
 
               {/* ── B. 成长路径 — 极轻路线条 ── */}
               <section className={styles.growthSection}>
@@ -1108,7 +1578,7 @@ const HomeV2Page: React.FC = () => {
                       );
                       const isActive = stageKey === currentStageKey;
                       const isDone = idx < currentStageIndex;
-                      const stageName = STAGE_TO_LEVEL[stageKey];
+                      const stageName = HOME_STAGE_LABELS[stageKey];
                       const salary = tier ? getTierSalarySummary(tier) : '-';
 
                       return (
@@ -1191,6 +1661,17 @@ const HomeV2Page: React.FC = () => {
                         <span className={styles.profileBarValue}>
                           {item.value}
                         </span>
+                        {item.action ? (
+                          <button
+                            type="button"
+                            className={styles.profileBarUploadLink}
+                            onClick={() =>
+                              handleNavigate('/student-competency-profile')
+                            }
+                          >
+                            {item.action}
+                          </button>
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -1295,7 +1776,11 @@ const HomeV2Page: React.FC = () => {
                   .map((item) => item.original_name)
                   .join('，')}
               </div>
-            ) : null}
+            ) : (
+              <div className={styles.attachmentEmpty}>
+                当前暂无附件，可上传简历图片用于后续解析。
+              </div>
+            )}
           </Form.Item>
         </Form>
       </Drawer>

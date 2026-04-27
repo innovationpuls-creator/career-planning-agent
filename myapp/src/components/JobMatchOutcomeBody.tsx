@@ -11,7 +11,7 @@ import {
   StarOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import { Button, Collapse, Empty, Space, Tag, Typography, message } from 'antd';
+import { Button, Collapse, Empty, message, Space, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -31,7 +31,11 @@ const STRENGTH_GROUP_CONFIG = [
   {
     key: 'education-foundation',
     title: '基础背景',
-    dimensionKeys: ['professional_background', 'education_requirement', 'work_experience'],
+    dimensionKeys: [
+      'professional_background',
+      'education_requirement',
+      'work_experience',
+    ],
   },
   {
     key: 'professional-skills',
@@ -47,7 +51,12 @@ const STRENGTH_GROUP_CONFIG = [
   {
     key: 'team-collaboration',
     title: '协作与表达',
-    dimensionKeys: ['teamwork', 'communication', 'responsibility', 'stress_adaptability'],
+    dimensionKeys: [
+      'teamwork',
+      'communication',
+      'responsibility',
+      'stress_adaptability',
+    ],
   },
 ] as const;
 
@@ -78,6 +87,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 17px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   metricsShell: css`
     display: block;
@@ -322,6 +333,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorText};
     font-size: 17px !important;
     font-weight: 600 !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
   `,
   adviceList: css`
     display: grid;
@@ -610,14 +623,20 @@ const RADAR_LABEL_MAP: Array<[string, string]> = [
 
 const truncateRadarLabel = (value: string) => {
   const normalized = value.trim();
-  const matched = RADAR_LABEL_MAP.find(([keyword]) => normalized.includes(keyword));
+  const matched = RADAR_LABEL_MAP.find(([keyword]) =>
+    normalized.includes(keyword),
+  );
   const display = matched?.[1] || normalized;
   if (display.length <= 6) return display;
   return `${display.slice(0, 6)}...`;
 };
 
 const getGapVisual = (key: string, index: number) => {
-  if (key.includes('other') || key.includes('special') || key.includes('documentation')) {
+  if (
+    key.includes('other') ||
+    key.includes('special') ||
+    key.includes('documentation')
+  ) {
     return { className: 'warm', icon: <FileTextOutlined /> };
   }
   if (key.includes('skill') || key.includes('professional_skills')) {
@@ -677,7 +696,9 @@ const StableRadarChart: React.FC<RadarChartProps> = ({ config }) => {
       const nextWidth = Math.max(Math.floor(element.clientWidth), 0);
       const nextHeight = Math.max(Math.floor(element.clientHeight), 300);
       setChartSize((current) =>
-        current.width === nextWidth && current.height === nextHeight ? current : { width: nextWidth, height: nextHeight },
+        current.width === nextWidth && current.height === nextHeight
+          ? current
+          : { width: nextWidth, height: nextHeight },
       );
     };
 
@@ -727,7 +748,9 @@ export const buildStrengthGroups = (
     const tags = Array.from(
       new Set(
         group.dimensionKeys.flatMap((key) =>
-          strengthKeys.includes(key) ? (comparisonByKey[key]?.user_values || []).filter(isMeaningfulTag) : [],
+          strengthKeys.includes(key)
+            ? (comparisonByKey[key]?.user_values || []).filter(isMeaningfulTag)
+            : [],
         ),
       ),
     );
@@ -740,9 +763,14 @@ export const buildStrengthGroups = (
     };
   }).filter((group) => group.tags.length > 0);
 
-export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = ({ viewModel, onOpenAdvice }) => {
+export const JobMatchComparisonPanel: React.FC<
+  JobMatchComparisonPanelProps
+> = ({ viewModel, onOpenAdvice }) => {
   const { styles, cx } = useStyles();
-  const prioritizedGaps = useMemo(() => getPrioritizedGaps(viewModel), [viewModel]);
+  const prioritizedGaps = useMemo(
+    () => getPrioritizedGaps(viewModel),
+    [viewModel],
+  );
   const [mainMetric] = viewModel.metrics;
 
   const radarConfig = useMemo(
@@ -775,13 +803,20 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <section className={`${styles.section} ${styles.summarySection}`} data-testid="job-match-summary-strip">
+      <section
+        className={`${styles.section} ${styles.summarySection}`}
+        data-testid="job-match-summary-strip"
+      >
         <div className={styles.metricsShell}>
           <div className={styles.metricGrid}>
             <div className={styles.metricCard}>
               <div>
-                <Text className={styles.metricLabel}>{mainMetric?.label || '综合评分'}</Text>
-                <div className={styles.metricValueStrong}>{mainMetric?.value || '--'}</div>
+                <Text className={styles.metricLabel}>
+                  {mainMetric?.label || '综合评分'}
+                </Text>
+                <div className={styles.metricValueStrong}>
+                  {mainMetric?.value || '--'}
+                </div>
               </div>
               <span className={styles.metricIcon}>
                 <BarChartOutlined />
@@ -791,13 +826,24 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
               <div>
                 <Text className={styles.metricLabel}>当前判断</Text>
                 <div className={styles.assessmentValue}>
-                  <Text className={styles.metricValuePrimary} data-testid="job-match-assessment-level">
+                  <Text
+                    className={styles.metricValuePrimary}
+                    data-testid="job-match-assessment-level"
+                  >
                     {viewModel.assessmentLabel}
                   </Text>
-                  <Tag color={STATUS_COLOR_MAP[viewModel.assessmentLabel] || 'default'}>{viewModel.assessmentLabel}</Tag>
+                  <Tag
+                    color={
+                      STATUS_COLOR_MAP[viewModel.assessmentLabel] || 'default'
+                    }
+                  >
+                    {viewModel.assessmentLabel}
+                  </Tag>
                 </div>
               </div>
-              <span className={`${styles.metricIcon} ${styles.metricIconSuccess}`}>
+              <span
+                className={`${styles.metricIcon} ${styles.metricIconSuccess}`}
+              >
                 <AimOutlined />
               </span>
             </div>
@@ -805,8 +851,12 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
               <div>
                 <Text className={styles.metricLabel}>当前最需补强</Text>
                 <div className={styles.assessmentValue}>
-                  <Text className={styles.metricValuePrimary}>{viewModel.primaryGapTitle || '暂无'}</Text>
-                  {viewModel.primaryGapGapLabel ? <Tag color="warning">{viewModel.primaryGapGapLabel}</Tag> : null}
+                  <Text className={styles.metricValuePrimary}>
+                    {viewModel.primaryGapTitle || '暂无'}
+                  </Text>
+                  {viewModel.primaryGapGapLabel ? (
+                    <Tag color="warning">{viewModel.primaryGapGapLabel}</Tag>
+                  ) : null}
                 </div>
               </div>
               <span className={`${styles.metricIcon} ${styles.metricIconWarm}`}>
@@ -830,7 +880,10 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
                 <StableRadarChart config={radarConfig} />
               </div>
             ) : (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无能力对比数据" />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="暂无能力对比数据"
+              />
             )}
           </div>
 
@@ -855,9 +908,12 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
                       <span
                         className={cx(
                           styles.gapLeading,
-                          gapVisual.className === 'blue' && styles.gapLeadingBlue,
-                          gapVisual.className === 'green' && styles.gapLeadingGreen,
-                          gapVisual.className === 'purple' && styles.gapLeadingPurple,
+                          gapVisual.className === 'blue' &&
+                            styles.gapLeadingBlue,
+                          gapVisual.className === 'green' &&
+                            styles.gapLeadingGreen,
+                          gapVisual.className === 'purple' &&
+                            styles.gapLeadingPurple,
                         )}
                       >
                         {gapVisual.icon}
@@ -866,12 +922,20 @@ export const JobMatchComparisonPanel: React.FC<JobMatchComparisonPanelProps> = (
                         <div className={styles.gapTop}>
                           <Space size={8} wrap>
                             <Text strong>{item.title}</Text>
-                            <Tag color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}>{item.statusLabel}</Tag>
+                            <Tag
+                              color={
+                                STATUS_COLOR_MAP[item.statusLabel] || 'default'
+                              }
+                            >
+                              {item.statusLabel}
+                            </Tag>
                             <Text type="secondary">gap {item.gapValue}</Text>
                           </Space>
                           <Text type="secondary">去看建议</Text>
                         </div>
-                        <Text className={styles.gapSummary}>{item.summary}</Text>
+                        <Text className={styles.gapSummary}>
+                          {item.summary}
+                        </Text>
                       </div>
                     </div>
                   </button>
@@ -920,13 +984,20 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
 }) => {
   const { styles, cx } = useStyles();
   const [messageApi, contextHolder] = message.useMessage();
-  const prioritizedGaps = useMemo(() => getPrioritizedGaps(viewModel), [viewModel]);
-  const activeGap = prioritizedGaps.find((item) => item.key === activeGapKey) || prioritizedGaps[0];
+  const prioritizedGaps = useMemo(
+    () => getPrioritizedGaps(viewModel),
+    [viewModel],
+  );
+  const activeGap =
+    prioritizedGaps.find((item) => item.key === activeGapKey) ||
+    prioritizedGaps[0];
 
   const copyCandidates = [
     ...(activeGap?.examplePhrases || []),
     ...(activeGap?.recommendedKeywords || []),
-  ].filter(Boolean).slice(0, 6);
+  ]
+    .filter(Boolean)
+    .slice(0, 6);
 
   return (
     <>
@@ -944,7 +1015,10 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                 <button
                   key={item.key}
                   type="button"
-                  className={cx(styles.adviceItem, active && styles.adviceItemActive)}
+                  className={cx(
+                    styles.adviceItem,
+                    active && styles.adviceItemActive,
+                  )}
                   data-testid={`job-match-action-card-${item.key}`}
                   onClick={() => onActiveGapChange?.(item.key)}
                 >
@@ -953,7 +1027,8 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                       styles.gapLeading,
                       gapVisual.className === 'blue' && styles.gapLeadingBlue,
                       gapVisual.className === 'green' && styles.gapLeadingGreen,
-                      gapVisual.className === 'purple' && styles.gapLeadingPurple,
+                      gapVisual.className === 'purple' &&
+                        styles.gapLeadingPurple,
                     )}
                   >
                     {gapVisual.icon}
@@ -961,10 +1036,16 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                   <span className={styles.adviceItemMain}>
                     <span className={styles.adviceItemTop}>
                       <Text strong>{item.title}</Text>
-                      <Tag color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}>{item.statusLabel}</Tag>
+                      <Tag
+                        color={STATUS_COLOR_MAP[item.statusLabel] || 'default'}
+                      >
+                        {item.statusLabel}
+                      </Tag>
                       <Text type="secondary">gap {item.gapValue}</Text>
                     </span>
-                    <Text className={styles.adviceItemSummary}>{item.summary}</Text>
+                    <Text className={styles.adviceItemSummary}>
+                      {item.summary}
+                    </Text>
                   </span>
                 </button>
               );
@@ -981,14 +1062,27 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
             <div className={styles.adviceDetail}>
               <div className={styles.adviceHero}>
                 <span className={styles.adviceHeroIcon}>
-                  {getGapVisual(activeGap.key, prioritizedGaps.findIndex((item) => item.key === activeGap.key)).icon}
+                  {
+                    getGapVisual(
+                      activeGap.key,
+                      prioritizedGaps.findIndex(
+                        (item) => item.key === activeGap.key,
+                      ),
+                    ).icon
+                  }
                 </span>
                 <div className={styles.adviceHeroBody}>
                   <Title level={4} className={styles.sectionTitle}>
                     {titlePrefix}：{activeGap.title}
                   </Title>
                   <div className={styles.adviceHeroMeta}>
-                    <Tag color={STATUS_COLOR_MAP[activeGap.statusLabel] || 'default'}>{activeGap.statusLabel}</Tag>
+                    <Tag
+                      color={
+                        STATUS_COLOR_MAP[activeGap.statusLabel] || 'default'
+                      }
+                    >
+                      {activeGap.statusLabel}
+                    </Tag>
                     <Text type="secondary">gap {activeGap.gapValue}</Text>
                     <Text type="secondary">准备度 {activeGap.readiness}%</Text>
                   </div>
@@ -1001,7 +1095,9 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
               </div>
 
               <div className={styles.adviceBlock}>
-                <Text className={styles.adviceBlockTitle}>{suggestionTitle}</Text>
+                <Text className={styles.adviceBlockTitle}>
+                  {suggestionTitle}
+                </Text>
                 <div className={styles.simpleList}>
                   {(activeGap.nextActions || []).slice(0, 3).map((item) => (
                     <Text key={item} className={styles.simpleListItem}>
@@ -1013,7 +1109,9 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
 
               <div className={styles.adviceBlock}>
                 <div className={styles.sectionHead}>
-                  <Text className={styles.adviceBlockTitle}>{writableTitle}</Text>
+                  <Text className={styles.adviceBlockTitle}>
+                    {writableTitle}
+                  </Text>
                   <Button
                     size="small"
                     icon={<CopyOutlined />}
@@ -1030,7 +1128,11 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                 </div>
                 <div className={styles.tagList}>
                   {copyCandidates.map((item) => (
-                    <Tag key={item} color="processing" style={{ marginInlineEnd: 0 }}>
+                    <Tag
+                      key={item}
+                      color="processing"
+                      style={{ marginInlineEnd: 0 }}
+                    >
                       {item}
                     </Tag>
                   ))}
@@ -1043,16 +1145,26 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                 items={[
                   {
                     key: 'more',
-                    label: <Text data-testid="advice-supplementary-toggle">{referenceTitle}</Text>,
+                    label: (
+                      <Text data-testid="advice-supplementary-toggle">
+                        {referenceTitle}
+                      </Text>
+                    ),
                     children: (
-                      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                      <Space
+                        direction="vertical"
+                        size={10}
+                        style={{ width: '100%' }}
+                      >
                         {(activeGap.evidenceSources || []).length ? (
                           <div className={styles.adviceSection}>
                             <Text strong>可补素材</Text>
                             <div className={styles.tagList}>
-                              {activeGap.evidenceSources.slice(0, 6).map((item) => (
-                                <Tag key={item}>{item}</Tag>
-                              ))}
+                              {activeGap.evidenceSources
+                                .slice(0, 6)
+                                .map((item) => (
+                                  <Tag key={item}>{item}</Tag>
+                                ))}
                             </div>
                           </div>
                         ) : null}
@@ -1061,22 +1173,30 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
                           <div className={styles.adviceSection}>
                             <Text strong>对齐关键词</Text>
                             <div className={styles.tagList}>
-                              {activeGap.recommendedKeywords.slice(0, 6).map((item) => (
-                                <Tag key={item} color="gold">
-                                  {item}
-                                </Tag>
-                              ))}
+                              {activeGap.recommendedKeywords
+                                .slice(0, 6)
+                                .map((item) => (
+                                  <Tag key={item} color="gold">
+                                    {item}
+                                  </Tag>
+                                ))}
                             </div>
                           </div>
                         ) : null}
 
                         {showOverallReview && viewModel.overallReview ? (
-                          <div className={styles.adviceSection} data-testid="advice-overall-review">
+                          <div
+                            className={styles.adviceSection}
+                            data-testid="advice-overall-review"
+                          >
                             <Text strong>{overallReviewTitle}</Text>
                             <Text>{viewModel.overallReview}</Text>
                           </div>
                         ) : (
-                          <div style={{ display: 'none' }} data-testid="advice-overall-review">
+                          <div
+                            style={{ display: 'none' }}
+                            data-testid="advice-overall-review"
+                          >
                             {viewModel.overallReview || ''}
                           </div>
                         )}
@@ -1087,7 +1207,10 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
               />
             </div>
           ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无修改建议" />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="暂无修改建议"
+            />
           )}
         </section>
       </div>
@@ -1097,7 +1220,10 @@ export const JobMatchAdvicePanel: React.FC<JobMatchAdvicePanelProps> = ({
 
 const JobMatchOutcomeBody: React.FC<CombinedBodyProps> = ({ viewModel }) => (
   <Space direction="vertical" size={16} style={{ width: '100%' }}>
-    <JobMatchComparisonPanel viewModel={viewModel} onOpenAdvice={() => undefined} />
+    <JobMatchComparisonPanel
+      viewModel={viewModel}
+      onOpenAdvice={() => undefined}
+    />
     <JobMatchAdvicePanel viewModel={viewModel} />
   </Space>
 );

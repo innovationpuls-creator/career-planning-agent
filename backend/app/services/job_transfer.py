@@ -60,7 +60,7 @@ from app.services.job_transfer_groups import (
     TRANSFER_GROUPS_BY_KEY,
     build_group_embedding_documents,
 )
-from app.services.vector_store import QdrantGroupedVectorStore, VectorSearchResult
+from app.services.vector_store import QdrantGroupedVectorStore
 
 
 ProgressReporter = Callable[[dict[str, object]], Awaitable[None]]
@@ -293,17 +293,6 @@ class JobTransferService:
         shortlisted_candidate_count: int,
     ) -> JobTransferPayload:
         source_dimension_payload = build_dimension_payload(source)
-        source_group_weights = [
-            JobTransferGroupWeightItem(
-                group_key=group.key,
-                label=group.label,
-                coverage_ratio=float(getattr(source, group.coverage_field)),
-                weight=group_weights.get(group.key, 0.0),
-            )
-            for group in TRANSFER_GROUPS_BY_KEY.values()
-            if group.key in group_weights
-        ]
-        source_titles = self._load_json_list(source.source_job_titles_json)
 
         return JobTransferPayload(
             source=self._build_source_snapshot(source, group_weights=group_weights),

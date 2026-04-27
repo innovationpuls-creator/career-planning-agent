@@ -1,8 +1,16 @@
+import { LoadingOutlined, ReadOutlined } from '@ant-design/icons';
 import {
-  LoadingOutlined,
-  ReadOutlined,
-} from '@ant-design/icons';
-import { Card, Descriptions, Drawer, Empty, List, Space, Spin, Steps, Tag, Typography } from 'antd';
+  Card,
+  Descriptions,
+  Drawer,
+  Empty,
+  List,
+  Space,
+  Spin,
+  Steps,
+  Tag,
+  Typography,
+} from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getVerticalJobProfileCompanyDetail } from '@/services/ant-design-pro/api';
@@ -38,6 +46,10 @@ const useStyles = createStyles(({ css, token }) => ({
     display: grid;
     gap: 20px;
   `,
+  headingInline: css`
+    font-family: var(--font-heading);
+    letter-spacing: 0.04em;
+  `,
   split: css`
     display: grid;
     grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
@@ -55,6 +67,9 @@ const useStyles = createStyles(({ css, token }) => ({
     width: 100%;
   `,
   stepTitleText: css`
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: 0.02em;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -185,6 +200,10 @@ const useStyles = createStyles(({ css, token }) => ({
     gap: 16px;
   `,
   panelTitle: css`
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     margin: 0 0 16px;
   `,
   drawerBody: css`
@@ -260,7 +279,10 @@ const getTierSalarySummary = (tier: SalaryTierGroup): string => {
 
   const values = tier.items
     .map((item) => item.salary_sort_value)
-    .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value));
+    .filter(
+      (value): value is number =>
+        typeof value === 'number' && !Number.isNaN(value),
+    );
 
   if (values.length) {
     return formatMonthlyRange(values);
@@ -282,19 +304,26 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
   mode = 'detailed',
 }) => {
   const { styles, theme: token } = useStyles();
-  const tiers = useMemo(() => getOrderedTiers(comparison?.tiers || []), [comparison]);
+  const tiers = useMemo(
+    () => getOrderedTiers(comparison?.tiers || []),
+    [comparison],
+  );
   const defaultStage = currentStage || 'low';
-  const [selectedStage, setSelectedStage] = useState<'low' | 'middle' | 'high'>(defaultStage);
+  const [selectedStage, setSelectedStage] = useState<'low' | 'middle' | 'high'>(
+    defaultStage,
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
-  const [companyDetail, setCompanyDetail] = useState<API.VerticalJobProfileCompanyDetailPayload>();
+  const [companyDetail, setCompanyDetail] =
+    useState<API.VerticalJobProfileCompanyDetailPayload>();
 
   useEffect(() => {
     setSelectedStage(defaultStage);
   }, [defaultStage]);
 
   const selectedTier =
-    tiers.find((tier) => getStageKeyByLevel(tier.level) === selectedStage) || tiers[0];
+    tiers.find((tier) => getStageKeyByLevel(tier.level) === selectedStage) ||
+    tiers[0];
 
   const openDetail = async (item: SalaryTierItem) => {
     if (!comparison?.job_title) return;
@@ -302,7 +331,11 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
     setDrawerLoading(true);
     try {
       const response = await getVerticalJobProfileCompanyDetail(
-        { job_title: comparison.job_title, industry: item.industry, company_name: item.company_name },
+        {
+          job_title: comparison.job_title,
+          industry: item.industry,
+          company_name: item.company_name,
+        },
         { skipErrorHandler: true },
       );
       setCompanyDetail(response.data);
@@ -317,39 +350,39 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
     return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />;
   }
 
-  const stepItems = tiers.map((tier) => {
-    const stageKey = getStageKeyByLevel(tier.level);
-    const showCountTag = mode === 'detailed';
-    const isActive = stageKey === selectedStage;
+  const stepItems: { title: React.ReactNode; status: 'wait' }[] = tiers.map(
+    (tier) => {
+      const stageKey = getStageKeyByLevel(tier.level);
+      const showCountTag = mode === 'detailed';
+      const isActive = stageKey === selectedStage;
 
-    return {
-      title: (
-        <div className={isActive ? styles.stepCardActive : styles.stepCard}>
-          <div className={styles.stepTitle}>
-            <div className={styles.stepTitleText}>
-              <span>{tier.level}</span>
-              {isActive ? (
-                <Tag color={STAGE_ACCENT[stageKey]}>当前阶段</Tag>
-              ) : null}
+      return {
+        title: (
+          <div className={isActive ? styles.stepCardActive : styles.stepCard}>
+            <div className={styles.stepTitle}>
+              <div className={styles.stepTitleText}>
+                <span>{tier.level}</span>
+                {isActive ? (
+                  <Tag color={STAGE_ACCENT[stageKey]}>当前阶段</Tag>
+                ) : null}
+              </div>
+              {showCountTag ? <Tag>{tier.items.length}</Tag> : null}
             </div>
-            {showCountTag ? <Tag>{tier.items.length}</Tag> : null}
+            <div className={styles.stepDesc}>
+              薪资参考：{getTierSalarySummary(tier)}
+            </div>
           </div>
-          <div className={styles.stepDesc}>薪资参考：{getTierSalarySummary(tier)}</div>
-        </div>
-      ),
-      status: 'wait',
-    };
-  });
+        ),
+        status: 'wait',
+      };
+    },
+  );
 
   if (mode === 'path') {
     return (
       <div className={styles.wrap} data-testid="vertical-tier-comparison">
         <div className={styles.stepCardWrap}>
-          <Steps
-            direction="vertical"
-            current={-1}
-            items={stepItems}
-          />
+          <Steps direction="vertical" current={-1} items={stepItems} />
         </div>
         <div className={styles.gapHint}>{STAGE_GAP_HINT[selectedStage]}</div>
       </div>
@@ -374,10 +407,18 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
         </div>
         <div className={styles.detailWrap}>
           <div className={styles.stepTitle}>
-            <Typography.Title level={5} className={styles.panelTitle} style={{ marginBottom: 0 }}>
+            <Typography.Title
+              level={5}
+              className={styles.panelTitle}
+              style={{ marginBottom: 0 }}
+            >
               {selectedTier?.level || '阶段详情'}
             </Typography.Title>
-            {selectedTier ? <Tag color={STAGE_ACCENT[selectedStage]}>{selectedTier.items.length}</Tag> : null}
+            {selectedTier ? (
+              <Tag color={STAGE_ACCENT[selectedStage]}>
+                {selectedTier.items.length}
+              </Tag>
+            ) : null}
           </div>
           {selectedTier?.items.length ? (
             <List
@@ -390,11 +431,15 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                     className={styles.listCard}
                     onClick={() => void openDetail(item)}
                     extra={
-                      <ReadOutlined style={{ color: token.colorPrimary, fontSize: 16 }} />
+                      <ReadOutlined
+                        style={{ color: token.colorPrimary, fontSize: 16 }}
+                      />
                     }
                   >
                     <div className={styles.listMeta}>
-                      <Typography.Text strong>{item.company_name}</Typography.Text>
+                      <Typography.Text strong>
+                        {item.company_name}
+                      </Typography.Text>
                       <div className={styles.metaRow}>
                         <div className={styles.metaItem}>
                           <div className={styles.metaLabel}>行业</div>
@@ -402,7 +447,9 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                         </div>
                         <div className={styles.metaItem}>
                           <div className={styles.metaLabel}>薪资参考</div>
-                          <Typography.Text>{item.salary_sort_label || item.salary_range || '-'}</Typography.Text>
+                          <Typography.Text>
+                            {item.salary_sort_label || item.salary_range || '-'}
+                          </Typography.Text>
                         </div>
                       </div>
                     </div>
@@ -417,7 +464,11 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
       </div>
 
       <Drawer
-        title={companyDetail ? `${companyDetail.summary.company_name} - ${companyDetail.summary.job_title}` : '公司详情'}
+        title={
+          companyDetail
+            ? `${companyDetail.summary.company_name} - ${companyDetail.summary.job_title}`
+            : '公司详情'
+        }
         width={960}
         open={drawerOpen}
         destroyOnClose
@@ -427,24 +478,36 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
         }}
       >
         {drawerLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'center', padding: 48 }}
+          >
             <Spin indicator={<LoadingOutlined spin />} />
           </div>
         ) : companyDetail ? (
           <div className={styles.drawerBody}>
             <Card>
               <Descriptions column={{ xs: 1, sm: 2, lg: 4 }} size="small">
-                <Descriptions.Item label="公司">{companyDetail.summary.company_name}</Descriptions.Item>
-                <Descriptions.Item label="行业">{companyDetail.summary.industry}</Descriptions.Item>
-                <Descriptions.Item label="职位">{companyDetail.summary.job_title}</Descriptions.Item>
-                <Descriptions.Item label="招聘帖子数">{companyDetail.summary.posting_count}</Descriptions.Item>
+                <Descriptions.Item label="公司">
+                  {companyDetail.summary.company_name}
+                </Descriptions.Item>
+                <Descriptions.Item label="行业">
+                  {companyDetail.summary.industry}
+                </Descriptions.Item>
+                <Descriptions.Item label="职位">
+                  {companyDetail.summary.job_title}
+                </Descriptions.Item>
+                <Descriptions.Item label="招聘帖子数">
+                  {companyDetail.summary.posting_count}
+                </Descriptions.Item>
               </Descriptions>
             </Card>
 
             <Card title="薪资范围">
               <Space wrap size={[8, 8]}>
                 {companyDetail.summary.salary_ranges.map((r) => (
-                  <Tag key={r} color="blue">{r}</Tag>
+                  <Tag key={r} color="blue">
+                    {r}
+                  </Tag>
                 ))}
               </Space>
             </Card>
@@ -454,7 +517,9 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                 <Typography.Text strong>公司规模</Typography.Text>
                 <div>
                   {companyDetail.overview.company_sizes.map((s) => (
-                    <Tag key={s} className={styles.overviewTag}>{s}</Tag>
+                    <Tag key={s} className={styles.overviewTag}>
+                      {s}
+                    </Tag>
                   ))}
                 </div>
               </div>
@@ -462,7 +527,9 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                 <Typography.Text strong>公司类型</Typography.Text>
                 <div>
                   {companyDetail.overview.company_types.map((t) => (
-                    <Tag key={t} className={styles.overviewTag}>{t}</Tag>
+                    <Tag key={t} className={styles.overviewTag}>
+                      {t}
+                    </Tag>
                   ))}
                 </div>
               </div>
@@ -470,14 +537,20 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                 <Typography.Text strong>工作地址</Typography.Text>
                 <div>
                   {companyDetail.overview.addresses.map((a) => (
-                    <Tag key={a} className={styles.overviewTag}>{a}</Tag>
+                    <Tag key={a} className={styles.overviewTag}>
+                      {a}
+                    </Tag>
                   ))}
                 </div>
               </div>
             </Card>
 
             <section className={styles.detailSection}>
-              <Typography.Title level={5} style={{ margin: 0 }}>
+              <Typography.Title
+                level={5}
+                className={styles.headingInline}
+                style={{ margin: 0 }}
+              >
                 招聘原文摘录
               </Typography.Title>
               {companyDetail.postings.length ? (
@@ -489,7 +562,10 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                       </Typography.Paragraph>
                     ) : null}
                     {posting.company_detail ? (
-                      <Typography.Paragraph type="secondary" style={{ marginTop: 4, fontSize: 12 }}>
+                      <Typography.Paragraph
+                        type="secondary"
+                        style={{ marginTop: 4, fontSize: 12 }}
+                      >
                         {posting.company_detail}
                       </Typography.Paragraph>
                     ) : null}
@@ -501,12 +577,18 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
                   </div>
                 ))
               ) : (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无原文数据" />
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="暂无原文数据"
+                />
               )}
             </section>
           </div>
         ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无详情数据" />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="暂无详情数据"
+          />
         )}
       </Drawer>
     </div>
@@ -514,4 +596,9 @@ const VerticalTierComparison: React.FC<VerticalTierComparisonProps> = ({
 };
 
 export default VerticalTierComparison;
-export { STAGE_TO_LEVEL, getStageKeyByLevel, getTierSalarySummary, getOrderedTiers };
+export {
+  getOrderedTiers,
+  getStageKeyByLevel,
+  getTierSalarySummary,
+  STAGE_TO_LEVEL,
+};
