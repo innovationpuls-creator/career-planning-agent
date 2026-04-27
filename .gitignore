@@ -8,7 +8,6 @@ Thumbs.db
 .ruff_cache
 docs
 everything-claude-code
-CLAUDE.md
 start.bat
 
 # Root-only local data
@@ -32,6 +31,7 @@ myapp/dist/
 myapp/.umi/
 myapp/.umi-production/
 myapp/.umi-test/
+myapp/.umi-undefined/
 myapp/coverage/
 myapp/artifacts
 
