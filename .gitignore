@@ -8,6 +8,7 @@ Thumbs.db
 .ruff_cache
 everything-claude-code
 start.bat
+artifacts
 
 # Root-only local data
 /行业数据/
