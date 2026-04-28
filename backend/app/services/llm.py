@@ -63,12 +63,16 @@ class OpenAICompatibleLLMClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def chat_completion(self, messages: list[ChatMessage], *, temperature: float = 0.0) -> str:
-        payload = {
+    async def _chat_completion_raw(
+        self, messages: list[ChatMessage], *, temperature: float, extra_body: dict | None = None
+    ) -> str:
+        payload: dict = {
             "model": self.model,
             "temperature": temperature,
             "messages": [{"role": message.role, "content": message.content} for message in messages],
         }
+        if extra_body:
+            payload.update(extra_body)
 
         last_error: Exception | None = None
         attempts = max(self.max_retries, 0) + 1
@@ -110,3 +114,53 @@ class OpenAICompatibleLLMClient:
             last_error = LLMClientError("LLM response did not contain a usable message content.")
 
         raise LLMClientError(f"LLM request failed after {attempts} attempt(s): {last_error}")
+
+    async def chat_completion(self, messages: list[ChatMessage], *, temperature: float = 0.0) -> str:
+        return await self._chat_completion_raw(messages, temperature=temperature)
+
+    async def chat_completion_structured(
+        self,
+        messages: list[ChatMessage],
+        *,
+        temperature: float = 0.0,
+        json_schema: dict | None = None,
+    ) -> dict:
+        """Send a chat completion with JSON mode and return the parsed dict.
+
+        When *json_schema* is provided, uses ``json_schema`` response_format.
+        Otherwise falls back to ``json_object`` mode.
+
+        Raises ``LLMClientError`` if the response cannot be parsed as JSON or
+        if the API call fails after exhausting retries.
+        """
+        if json_schema is not None:
+            response_format: dict = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_output",
+                    "strict": True,
+                    "schema": json_schema,
+                },
+            }
+        else:
+            response_format = {"type": "json_object"}
+
+        extra_body = {"response_format": response_format}
+        text = await self._chat_completion_raw(messages, temperature=temperature, extra_body=extra_body)
+
+        text = text.strip()
+        if text.startswith("```"):
+            for line in text.split("\n"):
+                stripped = line.strip()
+                if stripped and not stripped.startswith("```"):
+                    text = stripped
+                    break
+            else:
+                text = text.strip("`").strip()
+
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise LLMClientError(
+                f"Failed to parse LLM response as JSON: {exc}. Response: {text[:500]}"
+            ) from exc

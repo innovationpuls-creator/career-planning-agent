@@ -17,6 +17,7 @@ dependencies = [
   "neo4j>=6.1.0",
   "pywin32>=311; platform_system == 'Windows'",
   "qdrant-client>=1.17.1",
+  "pypdf>=6.10.2",
 ]
 
 [project.optional-dependencies]
