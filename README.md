@@ -33,10 +33,9 @@
 ##  Preview
 
 <p align="center">
-  <em>TODO: 添加产品截图</em><br/>
-  <code>docs/images/preview-home.png</code> &nbsp;|&nbsp;
-  <code>docs/images/preview-profile.png</code> &nbsp;|&nbsp;
-  <code>docs/images/preview-report.png</code>
+  <img src="docs/images/preview-home.png" width="32%" alt="首页" />
+  <img src="docs/images/preview-profile.png" width="32%" alt="能力画像" />
+  <img src="docs/images/preview-report.png" width="32%" alt="成长报告" />
 </p>
 
 ---
