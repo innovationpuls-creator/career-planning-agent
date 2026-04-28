@@ -8,6 +8,7 @@ Thumbs.db
 .ruff_cache
 everything-claude-code
 start.bat
+.env
 artifacts
 
 # Root-only local data

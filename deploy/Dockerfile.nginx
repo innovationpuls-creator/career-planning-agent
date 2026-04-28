@@ -9,6 +9,9 @@ WORKDIR /app
 # Copy dependency files
 COPY myapp/package.json ./
 
+# Set npm China mirror for faster installs behind GFW
+RUN npm config set registry https://registry.npmmirror.com
+
 # Install dependencies (use install instead of ci for cross-platform compatibility)
 RUN npm install --ignore-scripts
 

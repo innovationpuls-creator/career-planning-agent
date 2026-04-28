@@ -1,739 +1,452 @@
-# CentOS 部署指南
+# CentOS 部署指南（Docker Compose）
 
-> 适用版本：CentOS 7 / 8 / 9（Rocky Linux / AlmaLinux 兼容）
-> 
-> 提供两种部署方式：
-> - **方案 A（推荐）**：Docker Compose — 一键部署，环境隔离，维护简单
-> - **方案 B**：裸机部署 — 传统 systemd 服务管理，适合无 Docker 环境
+> 不需要懂 Docker 原理，照着敲就行。
+> 适用 CentOS 7/8/9，Rocky Linux、AlmaLinux 也通用。
 
 ---
 
-## 方案 A（推荐）：Docker Compose 部署
+## 一、准备工作
 
-使用 Docker Compose 一键启动所有服务（Nginx + 前端 + 后端 FastAPI + Neo4j + Qdrant）。
+### 你需要什么
 
-### 架构
+- 一台 CentOS 服务器（最低 4GB 内存）
+- root 权限或 sudo 权限
+- 能联网
 
-```
-Nginx (port 80)
-├── / → 前端静态文件（内置）
-├── /api/ → proxy_pass → backend:9100 (FastAPI)
-└── /static/ → proxy_pass → backend:9100
-
-backend:9100 ──→ neo4j:7687 (Bolt)
-             ──→ qdrant:6333 (HTTP)
-```
-
-### 前置条件
+### 安装 Docker
 
 ```bash
-# 安装 Docker
+# 一键安装 Docker（复制整行，粘贴回车）
 curl -fsSL https://get.docker.com | bash
+
+# 启动 Docker 并设置开机自启
 sudo systemctl enable --now docker
 
-# 安装 Docker Compose v2（通常已随 Docker 安装）
+# 验证安装成功（应该显示版本号）
+docker --version
 docker compose version
 ```
 
-### 一键部署
+> 如果上面两条命令都显示了版本号，说明 Docker 安装成功，继续下一步。
+
+---
+
+## 二、获取项目代码
 
 ```bash
-# 1. 克隆代码
-git clone <your-repo-url> /opt/career-planning-agent
+# 把项目下载到 /opt 目录下
+cd /opt
+sudo git clone <你的仓库地址> career-planning-agent
+
+# 把目录权限给你自己（不然后面操作要一直 sudo）
+sudo chown -R $(whoami):$(whoami) /opt/career-planning-agent
+
+# 进入项目目录
 cd /opt/career-planning-agent
-
-# 2. 配置环境变量
-cp deploy/.env.example .env
-# 编辑 .env：
-#   - APP_SECRET_KEY: openssl rand -hex 32 生成
-#   - APP_DOMAIN: 服务器 IP 或域名
-#   - NEO4J_PASSWORD: 设置一个强密码
-
-# 3. 一键构建并启动
-bash deploy/start.sh
 ```
 
-> 首次启动需要下载基础镜像（约 10 分钟，取决于网络），后续启动仅需数秒。
+> 如果没有 git，先装：`sudo yum install -y git`
+
+---
+
+## 三、配置环境变量
+
+### 关键说明（必看）
+
+项目根目录有一个 `docker-compose.yml` 文件。  
+Docker Compose 启动时会自动读取**和它同目录**的 `.env` 文件，  
+把里面的变量传给各个容器。
+
+**不要搞错位置** — `.env` 必须和 `docker-compose.yml` 在同一个目录（项目根目录），不是放在 `backend/` 里面！
+
+### 操作步骤
+
+```bash
+# 复制模板文件，生成你自己的配置
+cp deploy/.env.example .env
+
+# 用 vim 编辑（不会 vim 可以用下面这个命令）
+vi .env
+```
+
+> 不会用 vim？运行 `vi .env` 后，按 `i` 进入编辑模式，改完按 `Esc`，输入 `:wq` 回车保存。
+
+### 必填字段
+
+`.env` 文件中至少修改以下 3 项：
+
+```ini
+# 1. 安全密钥（必须改！）
+# 用下面命令生成：openssl rand -hex 32
+APP_SECRET_KEY=换成32位以上的随机字符串
+
+# 2. 服务器地址（你的 CentOS 的 IP 或域名）
+# 例子：APP_DOMAIN=123.45.67.89  或  APP_DOMAIN=example.com
+APP_DOMAIN=你的服务器IP
+
+# 3. Neo4j 数据库密码（必须改！）
+NEO4J_PASSWORD=设置一个复杂密码
+```
+
+### 可选：AI 功能配置
+
+不加也能启动系统，但**简历解析、岗位智能匹配、职业报告生成**这些核心功能不可用。
+
+本系统需要两类 AI 服务：
+
+#### ① 大语言模型（LLM）— 用来理解文字、生成内容
+
+负责简历智能解析、岗位需求分析、职业建议生成等任务。  
+可以用任何兼容 OpenAI API 的服务商：
+
+| 服务商 | API 地址 | 推荐模型 | 获取 Key |
+|--------|----------|----------|----------|
+| **DeepSeek**（推荐，便宜） | `https://api.deepseek.com/v1` | `deepseek-chat` | platform.deepseek.com 注册 |
+| **OpenAI** | `https://api.openai.com/v1` | `gpt-4o-mini` | platform.openai.com |
+| **阿里通义千问** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | dashscope.aliyun.com |
+| **硅基流动**（免费额度） | `https://api.siliconflow.cn/v1` | `Qwen/Qwen2.5-7B-Instruct` | cloud.siliconflow.cn |
+
+在 `.env` 里加（以 DeepSeek 为例）：
+
+```ini
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_API_KEY=sk-粘贴你复制的API密钥
+LLM_MODEL=deepseek-v4-flash
+```
+
+#### ② 向量化模型（Embedding）— 用来计算相似度
+
+负责把文字转换成向量，用于岗位匹配、相似度计算。  
+需要和 LLM 配套配置。
+
+| 服务商 | API 地址 | 推荐模型 |
+|--------|----------|----------|
+| **阿里百炼**（推荐，便宜） | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `text-embedding-v2` |
+| **OpenAI** | `https://api.openai.com/v1` | `text-embedding-3-small` |
+| **硅基流动** | `https://api.siliconflow.cn/v1` | `BAAI/bge-m3` |
+
+在 `.env` 里加（以阿里百炼为例）：
+
+```ini
+EMBEDDING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+EMBEDDING_API_KEY=sk-粘贴你的阿里云API密钥
+EMBEDDING_MODEL=text-embedding-v2
+```
+
+> **注**：阿里百炼的 API Key 和 DeepSeek 的不通用，需要分别去各自平台注册获取。
+> Key 以 `sk-` 开头，复制粘贴就行，不需要引号。
+
+#### 完整示例：同时配好 LLM + Embedding
+
+```ini
+# ---- LLM（用 DeepSeek）----
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_API_KEY=sk-d73cbab54e424838917311156dfdf8b1
+LLM_MODEL=deepseek-chat
+
+# ---- Embedding（用阿里百炼）----
+EMBEDDING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+EMBEDDING_API_KEY=sk-d8a21995db35488c8a6b9c2ba9b6f036
+EMBEDDING_MODEL=text-embedding-v2
+```
+
+改完后保存。如果你还没启动过服务，继续往下看。
+
+---
+
+## 四、配置国内镜像加速（重要）
+
+> 如果你在国外服务器部署，跳过这一步。
+> 国内访问 Docker Hub 非常慢（几 KB/s），必须配镜像加速。
+
+### 在 CentOS 上配置 Docker 镜像源
+
+```bash
+# 创建 Docker 配置目录（如果不存在）
+sudo mkdir -p /etc/docker
+
+# 写入镜像加速地址
+sudo tee /etc/docker/daemon.json << 'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+EOF
+
+# 重启 Docker 使配置生效
+sudo systemctl restart docker
+```
+
+> 以上两个镜像已经过实际测试验证，可稳定拉取本项目的所有镜像。
+
+---
+
+## 五、启动所有服务
+
+```bash
+# 一键启动（第一次会下载镜像，总共约 1.2GB，配置镜像后几分钟就能下完）
+docker compose up -d
+
+# 查看启动状态（全部显示 healthy 或 running 才算成功）
+docker compose ps
+```
+
+### 正常状态应该是这样的
+
+```
+NAME                STATUS
+career-nginx        Up 1 minute
+career-backend      Up 1 minute (healthy)
+career-qdrant       Up 1 minute (healthy)
+career-neo4j        Up 2 minutes (healthy)
+```
+
+如果某个容器不是 healthy，看后面的「常见问题」。
 
 ### 验证部署
 
 ```bash
-# 检查所有容器状态
-docker compose ps
+# 测试 API 是否正常
+curl http://localhost/api/health
 
-# 查看日志
-docker compose logs -f --tail=50
-
-# 测试后端健康
-curl http://localhost/api/
-
-# 访问前端
-curl http://localhost/
+# 应该显示：{"status":"ok"}
 ```
 
-### 日常维护
+---
+
+## 六、导入初始数据
+
+这一步把行业岗位数据导入数据库，否则系统里没有岗位信息。
 
 ```bash
-# 查看日志
-docker compose logs -f          # 所有服务
-docker compose logs backend     # 仅后端
-docker compose logs neo4j       # 仅 Neo4j
+# 1. 先重建 backend 容器（挂载数据和脚本目录）
+docker compose up -d --force-recreate backend
 
-# 重启
+# 2. 等几秒等后端启动好，然后运行导入脚本
+docker compose exec -e PYTHONPATH=/app backend python scripts/rebuild_job_transfer_v2.py --with-import --yes
+```
+
+> 注意：
+> - 命令中的 `--yes` 是跳过确认提示，直接执行
+> - `-e PYTHONPATH=/app` 是告诉 Python 去哪找代码文件
+> - 如果用 `uv run python` 会报 `uv: not found`，因为容器里没有 uv 命令
+
+### 导入完成后你会看到
+
+```
+[1/6] import_job_postings           ✅ DONE
+[2/6] reset_job_transfer_v2_schema  ✅ DONE
+[3/6] build_job_requirement_profiles ✅ DONE（如果没有配 LLM 会跳过）
+...
+[group-embed] completed batch 351/352 for job vectors (written=2811/2811)
+[group-embed] completed batch 4/4 for career vectors (written=3/27)
+[group-embed] completed batch 3/4 for career vectors (written=11/27)
+[group-embed] completed batch 1/4 for career vectors (written=19/27)
+[group-embed] completed batch 2/4 for career vectors (written=27/27)
+[group-embed] done jobs=2811 careers=27
+[pipeline] DONE build_transfer_group_embeddings elapsed=25.36s
+[pipeline] rebuild completed
+[pipeline] summary import_job_postings elapsed=0.69s
+[pipeline] summary reset_job_transfer_v2_schema elapsed=0.69s
+[pipeline] summary build_job_requirement_profiles elapsed=664.73s
+[pipeline] summary build_career_title_aliases elapsed=15.65s
+[pipeline] summary build_career_requirement_profiles elapsed=261.57s
+[pipeline] summary build_transfer_group_embeddings elapsed=25.36s
+[pipeline] total_elapsed=968.68s
+```
+
+---
+
+## 七、访问系统
+
+| 功能 | 地址 |
+|------|------|
+| **前端页面** | `http://你的服务器IP` |
+| 后端健康检查 | `http://你的服务器IP/api/health` |
+| Neo4j 管理界面 | `http://你的服务器IP:7474`（用户名 neo4j，密码你设的） |
+
+> 如果浏览器访问不了，可能是防火墙没放行：
+> ```bash
+> sudo firewall-cmd --add-service=http --permanent
+> sudo firewall-cmd --reload
+> ```
+
+登录账号：`admin` / `admin123`（首次部署自动创建）
+
+---
+
+## 八、日常维护
+
+```bash
+# 查看所有服务的日志
+docker compose logs -f
+
+# 只看后端的日志
+docker compose logs -f backend
+
+# 重启所有服务
 docker compose restart
 
 # 更新代码后重新构建
 git pull
 docker compose up -d --build
 
-# 停止
+# 停止所有服务（数据不丢失）
 docker compose down
 
-# 停止并删除所有数据（⚠️ 谨慎）
+# 停止并删除所有数据（⚠️ 数据库也没了）
 docker compose down -v
 ```
 
-### 备份数据
+---
+
+## 九、备份数据
 
 ```bash
-# 备份 SQLite + Qdrant + Neo4j 数据卷
 docker run --rm -v career_planning_agent_backend_data:/data \
   -v /backup:/backup alpine \
   tar -czf /backup/data-$(date +%Y%m%d).tar.gz -C /data .
 ```
 
-### 注意事项
-
-- **HTTPS**: 生产环境建议在前置使用 Caddy 或 Traefik 自动管理 Let's Encrypt 证书
-- **内存**: Neo4j + Qdrant 推荐至少 4GB 可用内存
-- **Neo4j 密码**: 首次部署后可通过 Neo4j Browser (`http://<IP>:7474`) 修改
-- **CORS**: 如使用自定义域名，需在 `.env` 中设置 `APP_DOMAIN`
-
 ---
 
-## 方案 B：裸机部署
+## 常见问题（遇到再看）
 
----
+### Q1：Qdrant 容器一直是 unhealthy
 
-## 目录
+**原因**：Qdrant 的镜像没有 curl、wget 这些命令，普通健康检查用不了。  
+**解决**：docker-compose.yml 里已经改好了，用端口检查代替。不用你管。
 
-1. [系统准备](#1-系统准备)
-2. [安装运行时](#2-安装运行时)
-3. [安装 Neo4j](#3-安装-neo4j)
-4. [安装 Qdrant](#4-安装-qdrant)
-5. [克隆项目 & 配置](#5-克隆项目--配置)
-6. [初始化后端](#6-初始化后端)
-7. [初始化前端](#7-初始化前端)
-8. [配置 Nginx 反向代理](#8-配置-nginx-反向代理)
-9. [配置 systemd 服务](#9-配置-systemd-服务)
-10. [导入初始数据](#10-导入初始数据)
-11. [验证部署](#11-验证部署)
-12. [日常维护](#12-日常维护)
+### Q2：容器启动后 /api/health 返回 404
 
----
-
-## 1. 系统准备
+**原因**：nginx 配置中的 API 路由规则不匹配。  
+**解决**：当前配置已正确处理。如果你改了 nginx.conf，需要：
 
 ```bash
-# 更新系统
-sudo yum update -y
-
-# 基础依赖
-sudo yum install -y epel-release
-sudo yum install -y git curl wget tar gzip make gcc gcc-c++
-
-# 如有 firewalld，确保已安装并运行
-sudo yum install -y firewalld
-sudo systemctl enable --now firewalld
+docker compose build --no-cache nginx
+docker compose up -d --force-recreate nginx
 ```
 
----
+> 注意：修改 nginx.conf 后要用 `--no-cache` 强制重构建，否则可能还在用旧配置。
 
-## 2. 安装运行时
+### Q3：数据导入时报 `docker: not found` 或 `uv: not found`
 
-### 2.1 安装 uv（Python 包管理器）
+**原因**：你进入了容器内部（提示符变成 `#`），但 `docker` 和 `uv` 是宿主机和构建阶段的命令，容器里没有。
+
+**正确操作**：不是在容器里执行，而是在**宿主机**上执行：
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# 重新登录终端，或 source 环境变量
-source ~/.bashrc
-uv --version
+# ✅ 正确（在宿主机执行）
+docker compose exec -e PYTHONPATH=/app backend python scripts/rebuild_job_transfer_v2.py --with-import --yes
+
+# ❌ 错误（先进了容器再执行）
+# 不要 docker compose exec backend 进去后，再敲 python xxx.py
 ```
 
-### 2.2 安装 Python 3.13（通过 uv）
+如果已经进了容器，按 `Ctrl+D` 或输入 `exit` 退出来。
 
-CentOS 默认 Python 版本较低，使用 uv 管理独立版本：
+### Q4：数据导入时报 `No module named 'app'`
+
+**原因**：Python 找不到项目代码。在容器里运行时需要指定路径。  
+**解决**：加上 `-e PYTHONPATH=/app`：
 
 ```bash
-uv python install 3.13
-uv python list           # 确认 3.13 已安装
+docker compose exec -e PYTHONPATH=/app backend python scripts/rebuild_job_transfer_v2.py --with-import --yes
 ```
 
-### 2.3 安装 Node.js 20 LTS
+### Q5：数据导入时报 `Source directory does not exist: /行业数据`
+
+**原因**：容器里没有 `行业数据` 这个目录。  
+**解决**：
 
 ```bash
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-sudo yum install -y nodejs
-node --version    # 确认 v20.x
-npm --version
+# 重建 backend 容器，挂载行业数据目录
+docker compose up -d --force-recreate backend
 ```
 
----
+### Q6：构建时卡在 npm install 很久
 
-## 3. 安装 Neo4j
+**原因**：国内网络访问 npm 官方源慢。  
+**解决**：`deploy/Dockerfile.nginx` 里已配置了淘宝 npm 镜像，如果还是慢，检查网络。
 
-Neo4j 官方提供 RPM 包（仅 Enterprise），Community 版需手动安装。
+### Q7：docker pull 下载镜像很慢
 
-### 3.1 下载并解压
+**原因**：国内访问 Docker Hub 慢。  
+**解决**：配置国内镜像加速：
 
 ```bash
-cd /opt
-# 以 Neo4j 5 Community 为例
-# 实际版本号请参考 https://neo4j.com/download-center/
-sudo wget https://dist.neo4j.org/neo4j-community-5.26.5-unix.tar.gz
-sudo tar -xzf neo4j-community-5.26.5-unix.tar.gz
-sudo mv neo4j-community-5.26.5 neo4j
-sudo rm -f neo4j-community-5.26.5-unix.tar.gz
-```
-
-### 3.2 创建运行用户
-
-```bash
-sudo useradd -r -s /sbin/nologin neo4j
-sudo chown -R neo4j:neo4j /opt/neo4j
-```
-
-### 3.3 配置 Neo4j
-
-```bash
-sudo tee -a /opt/neo4j/conf/neo4j.conf << 'EOF'
-
-# 允许远程连接（如本机部署可跳过）
-server.default_listen_address=0.0.0.0
-# 内存配置（根据服务器内存调整）
-server.memory.heap.initial_size=512m
-server.memory.heap.max_size=1g
-server.memory.pagecache.size=512m
-EOF
-```
-
-### 3.4 配置 systemd 服务
-
-```bash
-sudo tee /etc/systemd/system/neo4j.service << 'EOF'
-[Unit]
-Description=Neo4j Graph Database
-After=network.target
-
-[Service]
-Type=forking
-User=neo4j
-Group=neo4j
-ExecStart=/opt/neo4j/bin/neo4j start
-ExecStop=/opt/neo4j/bin/neo4j stop
-ExecReload=/opt/neo4j/bin/neo4j restart
-PIDFile=/opt/neo4j/run/neo4j.pid
-LimitNOFILE=60000
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-### 3.5 启动 Neo4j
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now neo4j
-
-# 查看启动日志
-sudo journalctl -u neo4j -f --no-pager
-```
-
-### 3.6 设置密码
-
-```bash
-# 默认密码 neo4j，首次访问会要求修改
-# 使用 curl 修改密码（替换 your_password 为你的密码）
-curl -H "Content-Type: application/json" \
-  -d '{"password":"your_password"}' \
-  -u neo4j:neo4j \
-  http://localhost:7474/user/neo4j/password
-
-# 验证连接
-curl -u neo4j:your_password http://localhost:7474/
-```
-
-> 记下修改后的密码，后续需填入 `.env` 的 `NEO4J_PASSWORD`。
-
-### 3.7 防火墙放行
-
-```bash
-sudo firewall-cmd --add-port=7474/tcp --permanent   # HTTP Browser
-sudo firewall-cmd --add-port=7687/tcp --permanent   # Bolt 协议
-sudo firewall-cmd --reload
-```
-
----
-
-## 4. 安装 Qdrant
-
-CentOS 上推荐使用 Docker 运行 Qdrant。如无 Docker，也可直接下载二进制。
-
-### 4.1 方式 A：Docker
-
-```bash
-# 安装 Docker
-sudo yum install -y yum-utils device-mapper-persistent-data lvm2
-sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-sudo yum install -y docker-ce docker-ce-cli containerd.io
-sudo systemctl enable --now docker
-
-# 拉取并运行 Qdrant
-sudo mkdir -p /opt/qdrant_storage
-sudo docker run -d --name qdrant \
-  --restart always \
-  -p 6333:6333 -p 6334:6334 \
-  -v /opt/qdrant_storage:/qdrant/storage \
-  qdrant/qdrant
-
-# 验证
-curl http://localhost:6333/healthz
-```
-
-### 4.2 方式 B：直接运行二进制
-
-```bash
-cd /opt
-# 从 GitHub 下载对应架构的二进制
-# https://github.com/qdrant/qdrant/releases
-sudo wget https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-linux-gnu.tar.gz
-sudo tar -xzf qdrant-x86_64-unknown-linux-gnu.tar.gz
-sudo mv qdrant-x86_64-unknown-linux-gnu qdrant
-sudo rm -f qdrant-x86_64-unknown-linux-gnu.tar.gz
-
-# 创建数据目录
-sudo mkdir -p /opt/qdrant/storage
-sudo mkdir -p /opt/qdrant/config
-
-# 配置文件
-sudo tee /opt/qdrant/config/config.yaml << 'EOF'
-service:
-  host: 0.0.0.0
-  http_port: 6333
-  grpc_port: 6334
-storage:
-  storage_path: /opt/qdrant/storage
-EOF
-```
-
-#### 4.2.1 配置 systemd 服务
-
-```bash
-sudo tee /etc/systemd/system/qdrant.service << 'EOF'
-[Unit]
-Description=Qdrant Vector Search Engine
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/qdrant
-ExecStart=/opt/qdrant/qdrant --config-path /opt/qdrant/config/config.yaml
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now qdrant
-```
-
-### 4.3 防火墙放行
-
-```bash
-sudo firewall-cmd --add-port=6333/tcp --permanent
-sudo firewall-cmd --add-port=6334/tcp --permanent
-sudo firewall-cmd --reload
-```
-
----
-
-## 5. 克隆项目 & 配置
-
-### 5.1 克隆代码
-
-```bash
-cd /opt
-sudo git clone https://github.com/innovationpuls-creator/career-planning-agent.git
-sudo chown -R $(whoami):$(whoami) /opt/career-planning-agent
-cd /opt/career-planning-agent
-```
-
-### 5.2 配置环境变量
-
-```bash
-cd backend
-cp .env.example .env
-vi .env
-```
-
-至少需要修改以下字段：
-
-```ini
-# 后端安全 — 任意长随机字符串
-APP_SECRET_KEY=your-random-secret-here
-
-# Neo4j 连接信息（使用第 3 步设定的密码）
-NEO4J_URI=bolt://127.0.0.1:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=your_password
-NEO4J_DATABASE=neo4j
-
-# Qdrant（默认配置无需修改）
-QDRANT_PATH=/opt/career-planning-agent/backend/data/qdrant
-```
-
-> AI 功能（简历解析、报告生成、岗位匹配）需额外配置 LLM / Dify / Embedding 凭据，否则启动后仅可使用基础功能。
-
----
-
-## 6. 初始化后端
-
-### 6.1 安装 Python 依赖
-
-```bash
-cd /opt/career-planning-agent/backend
-uv sync
-```
-
-### 6.2 处理 brew 自动启动问题
-
-> **重要**：后端的 `app/main.py` 中 `_ensure_neo4j_running()` 使用 `brew services` 检测并启动 Neo4j，这在 CentOS 上不可用。
->
-> 方案：修改 `main.py`，让后端跳过自动服务管理，依赖手动启动的 systemd 服务。
-
-编辑 `backend/app/main.py`，找到 `_ensure_neo4j_running` 和 `_ensure_qdrant_running` 的定义位置（约第 266 行），替换为以下内容：
-
-```python
-import os
-
-def _is_neo4j_running() -> bool:
-    import socket
-    try:
-        with socket.create_connection(("127.0.0.1", 7687), timeout=2):
-            return True
-    except OSError:
-        return False
-
-def _is_qdrant_running() -> bool:
-    import urllib.request
-    try:
-        resp = urllib.request.urlopen("http://127.0.0.1:6333/healthz", timeout=2)
-        return resp.status == 200
-    except Exception:
-        return False
-
-_neo4j_started_by_backend: bool = False
-
-def _ensure_neo4j_running() -> None:
-    if _is_neo4j_running():
-        return
-    global _neo4j_started_by_backend
-    print("[neo4j] NOT running — start it manually: sudo systemctl start neo4j", flush=True)
-
-def _ensure_qdrant_running() -> None:
-    if _is_qdrant_running():
-        return
-    print("[qdrant] NOT running — start it manually: sudo systemctl start qdrant", flush=True)
-
-def _stop_neo4j() -> None:
-    pass
-
-def _stop_qdrant() -> None:
-    pass
-```
-
-> 也可在 `main.py` 搜索 `_ensure_neo4j_running` 和 `_ensure_qdrant_running` 的**调用位置**，将其包裹在 `try/except` 中 — 这样即使自动启动失败也不会阻断后续流程。
-
-### 6.3 启动后端
-
-```bash
-cd /opt/career-planning-agent/backend
-
-# 先确认 Neo4j 和 Qdrant 已运行
-sudo systemctl status neo4j
-curl http://localhost:6333/healthz
-
-# 启动后端（开发调试用）
-uv run uvicorn app.main:app --host 0.0.0.0 --port 9100
-
-# 首次启动会自动：
-#   - 创建 data/app.db（SQLite）
-#   - 创建所有数据库表
-#   - 同步岗位知识图谱到 Neo4j
-#   - 种子管理员账号（admin / admin123）
-```
-
-确认启动成功后按 `Ctrl+C` 停止。后续通过 systemd 管理。
-
----
-
-## 7. 初始化前端
-
-```bash
-cd /opt/career-planning-agent/myapp
-npm install
-
-# 构建生产环境静态文件
-npm run build
-# 构建产物在 myapp/dist/ 目录
-```
-
----
-
-## 8. 配置 Nginx 反向代理
-
-### 8.1 安装 Nginx
-
-```bash
-sudo yum install -y nginx
-sudo systemctl enable --now nginx
-```
-
-### 8.2 配置站点
-
-```bash
-sudo tee /etc/nginx/conf.d/career-planning.conf << 'EOF'
-server {
-    listen 80 default_server;
-    server_name _;
-
-    # 前端静态文件
-    root /opt/career-planning-agent/myapp/dist;
-    index index.html;
-
-    # gzip
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
-
-    # API 代理
-    location /api/ {
-        proxy_pass http://127.0.0.1:9100;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
-
-        # SSE 流式支持
-        proxy_buffering off;
-        proxy_cache off;
-        chunked_transfer_encoding on;
-    }
-
-    # Swagger / OpenAPI
-    location /docs {
-        proxy_pass http://127.0.0.1:9100/docs;
-        proxy_set_header Host $host;
-    }
-    location /openapi.json {
-        proxy_pass http://127.0.0.1:9100/openapi.json;
-        proxy_set_header Host $host;
-    }
-
-    # SPA 路由 — 所有非文件请求返回 index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+sudo tee /etc/docker/daemon.json << 'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
 }
 EOF
+sudo systemctl restart docker
 ```
 
-### 8.3 防火墙放行
+### Q8：修改了 .env 但容器不生效
+
+**原因**：docker compose 只在启动/重启容器时读取 `.env`。  
+**解决**：修改 `.env` 后需要重启服务：
 
 ```bash
-sudo firewall-cmd --add-service=http --permanent
-sudo firewall-cmd --add-service=https --permanent
-sudo firewall-cmd --reload
+docker compose up -d backend
 ```
 
-### 8.4 测试并重载 Nginx
+不需要重建镜像，只重启容器就行。
 
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
+### Q9：运行时报 `LLM configuration is incomplete`
+
+**原因**：`.env` 里有 LLM 配置，但 docker compose 读的是**根目录**的 `.env`，`backend/.env` 里的配置不会被读到。
+
+**解决**：把 LLM 配置加到根目录的 `.env`（和 `docker-compose.yml` 同一级），不要只放 `backend/.env`。
+
+根目录 `.env` 应该包含：
+
+```ini
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_API_KEY=sk-你的key
+LLM_MODEL=deepseek-chat
 ```
 
-> 如需 HTTPS，可使用 certbot + Let's Encrypt：
-> ```bash
-> sudo yum install -y certbot python3-certbot-nginx
-> sudo certbot --nginx -d your-domain.com
-> ```
+### Q10：服务器内存不足怎么办？
 
----
-
-## 9. 配置 systemd 服务
-
-### 9.1 后端 API 服务
+**要求**：至少 4GB 可用内存。  
+**检查内存**：
 
 ```bash
-sudo tee /etc/systemd/system/career-api.service << 'EOF'
-[Unit]
-Description=Career Planning API (FastAPI)
-After=network.target neo4j.service qdrant.service
-Wants=neo4j.service qdrant.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/career-planning-agent/backend
-Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-ExecStart=/root/.local/bin/uv run uvicorn app.main:app --host 0.0.0.0 --port 9100
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+free -h
 ```
 
-> 注意：`/root/.local/bin/uv` 是 uv 默认安装路径。如使用普通用户部署，改为对应的 home 路径。
-
-### 9.2 启用服务
+如果内存不够，Neo4j 会频繁崩溃。减少 Neo4j 内存使用：
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now career-api
-
-# 查看日志
-sudo journalctl -u career-api -f --no-pager
+# 在 docker-compose.yml 的 neo4j 环境变量中减少内存
+NEO4J_dbms_memory_heap_max__size: 512M
+NEO4J_dbms_memory_pagecache_size: 256M
 ```
 
 ---
 
-## 10. 导入初始数据
-
-首次部署需要导入行业数据，否则岗位匹配和知识图谱功能不可用。
-
-```bash
-cd /opt/career-planning-agent/backend
-
-# 默认数据源路径为 Windows 路径，需使用 --data-source-dir 指定实际目录
-# 将行业数据文件夹上传至服务器后执行：
-uv run python scripts/rebuild_job_transfer_v2.py --with-import \
-  --data-source-dir /path/to/行业数据
-```
-
----
-
-## 11. 验证部署
-
-| 检查项 | 命令 / URL | 预期结果 |
-|--------|------------|----------|
-| Neo4j | `curl http://localhost:7474` | 返回 JSON，含 `"neo4j_version"` |
-| Qdrant | `curl http://localhost:6333/healthz` | 返回 `OK` |
-| 后端 API | `curl http://localhost:9100/docs` | 返回 Swagger HTML |
-| 前端页面 | `curl http://localhost/` | 返回 index.html |
-| 管理员登录 | 浏览器访问 http://服务器IP/ → admin / admin123 | 能进入管理后台 |
-
----
-
-## 12. 日常维护
-
-### 查看日志
-
-```bash
-sudo journalctl -u career-api -f --no-pager
-sudo journalctl -u neo4j -f --no-pager
-sudo journalctl -u qdrant -f --no-pager
-```
-
-### 重启服务
-
-```bash
-sudo systemctl restart career-api
-sudo systemctl restart neo4j
-sudo systemctl restart qdrant
-```
-
-### 更新代码
-
-```bash
-cd /opt/career-planning-agent
-git pull
-
-# 更新后端依赖
-cd backend && uv sync
-
-# 重建前端
-cd ../myapp && npm install && npm run build
-
-# 重启 API
-sudo systemctl restart career-api
-```
-
-### 备份数据
-
-```bash
-# SQLite 数据库
-cp /opt/career-planning-agent/backend/data/app.db /backup/app.db.$(date +%Y%m%d)
-
-# Qdrant 向量数据
-tar -czf /backup/qdrant.$(date +%Y%m%d).tar.gz /opt/qdrant_storage/
-
-# Neo4j 图数据
-tar -czf /backup/neo4j.$(date +%Y%m%d).tar.gz /opt/neo4j/data/
-```
-
-### 重置数据
-
-```bash
-# 停止服务
-sudo systemctl stop career-api neo4j qdrant
-
-# 清除 SQLite
-rm -f /opt/career-planning-agent/backend/data/app.db
-
-# 清除 Neo4j（谨慎）
-rm -rf /opt/neo4j/data/databases/neo4j
-
-# 清除 Qdrant（谨慎）
-rm -rf /opt/qdrant_storage/*
-
-# 重新启动 — 后端会自动重建空数据库
-sudo systemctl start neo4j qdrant
-sleep 10
-sudo systemctl start career-api
-```
-
----
-
-## 附：推荐生产环境架构
+## 附：项目文件结构说明
 
 ```
-                        ┌──────────────┐
-                        │   Nginx :80  │
-                        │  (反代 + 静态) │
-                        └──────┬───────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                 │
-        ┌─────▼─────┐   ┌─────▼─────┐   ┌──────▼──────┐
-        │  FastAPI   │   │  Neo4j    │   │   Qdrant    │
-        │  :9100     │   │  :7687    │   │   :6333     │
-        └─────┬─────┘   └───────────┘   └─────────────┘
-              │
-        ┌─────▼─────┐
-        │  SQLite    │
-        │  app.db    │
-        └───────────┘
+/opt/career-planning-agent/
+├── .env                    ← 你配的（和 docker-compose.yml 同级）
+├── docker-compose.yml      ← 编排所有容器
+├── deploy/
+│   ├── .env.example        ← 环境变量模板（拷成 .env 用）
+│   ├── nginx.conf          ← Nginx 配置
+│   └── Dockerfile.nginx    ← Nginx 镜像构建
+├── backend/
+│   ├── .env                ← 本地开发用的，Docker 部署不用
+│   ├── Dockerfile
+│   ├── app/                ← 后端代码
+│   └── scripts/            ← 数据导入脚本
+├── 行业数据/               ← Excel 岗位数据（导入要用）
+└── myapp/                  ← 前端代码
 ```
-
-- **Nginx** 处理 HTTP、HTTPS、静态文件、API 反代
-- **后端** 1 个实例（SQLite 不支持多副本）
-- **Neo4j** + **Qdrant** 作为独立 systemd 服务
-- 所有组件均配置为开机自启

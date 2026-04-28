@@ -36,7 +36,7 @@ services:
     volumes:
       - qdrant_storage:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
+      test: ["CMD-SHELL", "cat /proc/net/tcp | grep -q '00000000:18BD' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -84,6 +84,8 @@ services:
       USE_LOCAL_COMPETENCY_PROFILE: ${USE_LOCAL_COMPETENCY_PROFILE:-true}
     volumes:
       - backend_data:/app/data
+      - ./backend/scripts:/app/scripts:ro
+      - ./行业数据:/行业数据:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9100/health"]
       interval: 30s
