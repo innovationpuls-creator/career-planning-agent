@@ -92,7 +92,7 @@ def _favorite() -> CareerDevelopmentFavoritePayload:
 
 def test_build_seed_resource_rows_creates_full_library():
     rows = build_seed_resource_rows()
-    assert len(rows) == 1080
+    assert len(rows) == 1296
     assert rows[0]["canonical_job_title"] == "前端工程师"
     assert rows[0]["dimension_key"] == "professional_skills"
     assert rows[0]["phase_key"] == "short_term"

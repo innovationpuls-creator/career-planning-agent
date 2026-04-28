@@ -21,6 +21,7 @@ SUPPORTED_JOB_TITLES = [
     "技术支持工程师",
     "测试工程师",
     "软件工程师",
+    "Java",
 ]
 SUPPORTED_PHASE_KEYS = ["short_term", "mid_term", "long_term"]
 PHASE_REASON_SUFFIX = {
