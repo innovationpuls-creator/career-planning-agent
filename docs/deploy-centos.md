@@ -259,7 +259,83 @@ docker compose exec -e PYTHONPATH=/app backend python scripts/rebuild_job_transf
 
 ---
 
-## 七、访问系统
+## 七、初始化蜗牛学习路径资源库
+
+系统启动时自动写入基础学习推荐（所有岗位 × 12 维度的通用模板）。如果需要更贴合具体岗位的 LLM 推荐，执行：
+
+```bash
+# 生成全部岗位 × 全部维度的 LLM 推荐（替代通用模板）
+docker compose exec -e PYTHONPATH=/app backend python scripts/generate_missing_learning_resources.py
+```
+
+> 说明：
+> - 这个脚本调用 LLM 生成「Java」「前端工程师」等岗位专用的学习资源，替代通用模板
+> - 不加参数生成**全部**岗位 × 全部维度
+> - 脚本会对每个维度只调用一次 LLM，一次性输出三个阶段的推荐，从源头避免短/中/长期内容重复
+> - 不配 LLM 也能用，通用模板已经够基础功能运行
+> - 如果以后新增了岗位名（修改 `SUPPORTED_JOB_TITLES`），重启容器后种子数据自动重建，再跑一遍这个脚本生成新岗位的 LLM 推荐即可
+
+### 脚本参数
+
+```bash
+# 只看当前状态，不执行生成
+docker compose exec -e PYTHONPATH=/app backend python scripts/generate_missing_learning_resources.py --check-only
+
+# 强制重新生成（覆盖已有数据）
+docker compose exec -e PYTHONPATH=/app backend python scripts/generate_missing_learning_resources.py --force
+
+# 只生成某个岗位的某个维度（如 Java 的专业技能）
+docker compose exec -e PYTHONPATH=/app backend \
+  python scripts/generate_missing_learning_resources.py \
+  --job-title "Java" --dimension professional_skills
+
+# 先生成通用模板再跑 LLM 推荐
+docker compose exec -e PYTHONPATH=/app backend \
+  python scripts/generate_missing_learning_resources.py --rebuild-first
+
+# 加快速度（并发 12 个 LLM 调用，默认 6）
+docker compose exec -e PYTHONPATH=/app backend \
+  python scripts/generate_missing_learning_resources.py --force --max-concurrent 12
+
+# 完整参数说明
+docker compose exec -e PYTHONPATH=/app backend \
+  python scripts/generate_missing_learning_resources.py --help
+```
+
+| 参数 | 说明 |
+|------|------|
+| `--job-title` | 指定岗位（如 `"Java"`），省略则生成全部 |
+| `--dimension` | 指定维度 key（如 `professional_skills`），省略则生成全部 |
+| `--force` | 强制重新生成，覆盖已有数据 |
+| `--check-only` | 只检查状态，不生成（配合 `--job-title --dimension` 可查看具体数据） |
+| `--rebuild-first` | 先生成通用模板，再跑 LLM 推荐 |
+| `--max-concurrent` | 并发 LLM 调用数（默认 6，网络好可调高到 12-15） |
+| `--max-retries` | 失败重试次数（默认 2） |
+
+### 常见问题：蜗牛学习路径报「资源数量为 0」
+
+**原因**：workspace 在旧数据（没有该岗位）时已初始化，存了错误快照。  
+**解决**：重新初始化 workspace：
+
+```bash
+docker exec -e PYTHONPATH=/app career-backend python -c "
+from app.db.session import SessionLocal
+from app.services.career_development_plan_workspace import initialize_plan_workspace
+db = SessionLocal()
+# 替换为你的 user_id 和 favorite_id（可在 URL 或数据库里查到）
+initialize_plan_workspace(db, user_id=1, favorite_id=1)
+db.close()
+print('Workspace re-initialized OK')
+"
+```
+
+或者在页面上删除旧的蜗牛学习路径，重新生成。
+
+如果三个阶段的推荐内容完全一样，说明用了旧版本的生成结果，重新跑 `generate_missing_learning_resources.py` 即可生成按「短期=入门 / 中期=实战 / 长期=进阶」区分的内容。
+
+---
+
+## 八、访问系统
 
 | 功能 | 地址 |
 |------|------|
@@ -277,7 +353,7 @@ docker compose exec -e PYTHONPATH=/app backend python scripts/rebuild_job_transf
 
 ---
 
-## 八、日常维护
+## 九、日常维护
 
 ```bash
 # 查看所有服务的日志
@@ -302,7 +378,7 @@ docker compose down -v
 
 ---
 
-## 九、备份数据
+## 十、备份数据
 
 ```bash
 docker run --rm -v career_planning_agent_backend_data:/data \

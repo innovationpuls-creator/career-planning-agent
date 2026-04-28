@@ -364,7 +364,11 @@ export type WorkspaceSnapshot = {
   savedAt: string;
 };
 
-export type InteractionStage = 'empty' | 'uploading' | 'transforming' | 'workspace';
+export type InteractionStage =
+  | 'empty'
+  | 'uploading'
+  | 'transforming'
+  | 'workspace';
 
 /** Strip File objects and other non-serializable data from messages. */
 export const stripFilesFromConversation = (
