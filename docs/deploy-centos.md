@@ -1,7 +1,117 @@
 # CentOS 部署指南
 
 > 适用版本：CentOS 7 / 8 / 9（Rocky Linux / AlmaLinux 兼容）
-> 目标：裸机部署，非 Docker。
+> 
+> 提供两种部署方式：
+> - **方案 A（推荐）**：Docker Compose — 一键部署，环境隔离，维护简单
+> - **方案 B**：裸机部署 — 传统 systemd 服务管理，适合无 Docker 环境
+
+---
+
+## 方案 A（推荐）：Docker Compose 部署
+
+使用 Docker Compose 一键启动所有服务（Nginx + 前端 + 后端 FastAPI + Neo4j + Qdrant）。
+
+### 架构
+
+```
+Nginx (port 80)
+├── / → 前端静态文件（内置）
+├── /api/ → proxy_pass → backend:9100 (FastAPI)
+└── /static/ → proxy_pass → backend:9100
+
+backend:9100 ──→ neo4j:7687 (Bolt)
+             ──→ qdrant:6333 (HTTP)
+```
+
+### 前置条件
+
+```bash
+# 安装 Docker
+curl -fsSL https://get.docker.com | bash
+sudo systemctl enable --now docker
+
+# 安装 Docker Compose v2（通常已随 Docker 安装）
+docker compose version
+```
+
+### 一键部署
+
+```bash
+# 1. 克隆代码
+git clone <your-repo-url> /opt/career-planning-agent
+cd /opt/career-planning-agent
+
+# 2. 配置环境变量
+cp deploy/.env.example .env
+# 编辑 .env：
+#   - APP_SECRET_KEY: openssl rand -hex 32 生成
+#   - APP_DOMAIN: 服务器 IP 或域名
+#   - NEO4J_PASSWORD: 设置一个强密码
+
+# 3. 一键构建并启动
+bash deploy/start.sh
+```
+
+> 首次启动需要下载基础镜像（约 10 分钟，取决于网络），后续启动仅需数秒。
+
+### 验证部署
+
+```bash
+# 检查所有容器状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f --tail=50
+
+# 测试后端健康
+curl http://localhost/api/
+
+# 访问前端
+curl http://localhost/
+```
+
+### 日常维护
+
+```bash
+# 查看日志
+docker compose logs -f          # 所有服务
+docker compose logs backend     # 仅后端
+docker compose logs neo4j       # 仅 Neo4j
+
+# 重启
+docker compose restart
+
+# 更新代码后重新构建
+git pull
+docker compose up -d --build
+
+# 停止
+docker compose down
+
+# 停止并删除所有数据（⚠️ 谨慎）
+docker compose down -v
+```
+
+### 备份数据
+
+```bash
+# 备份 SQLite + Qdrant + Neo4j 数据卷
+docker run --rm -v career_planning_agent_backend_data:/data \
+  -v /backup:/backup alpine \
+  tar -czf /backup/data-$(date +%Y%m%d).tar.gz -C /data .
+```
+
+### 注意事项
+
+- **HTTPS**: 生产环境建议在前置使用 Caddy 或 Traefik 自动管理 Let's Encrypt 证书
+- **内存**: Neo4j + Qdrant 推荐至少 4GB 可用内存
+- **Neo4j 密码**: 首次部署后可通过 Neo4j Browser (`http://<IP>:7474`) 修改
+- **CORS**: 如使用自定义域名，需在 `.env` 中设置 `APP_DOMAIN`
+
+---
+
+## 方案 B：裸机部署
 
 ---
 

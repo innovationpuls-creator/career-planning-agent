@@ -60,6 +60,20 @@ _CLIENTS_LOCK = Lock()
 
 
 def _acquire_qdrant_client(path: str) -> QdrantClient:
+    # If QDRANT_URL is configured, connect to remote Qdrant server (Docker mode)
+    if settings.qdrant_url:
+        cache_key = settings.qdrant_url
+        with _CLIENTS_LOCK:
+            cached = _CLIENTS_BY_PATH.get(cache_key)
+            if cached is not None:
+                client, ref_count = cached
+                _CLIENTS_BY_PATH[cache_key] = (client, ref_count + 1)
+                return client
+            client = QdrantClient(url=settings.qdrant_url)
+            _CLIENTS_BY_PATH[cache_key] = (client, 1)
+            return client
+
+    # Local embedded mode (default for development)
     normalized_path = str(Path(path).resolve())
     with _CLIENTS_LOCK:
         cached = _CLIENTS_BY_PATH.get(normalized_path)
@@ -74,7 +88,11 @@ def _acquire_qdrant_client(path: str) -> QdrantClient:
 
 
 def _release_qdrant_client(path: str) -> None:
-    normalized_path = str(Path(path).resolve())
+    # If QDRANT_URL is set, use it as the cache key instead of path
+    if settings.qdrant_url:
+        normalized_path = settings.qdrant_url
+    else:
+        normalized_path = str(Path(path).resolve())
     client_to_close: QdrantClient | None = None
     with _CLIENTS_LOCK:
         cached = _CLIENTS_BY_PATH.get(normalized_path)
@@ -95,7 +113,9 @@ class QdrantGroupedVectorStore:
     def __init__(self, *, path: str, collection_name: str) -> None:
         self.path = str(Path(path).resolve())
         self.collection_name = collection_name
-        Path(self.path).mkdir(parents=True, exist_ok=True)
+        # In remote mode (QDRANT_URL), skip local directory creation
+        if not settings.qdrant_url:
+            Path(self.path).mkdir(parents=True, exist_ok=True)
         self._client = _acquire_qdrant_client(self.path)
         self._closed = False
 
@@ -262,12 +282,19 @@ class QdrantGroupedVectorStore:
 
 
 def drop_collection_if_exists(*, path: str, collection_name: str) -> bool:
-    Path(path).mkdir(parents=True, exist_ok=True)
-    client = QdrantClient(path=path)
     try:
-        if not client.collection_exists(collection_name):
-            return False
-        client.delete_collection(collection_name)
-        return True
-    finally:
-        client.close()
+        if settings.qdrant_url:
+            client = QdrantClient(url=settings.qdrant_url)
+        else:
+            Path(path).mkdir(parents=True, exist_ok=True)
+            client = QdrantClient(path=path)
+        try:
+            if not client.collection_exists(collection_name):
+                return False
+            client.delete_collection(collection_name)
+            return True
+        finally:
+            client.close()
+    except Exception:
+        print(f"[qdrant] drop_collection '{collection_name}' skipped (service unavailable)", flush=True)
+        return False

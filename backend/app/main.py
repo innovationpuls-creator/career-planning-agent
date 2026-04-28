@@ -286,8 +286,11 @@ def _ensure_neo4j_running() -> None:
 
 
 def init_db() -> None:
-    _ensure_qdrant_running()
-    _ensure_neo4j_running()
+    # In Docker environment, external services are managed by Docker Compose,
+    # so skip the macOS-specific auto-start logic (brew services, binary Popen).
+    if not settings.docker_env:
+        _ensure_qdrant_running()
+        _ensure_neo4j_running()
     _ = (
         User,
         JobPosting,
@@ -337,26 +340,27 @@ async def lifespan(_: FastAPI):
     global _neo4j_started_by_backend
     init_db()
     yield
-    global _qdrant_process
-    if _qdrant_process is not None:
-        _qdrant_process.terminate()
-        try:
-            _qdrant_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            _qdrant_process.kill()
-        print("[qdrant] stopped", flush=True)
-        _qdrant_process = None
-    if _neo4j_started_by_backend:
-        try:
-            subprocess.run(
-                ["brew", "services", "stop", "neo4j"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            print("[neo4j] stopped", flush=True)
-        except Exception:
-            pass
-        _neo4j_started_by_backend = False
+    if not settings.docker_env:
+        global _qdrant_process
+        if _qdrant_process is not None:
+            _qdrant_process.terminate()
+            try:
+                _qdrant_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                _qdrant_process.kill()
+            print("[qdrant] stopped", flush=True)
+            _qdrant_process = None
+        if _neo4j_started_by_backend:
+            try:
+                subprocess.run(
+                    ["brew", "services", "stop", "neo4j"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                print("[neo4j] stopped", flush=True)
+            except Exception:
+                pass
+            _neo4j_started_by_backend = False
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)

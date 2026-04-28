@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.local
+.git/
+.umi/
+.umi-production/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+tests/
+coverage/
+*.log
+**/.gitkeep

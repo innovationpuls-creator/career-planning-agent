@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,16 @@ class Settings(BaseSettings):
         "http://127.0.0.1:9000",
         "http://localhost:9000",
     ]
+
+    cors_origins_env: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("CORS_ORIGINS"),
+    )
+
+    docker_env: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("DOCKER_ENV"),
+    )
     password_min_length: int = 8
     llm_base_url: str | None = Field(
         default=None,
@@ -123,6 +133,10 @@ class Settings(BaseSettings):
             "CAREER_GOAL_DIFY_TIMEOUT_SECONDS",
         ),
     )
+    qdrant_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("QDRANT_URL"),
+    )
     qdrant_path: str = Field(
         default=(DATA_DIR / "qdrant").as_posix(),
         validation_alias=AliasChoices("FEATURE_MAP_QDRANT_PATH", "QDRANT_PATH"),
@@ -171,6 +185,12 @@ class Settings(BaseSettings):
         env_prefix="FEATURE_MAP_",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def merge_cors_origins(self):
+        if self.cors_origins_env:
+            self.cors_origins = [o.strip() for o in self.cors_origins_env.split(",") if o.strip()]
+        return self
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -261,4 +281,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-Path(settings.qdrant_path).mkdir(parents=True, exist_ok=True)
+if not settings.qdrant_url:
+    Path(settings.qdrant_path).mkdir(parents=True, exist_ok=True)
