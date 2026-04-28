@@ -1,72 +1,205 @@
+<div align="center">
+
+<img src="myapp/public/logo.svg" width="80" alt="Logo" />
+
 # 大学生职业规划智能体
 
-帮助大学生进行职业发展的 AI 辅助平台。
+AI 驱动的大学生职业发展平台 — 简历解构 · 岗位匹配 · 学习规划 · 成长报告
 
-**用户界面**：登录 → 完善个人信息 → 上传简历（AI 解析为 12 维度能力画像） → 岗位匹配/收藏 → 生成蜗牛学习路径 → 生成个人职业成长报告（支持导出 DOCX/PDF） → 浏览就业信息知识库。
+[![GitHub stars](https://img.shields.io/github/stars/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github)](https://github.com/innovationpuls-creator/career-planning-agent/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github)](https://github.com/innovationpuls-creator/career-planning-agent/network)
+[![GitHub issues](https://img.shields.io/github/issues/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github)](https://github.com/innovationpuls-creator/career-planning-agent/issues)
+[![License](https://img.shields.io/github/license/innovationpuls-creator/career-planning-agent?style=for-the-badge)](./LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/innovationpuls-creator/career-planning-agent?style=for-the-badge)](https://github.com/innovationpuls-creator/career-planning-agent/commits/main)
+[![Repo size](https://img.shields.io/github/repo-size/innovationpuls-creator/career-planning-agent?style=for-the-badge)](https://github.com/innovationpuls-creator/career-planning-agent)
 
-**管理员界面**：用户管理、岗位信息管理、岗位要求对比、上传数据（知识库导入）、数据分析仪表盘（专业分布 / 能力评估 / 就业趋势）。
+<!-- TODO: add deployment URL when available -->
+[Live Demo](#) &nbsp;&nbsp;·&nbsp;&nbsp;
+[Quick Start](#-quick-start) &nbsp;&nbsp;·&nbsp;&nbsp;
+[Docs](./docs/api-contract.md) &nbsp;&nbsp;·&nbsp;&nbsp;
+[Report Bug](https://github.com/innovationpuls-creator/career-planning-agent/issues)
+
+</div>
 
 ---
 
-## 快速启动
+##  Preview
 
-### 1. 克隆
+<p align="center">
+  <em>TODO: 添加产品截图</em><br/>
+  <code>docs/images/preview-home.png</code> &nbsp;|&nbsp;
+  <code>docs/images/preview-profile.png</code> &nbsp;|&nbsp;
+  <code>docs/images/preview-report.png</code>
+</p>
 
-```bash
-git clone https://github.com/innovationpuls-creator/-.git
-cd -
+---
+
+##  Core Workflow
+
+```mermaid
+graph LR
+    A[📄 上传简历] --> B[🧠 AI 解析<br/>12 维度能力画像]
+    B --> C[🎯 岗位匹配<br/>+ 行业对比]
+    C --> D[🐌 蜗牛学习路径]
+    D --> E[📊 职业成长报告]
+    E --> F[📦 导出 DOCX / PDF]
+
+    style A fill:#EEF3FB,stroke:#1655CC
+    style B fill:#EDF7F0,stroke:#1F8E3D
+    style C fill:#FDF6E3,stroke:#B07800
+    style D fill:#EEF3FB,stroke:#1655CC
+    style E fill:#EDF7F0,stroke:#1F8E3D
+    style F fill:#FAFAFA,stroke:#98989D
 ```
 
-### 2. 初始化前端
+---
+
+##  Feature Cards
+
+<table align="center">
+  <tr>
+    <td align="center" width="33%">
+      <strong>📄 简历解构</strong><br/>
+      <sub>上传简历 → AI 自动解析为 12 维度能力画像，支持流式对话修改</sub>
+    </td>
+    <td align="center" width="33%">
+      <strong>🗺️ 岗位能力图谱</strong><br/>
+      <sub>Neo4j 知识图谱可视化展示岗位能力要求，可交互探索</sub>
+    </td>
+    <td align="center" width="33%">
+      <strong>🏢 同岗行业对比</strong><br/>
+      <sub>同一岗位跨行业、跨公司的薪资与要求横向对比</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <strong>🎯 岗位智能匹配</strong><br/>
+      <sub>基于向量相似度的个人能力 × 岗位要求匹配，支持收藏</sub>
+    </td>
+    <td align="center" width="33%">
+      <strong>🐌 蜗牛学习路径</strong><br/>
+      <sub>三阶段（短/中/长期）成长规划 + 周/月复盘 + 里程碑追踪</sub>
+    </td>
+    <td align="center" width="33%">
+      <strong>📊 职业成长报告</strong><br/>
+      <sub>AI 生成个性化报告，富文本编辑，导出 MD / DOCX / PDF</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+##  Tech Stack
+
+**Frontend**
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript)
+![Ant Design](https://img.shields.io/badge/Ant_Design-5.25-1655CC?style=flat-square&logo=antdesign)
+![Umi Max](https://img.shields.io/badge/Umi_Max-4.3-1677FF?style=flat-square)
+![AntV G6](https://img.shields.io/badge/AntV_G6-5.0-2966D4?style=flat-square)
+![TipTap](https://img.shields.io/badge/TipTap-3.22-333?style=flat-square)
+
+**Backend**
+![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688?style=flat-square&logo=fastapi)
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?style=flat-square)
+![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=flat-square&logo=pydantic)
+![Dify](https://img.shields.io/badge/Dify-AI_Workflow-6C54FE?style=flat-square)
+
+**Data**
+![Neo4j](https://img.shields.io/badge/Neo4j-Graph-4581C3?style=flat-square&logo=neo4j)
+![Qdrant](https://img.shields.io/badge/Qdrant-Vector-FF7F00?style=flat-square)
+![SQLite](https://img.shields.io/badge/SQLite-lightweight-003B57?style=flat-square&logo=sqlite)
+
+---
+
+##  Quick Start
 
 ```bash
-cd myapp
-npm install
-npm start
-```
+# 1. Clone
+git clone https://github.com/innovationpuls-creator/career-planning-agent.git
+cd career-planning-agent
 
-### 3. 初始化后端
-
-```bash
-cd backend
-cp .env.example .env
-uv sync
+# 2. Backend
+cd backend && cp .env.example .env && uv sync
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 9100
+
+# 3. Frontend
+cd ../myapp && npm install && npm start     # → http://localhost:8000
+
+# 4. Init data (first time only)
+cd ../backend && uv run python scripts/rebuild_job_transfer_v2.py --with-import
 ```
 
-> Swagger: http://127.0.0.1:9100/docs
-
-### 4. 初始化数据（仅首次）
-
-```bash
-cd backend
-uv run python scripts/rebuild_job_transfer_v2.py --with-import
-```
-
-> 数据来源默认读取 `C:\Users\yzh\Desktop\feature_map\行业数据`，可修改 `backend/app/services/job_import.py` 中的 `DEFAULT_SOURCE_DIR`。
+> AI 功能（简历解析 / 报告生成 / 岗位匹配）需在 `.env` 中配置 LLM / Dify / Embedding 凭据。不配置可启动基础服务。
 
 ---
 
-## .env 配置说明
+##  Project Structure
 
-| 变量 | 说明 |
-|------|------|
-| `APP_SECRET_KEY` | JWT 签名密钥（必填） |
-| `SQLITE_URL` | SQLite 数据库路径（默认 `sqlite:///data/app.db`） |
-| `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` | Neo4j 图数据库连接（部分功能需要） |
-| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | 大模型接口（支持 OpenAI 兼容 API，AI 功能必填） |
-| `EMBEDDING_BASE_URL` / `EMBEDDING_API_KEY` | Embedding 接口（向量检索必填） |
-| `DIFY_BASE_URL` / `DIFY_API_KEY` | Dify 工作流接口（简历解析 / 职业成长报告必填） |
-| `CAREER_GOAL_DIFY_API_KEY` | Dify（职业目标 + 网络搜索） |
-| `CAREER_GOAL_KNOWSEARCH_DIFY_API_KEY` | Dify（知识搜索） |
-| `QDRANT_PATH` | Qdrant 向量库路径（默认 `data/qdrant`） |
-
-> 不配置 AI 相关变量可启动基础服务，但大模型、Dify 工作流、向量检索等能力不可用。
+```
+career-planning-agent/
+├── backend/
+│   ├── app/
+│   │   ├── api/          # FastAPI routers
+│   │   ├── services/     # LLM, embedding, Dify, vector store
+│   │   ├── models/       # SQLAlchemy ORM
+│   │   └── schemas/      # Pydantic DTOs
+│   └── tests/
+├── myapp/
+│   ├── src/
+│   │   ├── pages/        # Route pages
+│   │   ├── services/     # API client
+│   │   └── components/   # Shared UI
+│   └── config/
+└── docs/
+    ├── api-contract.md
+    └── DESIGN_SYSTEM_SPEC.md
+```
 
 ---
 
-## 技术栈
+<details>
+<summary>📋 环境变量说明</summary>
 
-**前端**：Ant Design Pro · Umi Max · TypeScript · @antv/g6
+| 变量 | 说明 | 必填 |
+|------|------|------|
+| `APP_SECRET_KEY` | JWT 签名密钥 | ✅ |
+| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | 大模型接口 | AI 功能 |
+| `DIFY_BASE_URL` / `DIFY_API_KEY` | Dify 工作流 | 简历解析 / 报告生成 |
+| `EMBEDDING_BASE_URL` / `EMBEDDING_API_KEY` | 向量嵌入 | 岗位匹配 |
+| `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` | 图数据库 | 知识图谱 |
+| `QDRANT_PATH` | 向量库路径 | 相似度搜索 |
 
-**后端**：FastAPI · SQLAlchemy · Pydantic v2 · Neo4j · Qdrant · SQLite · Dify · SSE 流式响应
+完整配置见 `backend/.env.example`。
+</details>
+
+<details>
+<summary>🗺️ Roadmap</summary>
+
+- [x] 12 维度简历 AI 解析
+- [x] 岗位知识图谱（Neo4j + G6 可视化）
+- [x] 同岗行业纵向对比
+- [x] 岗位向量匹配 + 收藏
+- [x] 蜗牛学习路径三阶段规划
+- [x] 个人职业成长报告（AI 生成 + 导出 DOCX/PDF）
+- [x] 管理后台（用户管理 / 数据看板）
+- [ ] 移动端适配
+- [ ] 岗位投递追踪
+- [ ] 导师 / 辅导员视角
+
+</details>
+
+<details>
+<summary>📖 API 文档</summary>
+
+所有接口规范见 [`docs/api-contract.md`](./docs/api-contract.md)，按页面分组，包含请求/响应示例、SSE 流格式和错误码约定。
+
+后端启动后 Swagger UI：`http://127.0.0.1:9100/docs`。
+</details>
+
+---
+
+<div align="center">
+  <sub>Licensed under <a href="./LICENSE">Apache 2.0</a></sub>
+</div>

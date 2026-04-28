@@ -31,8 +31,10 @@ cd backend
 cp .env.example .env   # fill in APP_SECRET_KEY and AI credentials
 uv sync                # install dependencies (run once after clone and on dependency changes)
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 9100   # dev server
-uv run pytest           # run all tests
+uv run pytest                    # run all tests
 uv run pytest tests/test_auth.py::test_name  # single test
+uv run pytest -k "login"         # run tests matching keyword pattern
+uv run pytest --cov=app --cov-report=term-missing  # with coverage
 ```
 
 ### Data Initialization (first-time only)
@@ -49,6 +51,40 @@ uv run python scripts/rebuild_job_transfer_v2.py --with-import
 - `docs/DESIGN_SYSTEM_SPEC.md` — Frontend design tokens and component patterns.
 - `docs/frontend-rewrite-plan.md` — In-progress frontend rewrite plan.
 
+## Design System (Frontend)
+
+**`docs/DESIGN_SYSTEM_SPEC.md`** is the canonical frontend design reference. Design tokens are defined in `myapp/config/defaultSettings.ts` via Ant Design's `token` system.
+
+**CRITICAL**: All frontend colors, spacing, and motion must reference design tokens — **never hardcode hex values** in component files. The codebase previously had scattered `#1677ff`, `#1890ff`, `#0958d9`, `#e6f4ff` etc. which caused visual inconsistency. Use `token.colorPrimary`, `token.colorBorder`, `token.colorTextSecondary`, etc.
+
+CSS-in-JS: The project uses `antd-style`'s `createStyles` for component-level styles. Do not write raw `.less` or CSS modules for new components — use `createStyles(({ css, token }) => ({...}))` which gives automatic token access.
+
+## 12-Dimension Competency System
+
+This is the **central data model** that connects the entire application. All resume parsing, job matching, and career reporting revolves around these dimensions:
+
+| key | 中文名称 |
+|-----|---------|
+| `professional_skills` | 专业技能 |
+| `professional_background` | 专业背景 |
+| `education_requirement` | 学历要求 |
+| `teamwork` | 团队协作能力 |
+| `stress_adaptability` | 抗压/适应能力 |
+| `communication` | 沟通表达能力 |
+| `work_experience` | 工作经验 |
+| `documentation_awareness` | 文档规范意识 |
+| `responsibility` | 责任心/工作态度 |
+| `learning_ability` | 学习能力 |
+| `problem_solving` | 分析解决问题能力 |
+| `other_special` | 补充信息 |
+
+These keys appear in:
+- `StudentCompetencyProfile` — AI parses a resume into `Record<string, string[]>` (dimension key → keywords)
+- `JobRequirementProfile` — each job posting's 12-dimension requirement profile
+- Radar charts, matching reports, and growth reports all use these keys
+
+When adding endpoints or UI that touches competency data, always reference the enum keys from `docs/api-contract.md` §12, not ad-hoc dimension definitions.
+
 ## Important Notes
 
 **`.umi-undefined/`** — Umi dev-mode generated cache. It is in `.gitignore`; do not commit it.
@@ -56,6 +92,8 @@ uv run python scripts/rebuild_job_transfer_v2.py --with-import
 **Frontend dev server** (`npm start`) runs on port 8000 and proxies API calls to backend on port 9100 via `myapp/config/proxy.ts`.
 
 **AI features are optional** — the app starts with reduced functionality if AI credentials (LLM, Dify, Embedding) are not configured in `.env`.
+
+**`myapp/src/pages/table-list/`** — Default Umi template page. Not used in production; do not add features here.
 
 ### Backend — FastAPI + layered services
 
@@ -85,6 +123,13 @@ Both Neo4j (if started by the backend) and Qdrant are stopped automatically on s
 
 **API conventions**: Most endpoints return Pydantic-validated JSON directly. Long-running operations (resume parsing, report generation, goal planning) use SSE streaming responses (`StreamingResponse`).
 
+**SSE streaming pattern** (used by resume parsing chat, report generation, goal planning, job transfer analysis):
+- Backend: Returns `StreamingResponse` with `text/event-stream` content type. Each line is a JSON object (NDJSON).
+- Frontend: Consumed via `fetch` + `ReadableStream` reader, parsing each NDJSON line. Stream event types are defined in `myapp/src/services/ant-design-pro/api.ts` (e.g., `StudentCompetencyChatStreamEvent`, `PersonalGrowthReportTaskStreamEvent`).
+- Events typically include `meta` (connection established), `delta` (incremental content), `done` (final result), and `error`.
+
+**File upload pattern**: Endpoints accepting files (resume upload, milestone evidence, review submissions) use `FormData` (multipart/form-data). Frontend sends files as `File` objects within FormData; backend receives via FastAPI's `UploadFile`. Max 10MB for resumes (PDF/DOC/DOCX).
+
 ### Frontend — Ant Design Pro (Umi Max) + TypeScript
 
 ```
@@ -101,6 +146,12 @@ myapp/src/
 └── models/         # Umi dva models
 ```
 
+**Styling**: Uses `antd-style`'s `createStyles` for component-level CSS-in-JS. Provides automatic access to Ant Design tokens via the `token` parameter. Do not create new `.less` or CSS module files — use `createStyles(({ css, token }) => ({...}))`.
+
+**API requests**: Use `request` from `@umijs/max`. Authentication tokens are attached via `getAccessToken()` from `@/utils/authToken`. API service functions are centralized in `myapp/src/services/ant-design-pro/api.ts`.
+
+**State management**: Umi dva models in `src/models/` for global state. Most page-level state uses React `useState`/`useEffect` directly — only put shared cross-page state in dva models.
+
 ## Configuration
 
 Backend `.env` is required. Minimum working config:
@@ -116,5 +167,11 @@ AI features (LLM, Dify, Embeddings, Qdrant) are optional — the app starts with
 2. Add SQLAlchemy model if needed in `backend/app/models/`
 3. Create router in `backend/app/api/`
 4. Register router in `backend/app/main.py`
-5. Add frontend service method in `myapp/src/services/`
+5. Add frontend service method in `myapp/src/services/ant-design-pro/api.ts`
 6. Add page/component in `myapp/src/pages/`
+
+If the endpoint is a long-running operation, follow the SSE streaming pattern:
+- Backend: Return `StreamingResponse` with NDJSON lines (see `student_competency_profile.py` for reference)
+- Frontend: Define a stream event type in `api.ts`, consume via `fetch` + `ReadableStream`
+
+For file upload endpoints: use FastAPI's `UploadFile` + `Form` on the backend, and `FormData` on the frontend.
