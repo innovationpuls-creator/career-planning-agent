@@ -1,7 +1,7 @@
 import type { UploadProps } from 'antd';
 
-export const STORAGE_KEY = 'feature_map_student_profile_workspace_v9';
-export const SNAPSHOT_VERSION = 9;
+export const STORAGE_KEY = 'feature_map_student_profile_workspace_v10';
+export const SNAPSHOT_VERSION = 10;
 export const DEFAULT_TITLE = '简历解析';
 export const DEFAULT_VALUE = '暂无补充信息';
 
@@ -351,3 +351,64 @@ export const buildUploadButtonProps = (
   accept: ACCEPTED_EXTENSIONS.join(','),
   multiple: true,
 });
+
+/* ── LocalStorage snapshot persistence ── */
+
+export type WorkspaceSnapshot = {
+  version: number;
+  conversation: WorkspaceConversation;
+  interactionStage: InteractionStage | undefined;
+  latestAnalysis: API.StudentCompetencyLatestAnalysisPayload | undefined;
+  activeResultTab: ResultTabKey | undefined;
+  activeGapKey: string | undefined;
+  savedAt: string;
+};
+
+export type InteractionStage = 'empty' | 'uploading' | 'transforming' | 'workspace';
+
+/** Strip File objects and other non-serializable data from messages. */
+export const stripFilesFromConversation = (
+  conv: WorkspaceConversation,
+): WorkspaceConversation => ({
+  ...conv,
+  messages: conv.messages.map((msg) => ({
+    ...msg,
+    uploads: msg.uploads?.map((u) => {
+      const { file: _file, ...rest } = u;
+      void _file;
+      return rest;
+    }),
+  })),
+});
+
+export const saveSnapshot = (snapshot: WorkspaceSnapshot): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    /* quota exceeded or private mode — silently ignore */
+  }
+};
+
+export const restoreSnapshot = (): WorkspaceSnapshot | undefined => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return undefined;
+    const parsed: WorkspaceSnapshot = JSON.parse(raw);
+    if (parsed.version !== SNAPSHOT_VERSION) {
+      clearSnapshot();
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    clearSnapshot();
+    return undefined;
+  }
+};
+
+export const clearSnapshot = (): void => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+};

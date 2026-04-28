@@ -1,10 +1,5 @@
 import { message, Upload } from 'antd';
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createCareerDevelopmentFavorite,
   deleteCareerDevelopmentFavorite,
@@ -25,6 +20,7 @@ import {
   buildConversation,
   buildDefaultProfile,
   buildId,
+  clearSnapshot,
   cloneProfile,
   DEFAULT_TITLE,
   DEFAULT_VALUE,
@@ -33,11 +29,16 @@ import {
   getUploadKind,
   hasMeaningfulValues,
   hasProfileResult,
+  type InteractionStage,
   type JobProfileDimensions,
   normalizeProfile,
   type ProfileKey,
   type ResultTabKey,
   type RuntimeConfig,
+  restoreSnapshot,
+  SNAPSHOT_VERSION,
+  saveSnapshot,
+  stripFilesFromConversation,
   toRuntimeFields,
   type WorkspaceConversation,
   type WorkspaceMessage,
@@ -46,7 +47,6 @@ import {
 } from './shared';
 
 type ModuleKey = 'resume' | 'career';
-type InteractionStage = 'empty' | 'uploading' | 'transforming' | 'workspace';
 
 const buildFavoriteTargetKey = (report: API.CareerDevelopmentMatchReport) =>
   `${report.canonical_job_title}::${report.industry || ''}`;
@@ -202,6 +202,25 @@ const StudentCompetencyProfilePage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+
+    // Restore from localStorage snapshot for instant UI on reload
+    const snapshot = restoreSnapshot();
+    if (snapshot) {
+      setConversation(snapshot.conversation);
+      if (snapshot.latestAnalysis) {
+        setLatestAnalysis(snapshot.latestAnalysis);
+      }
+      if (snapshot.interactionStage) {
+        setInteractionStage(snapshot.interactionStage as InteractionStage);
+      }
+      if (snapshot.activeResultTab) {
+        setActiveResultTab(snapshot.activeResultTab);
+      }
+      if (snapshot.activeGapKey) {
+        setActiveGapKey(snapshot.activeGapKey);
+      }
+    }
+
     const loadLatest = async () => {
       setIsLoadingLatestAnalysis(true);
       try {
@@ -238,10 +257,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
               updatedAt: conversationRes.data.updated_at || current.updatedAt,
             }));
           } catch (err) {
-            console.warn(
-              'Failed to load student competency conversation',
-              err,
-            );
+            console.warn('Failed to load student competency conversation', err);
           }
         }
       } catch (err) {
@@ -323,6 +339,34 @@ const StudentCompetencyProfilePage: React.FC = () => {
       viewport.scrollTop = viewport.scrollHeight;
     }
   }, [conversation.messages]);
+
+  /* ── Auto-save snapshot on meaningful state changes ── */
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveSnapshot({
+        version: SNAPSHOT_VERSION,
+        conversation: stripFilesFromConversation(conversation),
+        interactionStage,
+        latestAnalysis,
+        activeResultTab,
+        activeGapKey,
+        savedAt: new Date().toISOString(),
+      });
+    }, 500);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [
+    conversation,
+    latestAnalysis,
+    interactionStage,
+    activeResultTab,
+    activeGapKey,
+  ]);
 
   const updateConversationMessage = (
     messageId: string,
@@ -651,6 +695,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
   };
 
   const handleResetConversation = async () => {
+    clearSnapshot();
     try {
       await deleteStudentCompetencyLatestAnalysis({ skipErrorHandler: true });
     } catch (err) {
