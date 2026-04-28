@@ -9,8 +9,16 @@ from __future__ import annotations
 import json
 from enum import Enum
 from typing import Any
+from uuid import uuid4
 
-from app.services.llm import ChatMessage
+from app.services.document_parser import DocumentParser, DocumentParserError
+from app.services.llm import ChatMessage, LLMClientError, OpenAICompatibleLLMClient
+from app.services.student_competency_profile import (
+    DifyChatResult,
+    DifyRuntimeConfig,
+    DifyUploadedFile,
+    StudentCompetencyUploadConstraint,
+)
 
 
 TWELVE_DIMENSION_KEYS: list[str] = [
@@ -285,3 +293,161 @@ def normalize_profile_from_llm(raw: dict[str, Any]) -> dict[str, list[str]]:
             ]
             result[key] = list(dict.fromkeys(cleaned)) or [DEFAULT_PROFILE_VALUE]
     return result
+
+
+class LocalCompetencyProfileClient:
+    """Local implementation replacing DifyStudentCompetencyClient.
+
+    Parses uploaded documents locally via ``DocumentParser``, classifies
+    user intent, then calls the local LLM for 12-dimension extraction
+    (or modification / Q&A). Returns the same DTO types as the Dify
+    client so the API layer can swap implementations transparently.
+    """
+
+    def __init__(self) -> None:
+        self._llm_client = OpenAICompatibleLLMClient.from_settings()
+        self._extracted_texts: dict[str, str] = {}
+
+    async def aclose(self) -> None:
+        await self._llm_client.aclose()
+
+    async def get_runtime_config(self, *, force_refresh: bool = False) -> DifyRuntimeConfig:
+        del force_refresh
+        return DifyRuntimeConfig(
+            opening_statement="",
+            file_upload_enabled=True,
+            file_size_limit_mb=None,
+            image_upload=StudentCompetencyUploadConstraint(
+                variable="userinput_image",
+                allowed_file_types=["image"],
+                allowed_file_extensions=[".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"],
+                allowed_file_upload_methods=["local_file"],
+                max_length=3,
+            ),
+            document_upload=StudentCompetencyUploadConstraint(
+                variable="userinput_file",
+                allowed_file_types=["document"],
+                allowed_file_extensions=[".txt", ".md", ".csv", ".pdf", ".docx"],
+                allowed_file_upload_methods=["local_file"],
+                max_length=3,
+            ),
+        )
+
+    async def upload_file(
+        self,
+        *,
+        file_name: str,
+        content: bytes,
+        content_type: str | None,
+        user: str,
+    ) -> DifyUploadedFile:
+        del user
+        upload_id = uuid4().hex
+
+        import io
+        try:
+            parsed = DocumentParser.parse_file_from_bytes(
+                content, file_name, content_type
+            )
+        except (DocumentParserError, AttributeError):
+            parsed = content.decode("utf-8-sig")
+
+        self._extracted_texts[upload_id] = parsed
+
+        inferred_type = "image" if (content_type or "").startswith("image/") else "document"
+        return DifyUploadedFile(
+            upload_file_id=upload_id,
+            type=inferred_type,
+            name=file_name,
+        )
+
+    async def send_message(
+        self,
+        *,
+        query: str,
+        user: str,
+        conversation_id: str | None = None,
+        image_files: list[DifyUploadedFile] | None = None,
+        document_files: list[DifyUploadedFile] | None = None,
+        document_texts: list[str] | None = None,
+    ) -> DifyChatResult:
+        del user
+        conv_id = conversation_id or uuid4().hex
+        msg_id = uuid4().hex
+
+        all_doc_texts: list[str] = list(document_texts or [])
+        if document_files:
+            for f in document_files:
+                text = self._extracted_texts.pop(f.upload_file_id, None)
+                if text:
+                    all_doc_texts.append(text)
+
+        intent = analyze_intent(query, has_files=bool(all_doc_texts))
+        combined_doc_text = "\n\n".join(all_doc_texts) if all_doc_texts else None
+
+        if intent == IntentClassifier.CREATE_PROFILE:
+            messages = build_profile_extraction_messages(
+                content=query,
+                document_text=combined_doc_text,
+            )
+            answer = await self._llm_client.chat_completion_structured(
+                messages,
+                temperature=0.3,
+                json_schema=TWELVE_DIMENSION_JSON_SCHEMA,
+            )
+        elif intent == IntentClassifier.MODIFY_PROFILE:
+            messages = [
+                ChatMessage(
+                    role="system",
+                    content=(
+                        "你是一个12维画像修改助手。基于用户的要求修改现有的12维JSON数据。"
+                        "输出必须为标准JSON，包含全部12个维度。"
+                    ),
+                ),
+                ChatMessage(role="user", content=query),
+            ]
+            answer = await self._llm_client.chat_completion_structured(
+                messages,
+                temperature=0.3,
+                json_schema=TWELVE_DIMENSION_JSON_SCHEMA,
+            )
+        else:
+            messages = [
+                ChatMessage(
+                    role="system",
+                    content=(
+                        "你是职业规划大师，负责分析12维画像数据，"
+                        "根据内容解决用户的问题并提供合理的解决方案，结果保证200字以内。"
+                    ),
+                ),
+                ChatMessage(role="user", content=query),
+            ]
+            answer_text = await self._llm_client.chat_completion(
+                messages, temperature=0.7
+            )
+            return DifyChatResult(
+                conversation_id=conv_id,
+                message_id=msg_id,
+                answer=answer_text,
+            )
+
+        if isinstance(answer, dict):
+            answer_json = json.dumps(answer, ensure_ascii=False)
+        else:
+            answer_json = str(answer)
+
+        return DifyChatResult(
+            conversation_id=conv_id,
+            message_id=msg_id,
+            answer=answer_json,
+        )
+
+
+_local_client: LocalCompetencyProfileClient | None = None
+
+
+def get_local_competency_profile_client() -> LocalCompetencyProfileClient:
+    global _local_client
+    if _local_client is None:
+        _local_client = LocalCompetencyProfileClient()
+    return _local_client

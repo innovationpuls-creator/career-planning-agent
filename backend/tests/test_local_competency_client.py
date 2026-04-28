@@ -184,8 +184,8 @@ class TestLocalCompetencyProfileClient:
             )
         )
 
-        assert "resume.txt" in client._extracted_texts
-        assert "Go语言开发经验" in client._extracted_texts["resume.txt"]
+        stored_texts = list(client._extracted_texts.values())
+        assert any("Go语言开发经验" in t for t in stored_texts)
         asyncio.run(client.aclose())
 
     def test_send_message_with_previously_uploaded_files(self):

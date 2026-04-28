@@ -6,6 +6,7 @@ to feed into the LLM-based competency profile extraction pipeline.
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 from typing import BinaryIO
 
@@ -71,3 +72,11 @@ class DocumentParser:
         extension = path_obj.suffix
         with path_obj.open("rb") as f:
             return DocumentParser.detect_and_parse(f, extension)
+
+    @staticmethod
+    def parse_file_from_bytes(content: bytes, file_name: str, content_type: str | None = None) -> str:
+        """Parse a document from raw bytes, inferring format from file name."""
+        del content_type
+        ext = Path(file_name).suffix or ".txt"
+        stream = io.BytesIO(content)
+        return DocumentParser.detect_and_parse(stream, ext)
