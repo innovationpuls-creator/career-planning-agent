@@ -42,7 +42,7 @@ from app.services.student_competency_profile import (
     StudentCompetencyProfileError,
     build_assistant_message,
     build_sync_query,
-    get_dify_student_competency_client,
+    get_competency_profile_client,
     get_profile_field_definitions,
     get_student_competency_profile_record,
     read_student_competency_profile,
@@ -189,7 +189,7 @@ def _require_prompt_or_files(prompt: str, *, image_files: list[UploadFile], docu
 
 
 async def _get_runtime_payload() -> StudentCompetencyRuntimePayload:
-    client = get_dify_student_competency_client()
+    client = get_competency_profile_client()
     runtime = await client.get_runtime_config()
     return StudentCompetencyRuntimePayload(
         opening_statement=runtime.opening_statement,
@@ -351,7 +351,7 @@ async def create_student_competency_chat(
             stage="prepare",
             progress=5,
         )
-        client = get_dify_student_competency_client()
+        client = get_competency_profile_client()
 
         uploaded_images = []
         for upload in image_uploads:
@@ -497,7 +497,7 @@ async def stream_student_competency_chat(
             )
             yield _stream_status_event(assistant_message_id, status_event)
 
-            client = get_dify_student_competency_client()
+            client = get_competency_profile_client()
             uploaded_images = []
             for upload in image_uploads:
                 status_event = _append_status(
@@ -693,7 +693,7 @@ async def sync_student_competency_result(
             stage="sync",
             progress=70,
         )
-        client = get_dify_student_competency_client()
+        client = get_competency_profile_client()
         sync_result = await client.send_message(
             query=build_sync_query(payload.profile),
             user=workspace_conversation_id,

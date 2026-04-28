@@ -483,6 +483,14 @@ class DifyStudentCompetencyClient:
 _dify_student_competency_client: DifyStudentCompetencyClient | None = None
 
 
+def get_competency_profile_client() -> DifyStudentCompetencyClient | LocalCompetencyProfileClient:
+    if settings.use_local_competency_profile:
+        from app.services.local_competency_profile import get_local_competency_profile_client
+
+        return get_local_competency_profile_client()
+    return get_dify_student_competency_client()
+
+
 def get_dify_student_competency_client() -> DifyStudentCompetencyClient:
     global _dify_student_competency_client
     if _dify_student_competency_client is None:

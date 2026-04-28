@@ -161,7 +161,7 @@ class FakeLatestAnalysisService:
 def _install_overrides(monkeypatch, *, analysis_service: FakeLatestAnalysisService | None = None) -> FakeDifyClient:
     fake_client = FakeDifyClient()
     monkeypatch.setattr(
-        "app.api.student_competency_profile.get_dify_student_competency_client",
+        "app.api.student_competency_profile.get_competency_profile_client",
         lambda: fake_client,
     )
     app.dependency_overrides[get_student_competency_latest_analysis_service] = (

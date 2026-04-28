@@ -158,6 +158,14 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("FEATURE_MAP_NEO4J_DATABASE", "NEO4J_DATABASE"),
     )
 
+    use_local_competency_profile: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "FEATURE_MAP_USE_LOCAL_COMPETENCY_PROFILE",
+            "USE_LOCAL_COMPETENCY_PROFILE",
+        ),
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="FEATURE_MAP_",
