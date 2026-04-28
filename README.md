@@ -1,23 +1,30 @@
 <div align="center">
 
-<img src="myapp/public/logo.svg" width="80" alt="Logo" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="myapp/public/logo.svg">
+  <img src="myapp/public/logo.svg" width="80" alt="Logo">
+</picture>
 
-# 大学生职业规划智能体
+<h1>大学生职业规划智能体</h1>
 
-AI 驱动的大学生职业发展平台 — 简历解构 · 岗位匹配 · 学习规划 · 成长报告
+<p>AI 驱动的大学生职业发展平台 — 简历解构 · 岗位匹配 · 学习规划 · 成长报告</p>
 
-[![GitHub stars](https://img.shields.io/github/stars/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github)](https://github.com/innovationpuls-creator/career-planning-agent/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github)](https://github.com/innovationpuls-creator/career-planning-agent/network)
-[![GitHub issues](https://img.shields.io/github/issues/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github)](https://github.com/innovationpuls-creator/career-planning-agent/issues)
-[![License](https://img.shields.io/github/license/innovationpuls-creator/career-planning-agent?style=for-the-badge)](./LICENSE)
-[![Last commit](https://img.shields.io/github/last-commit/innovationpuls-creator/career-planning-agent?style=for-the-badge)](https://github.com/innovationpuls-creator/career-planning-agent/commits/main)
-[![Repo size](https://img.shields.io/github/repo-size/innovationpuls-creator/career-planning-agent?style=for-the-badge)](https://github.com/innovationpuls-creator/career-planning-agent)
+<p>
+  <a href="https://github.com/innovationpuls-creator/career-planning-agent/stargazers"><img src="https://img.shields.io/github/stars/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github" alt="stars"></a>
+  <a href="https://github.com/innovationpuls-creator/career-planning-agent/network"><img src="https://img.shields.io/github/forks/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github" alt="forks"></a>
+  <a href="https://github.com/innovationpuls-creator/career-planning-agent/issues"><img src="https://img.shields.io/github/issues/innovationpuls-creator/career-planning-agent?style=for-the-badge&logo=github" alt="issues"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/innovationpuls-creator/career-planning-agent?style=for-the-badge" alt="license"></a>
+  <a href="https://github.com/innovationpuls-creator/career-planning-agent/commits/main"><img src="https://img.shields.io/github/last-commit/innovationpuls-creator/career-planning-agent?style=for-the-badge" alt="last commit"></a>
+  <a href="https://github.com/innovationpuls-creator/career-planning-agent"><img src="https://img.shields.io/github/repo-size/innovationpuls-creator/career-planning-agent?style=for-the-badge" alt="repo size"></a>
+</p>
 
 <!-- TODO: add deployment URL when available -->
-[Live Demo](#) &nbsp;&nbsp;·&nbsp;&nbsp;
-[Quick Start](#-quick-start) &nbsp;&nbsp;·&nbsp;&nbsp;
-[Docs](./docs/api-contract.md) &nbsp;&nbsp;·&nbsp;&nbsp;
-[Report Bug](https://github.com/innovationpuls-creator/career-planning-agent/issues)
+<p>
+  <a href="#">Live Demo</a> &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#-quick-start">Quick Start</a> &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="./docs/api-contract.md">Docs</a> &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://github.com/innovationpuls-creator/career-planning-agent/issues">Report Bug</a>
+</p>
 
 </div>
 
