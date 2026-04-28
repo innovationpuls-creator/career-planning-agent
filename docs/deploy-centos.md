@@ -170,7 +170,7 @@ sudo firewall-cmd --reload
 
 CentOS 上推荐使用 Docker 运行 Qdrant。如无 Docker，也可直接下载二进制。
 
-### 4.1 方式 A：Docker（推荐）
+### 4.1 方式 A：Docker
 
 ```bash
 # 安装 Docker
