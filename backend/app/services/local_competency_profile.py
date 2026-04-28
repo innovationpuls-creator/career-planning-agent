@@ -54,6 +54,21 @@ PROFILE_EXTRACTION_SYSTEM_PROMPT = """你是一名"12维结构化画像抽取助
 6. 若内容能放入前 11 个维度，优先放入前 11 个维度，不得滥用 `other_special`。
 7. 输出必须为**标准 JSON**，不得附加解释、备注、标题或代码块。
 
+## 输出字段定义（必须使用以下 12 个顶级字段名，不增不减）
+
+- `professional_skills`：专业技能/技术栈（如 Python、Java、FastAPI）
+- `professional_background`：专业背景（如 计算机相关专业、软件工程）
+- `education_requirement`：学历要求（如 本科、硕士、本科及以上）
+- `teamwork`：团队协作能力（如 跨团队协作、团队合作）
+- `stress_adaptability`：抗压/适应能力（如 抗压能力、多任务并行）
+- `communication`：沟通表达能力（如 沟通能力、协调对接）
+- `work_experience`：工作经验（如 3 年后端开发、项目经历）
+- `documentation_awareness`：文档规范意识（如 文档规范、报告输出）
+- `responsibility`：责任心/工作态度（如 责任心强、执行力）
+- `learning_ability`：学习能力（如 学习能力强、快速上手）
+- `problem_solving`：分析解决问题能力（如 分析解决、问题排查）
+- `other_special`：其他/特殊要求（仅限 证书、语言、出差驻场、班次、驾照、特殊准入）
+
 ## 关键信息抽取规则
 
 ### 一、禁止过度拆分
