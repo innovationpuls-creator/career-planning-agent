@@ -393,7 +393,6 @@ class LocalCompetencyProfileClient:
             answer = await self._llm_client.chat_completion_structured(
                 messages,
                 temperature=0.3,
-                json_schema=TWELVE_DIMENSION_JSON_SCHEMA,
             )
         elif intent == IntentClassifier.MODIFY_PROFILE:
             messages = [
@@ -409,7 +408,6 @@ class LocalCompetencyProfileClient:
             answer = await self._llm_client.chat_completion_structured(
                 messages,
                 temperature=0.3,
-                json_schema=TWELVE_DIMENSION_JSON_SCHEMA,
             )
         else:
             messages = [
