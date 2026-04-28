@@ -6,7 +6,6 @@ Thumbs.db
 .codex
 .pytest_cache
 .ruff_cache
-docs
 everything-claude-code
 start.bat
 
