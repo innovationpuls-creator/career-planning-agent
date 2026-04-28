@@ -177,7 +177,14 @@ const secondRecommendationReport: API.CareerDevelopmentMatchReport = {
 };
 
 describe('StudentCompetencyProfilePage', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
+    jest.useRealTimers();
+    localStorage.clear();
+
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: createMatchMedia(),
@@ -320,7 +327,11 @@ describe('StudentCompetencyProfilePage', () => {
 
     fireEvent.click(screen.getByText('职业匹配'));
 
-    const firstTarget = await screen.findByRole('button', {
+    await waitFor(() => {
+      expect(screen.getByText('推荐目标')).toBeTruthy();
+    });
+
+    const firstTarget = screen.getByRole('button', {
       name: '选择推荐目标：前端工程师，匹配度 78%',
     });
     const secondTarget = screen.getByRole('button', {
