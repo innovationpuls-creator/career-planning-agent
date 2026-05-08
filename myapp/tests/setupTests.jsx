@@ -1,4 +1,7 @@
-﻿import { defaultConfig } from 'antd/lib/theme/internal';
+﻿// Make React available as a global so esbuild's jsx:"react" transform can find it
+global.React = require('react');
+
+import { defaultConfig } from 'antd/lib/theme/internal';
 
 defaultConfig.hashed = false;
 

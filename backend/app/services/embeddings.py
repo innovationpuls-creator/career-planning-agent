@@ -77,12 +77,6 @@ class OpenAICompatibleEmbeddingClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def embed_text(self, text: str) -> list[float]:
-        embeddings = await self.embed_texts([text])
-        if not embeddings:
-            raise EmbeddingClientError("Embedding response did not contain a usable embedding.")
-        return embeddings[0]
-
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
@@ -139,21 +133,6 @@ class OpenAICompatibleEmbeddingClient:
             last_error = EmbeddingClientError("Embedding response did not contain usable embeddings.")
 
         raise EmbeddingClientError(f"Embedding request failed after {attempts} attempt(s): {last_error}")
-
-def build_embedding_payload(profile: JobRequirementProfile) -> EmbeddingPayload:
-    keywords_by_dimension: dict[str, list[str]] = {}
-    segments: list[str] = []
-
-    for field in DIMENSION_FIELDS:
-        keywords = parse_effective_dimension_value(getattr(profile, field))
-        keywords_by_dimension[field] = keywords
-        if keywords:
-            segments.append(" ".join(keywords))
-
-    text = "\n".join(segments).strip()
-    signature = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    return EmbeddingPayload(text=text, signature=signature, keywords_by_dimension=keywords_by_dimension)
-
 
 def _should_retry_status(status_code: int) -> bool:
     return status_code in {408, 409, 425, 429, 500, 502, 503, 504}

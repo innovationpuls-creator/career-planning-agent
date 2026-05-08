@@ -80,11 +80,6 @@ class LearningResourceLogoResolver:
                 module.resource_recommendations = self.enrich_resources(module.resource_recommendations)
         return updated
 
-    def enrich_module(self, module: GrowthPlanLearningModule) -> GrowthPlanLearningModule:
-        updated = module.model_copy(deep=True)
-        updated.resource_recommendations = self.enrich_resources(updated.resource_recommendations)
-        return updated
-
     def enrich_resources(
         self,
         resources: list[GrowthPlanLearningResourceItem],

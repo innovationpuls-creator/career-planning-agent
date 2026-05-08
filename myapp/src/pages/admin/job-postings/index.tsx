@@ -15,6 +15,12 @@ import { INDUSTRY_OPTIONS, JOB_TITLE_OPTIONS } from './constants';
 
 const textFallback = (value?: string | null) => value || '暂无';
 
+const adminTagStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-primary-bg)',
+  borderColor: 'var(--color-primary)',
+  color: 'var(--color-primary)',
+};
+
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object') {
     return (
@@ -68,7 +74,7 @@ const JobPostingsPage: React.FC = () => {
         options: INDUSTRY_OPTIONS,
         placeholder: '请选择所属行业',
       },
-      render: (_, record) => <Tag color="blue">{record.industry}</Tag>,
+      render: (_, record) => <Tag style={adminTagStyle}>{record.industry}</Tag>,
     },
     {
       title: '公司名称',

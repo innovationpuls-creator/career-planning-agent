@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from dataclasses import dataclass
 
 import httpx
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class LLMClientError(RuntimeError):
@@ -83,27 +86,27 @@ class OpenAICompatibleLLMClient:
                 body = response.json()
             except httpx.HTTPStatusError as exc:
                 last_error = exc
-                status = exc.response.status_code
-                if status == 429 and attempt < attempts - 1:
+                status_code = exc.response.status_code
+                if status_code == 429 and attempt < attempts - 1:
                     wait = (attempt + 1) * 2.0
-                    print(f"[llm] rate limited (429), backing off {wait}s (attempt {attempt + 1}/{attempts})", flush=True)
+                    logger.warning("LLM rate limited (429), backing off %ss (attempt %d/%d)", wait, attempt + 1, attempts)
                     await asyncio.sleep(wait)
                     continue
-                print(f"[llm] request failed: status={status} detail={exc.response.text[:200]}", flush=True)
+                logger.warning("LLM request failed: status=%d detail=%s", status_code, exc.response.text[:200])
                 await asyncio.sleep(0.5)
                 continue
             except httpx.TransportError as exc:
                 last_error = exc
                 if attempt < attempts - 1:
                     wait = min(2.0 ** (attempt + 1), 30.0)
-                    print(f"[llm] transport error (timeout/network): backing off {wait}s (attempt {attempt + 1}/{attempts}): {type(exc).__name__}", flush=True)
+                    logger.warning("LLM transport error (timeout/network): backing off %ss (attempt %d/%d): %s", wait, attempt + 1, attempts, type(exc).__name__)
                     await asyncio.sleep(wait)
                 else:
-                    print(f"[llm] transport error: {type(exc).__name__}", flush=True)
+                    logger.error("LLM transport error: %s", type(exc).__name__)
                 continue
             except (httpx.HTTPError, json.JSONDecodeError) as exc:
                 last_error = exc
-                print(f"[llm] request failed: error={repr(exc)}", flush=True)
+                logger.warning("LLM request failed: error=%r", exc)
                 if attempt < attempts - 1:
                     await asyncio.sleep(1.0)
                 continue

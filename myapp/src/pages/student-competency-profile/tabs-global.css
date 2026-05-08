@@ -1,0 +1,21 @@
+/* Equal-width tabs for student-competency-profile */
+.ant-tabs-nav-list {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  width: 100%;
+}
+
+.ant-tabs .ant-tabs-tab {
+  flex: 1 1 0 !important;
+  display: flex;
+  justify-content: center;
+  margin: 0 !important;
+}
+
+.ant-tabs-content-holder {
+  width: 100%;
+}
+
+.ant-tabs-tabpane {
+  width: 100%;
+}

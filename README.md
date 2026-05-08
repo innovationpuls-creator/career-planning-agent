@@ -22,7 +22,7 @@
 <p>
   <a href="#">Live Demo</a> &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#-quick-start">Quick Start</a> &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="./docs/api-contract.md">Docs</a> &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="./docs/UI功能后端接口对照.md">Docs</a> &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://github.com/innovationpuls-creator/career-planning-agent/issues">Report Bug</a>
 </p>
 
@@ -341,8 +341,14 @@ career-planning-agent/
 │   │   └── components/   # Shared UI
 │   └── config/
 └── docs/
-    ├── api-contract.md
-    └── DESIGN_SYSTEM_SPEC.md
+    ├── architecture.md
+    ├── database-schema.md
+    ├── testing.md
+    ├── UI功能详细整理.md
+    ├── UI功能后端接口对照.md
+    ├── Design.md
+    ├── deploy-centos.md
+    └── changes/
 ```
 
 ---
@@ -381,7 +387,7 @@ career-planning-agent/
 <details>
 <summary>📖 API 文档</summary>
 
-所有接口规范见 [`docs/api-contract.md`](./docs/api-contract.md)，按页面分组，包含请求/响应示例、SSE 流格式和错误码约定。
+所有接口规范见 [`docs/UI功能后端接口对照.md`](./docs/UI功能后端接口对照.md)，按页面分组，包含请求/响应示例、SSE 流格式和错误码约定。系统架构见 [`docs/architecture.md`](./docs/architecture.md)。
 
 后端启动后 Swagger UI：`http://127.0.0.1:9100/docs`。
 </details>

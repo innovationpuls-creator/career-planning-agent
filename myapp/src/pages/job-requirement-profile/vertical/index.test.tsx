@@ -7,6 +7,7 @@ const { act } = React;
 const mockedGetJobTitleOptions = jest.fn();
 const mockedGetIndustryOptionsByJobTitle = jest.fn();
 const mockedGetVerticalJobProfile = jest.fn();
+const mockedGetVerticalJobProfileCompanyDetail = jest.fn();
 
 jest.mock('antd', () => {
   const actual = jest.requireActual('antd');
@@ -14,14 +15,14 @@ jest.mock('antd', () => {
 
   return {
     ...actual,
-    Select: ({ options = [], mode, value, onChange, placeholder, id, loading }: any) =>
+    Select: ({ options = [], mode, value, onChange, placeholder, id, loading, disabled }: any) =>
       ReactLib.createElement(
         'select',
         {
           id,
           'data-testid': id,
           'aria-label': id,
-          disabled: loading,
+          disabled: loading || disabled,
           multiple: mode === 'multiple',
           value: value ?? (mode === 'multiple' ? [] : ''),
           onChange: (event: any) => {
@@ -47,6 +48,7 @@ jest.mock('@/services/ant-design-pro/api', () => ({
   getJobTitleOptions: (...args: any[]) => mockedGetJobTitleOptions(...args),
   getIndustryOptionsByJobTitle: (...args: any[]) => mockedGetIndustryOptionsByJobTitle(...args),
   getVerticalJobProfile: (...args: any[]) => mockedGetVerticalJobProfile(...args),
+  getVerticalJobProfileCompanyDetail: (...args: any[]) => mockedGetVerticalJobProfileCompanyDetail(...args),
 }));
 
 describe('VerticalJobProfilePage', () => {
@@ -54,6 +56,7 @@ describe('VerticalJobProfilePage', () => {
     mockedGetJobTitleOptions.mockReset();
     mockedGetIndustryOptionsByJobTitle.mockReset();
     mockedGetVerticalJobProfile.mockReset();
+    mockedGetVerticalJobProfileCompanyDetail.mockReset();
 
     mockedGetJobTitleOptions.mockResolvedValue({
       success: true,
@@ -103,6 +106,26 @@ describe('VerticalJobProfilePage', () => {
             },
           ],
         },
+        dimension_comparison: [
+          {
+            level: '低级',
+            industries: [
+              {
+                industry: '互联网',
+                dimensions: [
+                  {
+                    key: 'professional_skills',
+                    title: '专业技能',
+                    profile_count: 1,
+                    non_default_count: 1,
+                    coverage_ratio: 1,
+                    keywords: ['Java'],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
     });
   });
@@ -121,7 +144,9 @@ describe('VerticalJobProfilePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }));
 
     await waitFor(() => {
-      expect(mockedGetIndustryOptionsByJobTitle).toHaveBeenCalledWith('Java');
+      expect(mockedGetIndustryOptionsByJobTitle).toHaveBeenCalledWith('Java', {
+        skipErrorHandler: true,
+      });
       expect(mockedGetVerticalJobProfile).toHaveBeenCalledWith({
         job_title: 'Java',
         industry: [],
@@ -129,8 +154,12 @@ describe('VerticalJobProfilePage', () => {
     });
 
     expect(await screen.findByTestId('vertical-tier-comparison')).toBeTruthy();
-    expect(screen.getAllByText('低级').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('初级').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('comparison-summary')).toBeTruthy();
     expect(screen.getByText('甲公司')).toBeTruthy();
     expect(screen.getByText('3,000-8,000 元/月')).toBeTruthy();
+    expect(screen.getByText('12 维度行业覆盖度')).toBeTruthy();
+    expect(screen.getAllByText('专业技能').length).toBeGreaterThan(0);
+    expect(screen.getByText('100%')).toBeTruthy();
   });
 });

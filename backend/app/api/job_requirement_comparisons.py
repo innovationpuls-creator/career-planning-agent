@@ -18,15 +18,10 @@ from app.services.job_requirement_profile_read import (
     build_merged_job_detail,
     count_non_default_dimensions,
 )
+from app.utils.query import clean_multi_values
 
 
 router = APIRouter(prefix="/api/job-requirement-comparisons", tags=["job-requirement-comparisons"])
-
-
-def _clean_multi_values(values: list[str] | None) -> list[str]:
-    if not values:
-        return []
-    return [value.strip() for value in values if value and value.strip()]
 
 
 @router.get("", response_model=JobRequirementComparisonListResponse)
@@ -40,8 +35,8 @@ def list_job_requirement_comparisons(
     _: User = Depends(require_admin_user),
 ) -> JobRequirementComparisonListResponse:
     filters = []
-    industries = _clean_multi_values(industry)
-    job_titles = _clean_multi_values(job_title)
+    industries = clean_multi_values(industry)
+    job_titles = clean_multi_values(job_title)
 
     if industries:
         filters.append(or_(*[JobRequirementProfile.industry == value for value in industries]))

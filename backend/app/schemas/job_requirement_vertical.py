@@ -56,6 +56,25 @@ class TieredVerticalComparisonPayload(BaseModel):
     tiers: list[SalaryTierGroup]
 
 
+class VerticalDimensionComparisonItem(BaseModel):
+    key: str
+    title: str
+    profile_count: int = 0
+    non_default_count: int = 0
+    coverage_ratio: float = 0
+    keywords: list[str] = Field(default_factory=list)
+
+
+class VerticalIndustryDimensionComparison(BaseModel):
+    industry: str
+    dimensions: list[VerticalDimensionComparisonItem] = Field(default_factory=list)
+
+
+class VerticalTierDimensionComparison(BaseModel):
+    level: str
+    industries: list[VerticalIndustryDimensionComparison] = Field(default_factory=list)
+
+
 class VerticalJobProfilePayload(BaseModel):
     title: str
     job_title: str
@@ -64,6 +83,7 @@ class VerticalJobProfilePayload(BaseModel):
     groups: list[VerticalJobProfileGroup]
     meta: VerticalJobProfileMeta
     tiered_comparison: TieredVerticalComparisonPayload | None = None
+    dimension_comparison: list[VerticalTierDimensionComparison] = Field(default_factory=list)
 
 
 class VerticalJobProfileResponse(BaseModel):

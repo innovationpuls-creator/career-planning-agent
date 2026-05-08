@@ -52,7 +52,7 @@ describe('useReportWorkspace', () => {
   });
 
   it('loads workspace data when favoriteId is provided', async () => {
-    const { result } = renderHook(() => useReportWorkspace({ favoriteId: 1 }));
+    renderHook(() => useReportWorkspace({ favoriteId: 1 }));
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });

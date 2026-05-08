@@ -15,13 +15,13 @@ from app.schemas.career_development_report import (
 from app.schemas.student_competency_profile import JOB_PROFILE_FIELD_ORDER
 
 
+# 与 career_requirement_profiles 表中的 canonical_job_title 保持一致
 SUPPORTED_JOB_TITLES = [
     "前端工程师",
     "实施工程师",
     "技术支持工程师",
     "测试工程师",
     "软件工程师",
-    "Java",
 ]
 SUPPORTED_PHASE_KEYS = ["short_term", "mid_term", "long_term"]
 PHASE_REASON_SUFFIX = {

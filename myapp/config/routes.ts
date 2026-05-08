@@ -91,6 +91,13 @@ export default [
     component: './student-competency-profile',
   },
   {
+    path: '/career-match',
+    name: '职业匹配',
+    icon: 'team',
+    access: 'canUser',
+    component: './career-match',
+  },
+  {
     path: '/snail-learning-path',
     name: '蜗牛学习路径',
     icon: 'apartment',

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+
+logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -50,6 +53,7 @@ from app.services.student_competency_profile import (
     try_parse_profile_from_text,
     update_student_competency_profile_conversation,
 )
+from app.services.document_parser import DocumentParserError
 from app.services.student_competency_status_store import student_competency_status_store
 
 
@@ -425,6 +429,14 @@ async def create_student_competency_chat(
     except HTTPException:
         _append_status(workspace_conversation_id, status_text="请求校验失败", stage="error", progress=100)
         raise
+    except DocumentParserError as exc:
+        _append_status(
+            workspace_conversation_id,
+            status_text=f"文档解析失败：{exc}",
+            stage="error",
+            progress=100,
+        )
+        raise HTTPException(status_code=422, detail=f"文档解析失败：{exc}") from exc
     except StudentCompetencyProfileError as exc:
         _append_status(
             workspace_conversation_id,
@@ -622,7 +634,23 @@ async def stream_student_competency_chat(
                     "detail": str(exc),
                 }
             )
+        except DocumentParserError as exc:
+            status_event = _append_status(
+                workspace_conversation_id,
+                status_text=f"文档解析失败：{exc}",
+                stage="error",
+                progress=100,
+            )
+            yield _stream_status_event(assistant_message_id, status_event)
+            yield _ndjson_line(
+                {
+                    "event": "error",
+                    "assistant_message_id": assistant_message_id,
+                    "detail": f"文档解析失败：{exc}",
+                }
+            )
         except Exception:
+            logger.exception("stream_student_competency_chat failed")
             status_event = _append_status(
                 workspace_conversation_id,
                 status_text="系统内部异常，请稍后重试",

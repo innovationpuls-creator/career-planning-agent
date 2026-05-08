@@ -43,7 +43,7 @@ from app.services.job_requirement_profile_read import parse_dimension_value
 
 
 GRAPH_PROJECT_KEY = "job_requirement_profile"
-GRAPH_VERSION = "2.1.0"
+GRAPH_VERSION = "2.2.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,6 +224,16 @@ def _build_root_summary(total_profiles: int, keywords: list[str]) -> str:
     return f"{GRAPH_ROOT['description']} 当前共聚合 {total_profiles} 份岗位画像。"
 
 
+def _build_company_detail_query(profile: JobRequirementProfile | None) -> dict[str, str] | None:
+    if profile is None:
+        return None
+    return {
+        "job_title": profile.job_title,
+        "industry": profile.industry,
+        "company_name": profile.company_name,
+    }
+
+
 def build_graph_payload_from_profiles(
     profiles: list[JobRequirementProfile],
 ) -> tuple[dict[str, Any], str]:
@@ -239,6 +249,7 @@ def build_graph_payload_from_profiles(
     for group in GRAPH_GROUPS:
         group_keywords_counter: Counter[str] = Counter()
         group_active_profiles = 0
+        group_detail_profile: JobRequirementProfile | None = None
 
         for profile in profiles:
             has_any_dimension = False
@@ -249,15 +260,20 @@ def build_graph_payload_from_profiles(
                     break
             if has_any_dimension:
                 group_active_profiles += 1
+                if group_detail_profile is None:
+                    group_detail_profile = profile
 
         for dimension in group.dimensions:
             keyword_counter: Counter[str] = Counter()
             non_default_count = 0
+            dimension_detail_profile: JobRequirementProfile | None = None
             for profile in profiles:
                 items = parse_dimension_value(getattr(profile, dimension.key))
                 valid_items = [item for item in items if item != DEFAULT_KEYWORD]
                 if valid_items:
                     non_default_count += 1
+                    if dimension_detail_profile is None:
+                        dimension_detail_profile = profile
                     keyword_counter.update(valid_items)
                     group_keywords_counter.update(valid_items)
                     all_keywords_counter.update(valid_items)
@@ -280,6 +296,7 @@ def build_graph_payload_from_profiles(
                     "non_default_count": non_default_count,
                     "coverage_ratio": _round_coverage(non_default_count, total_profiles),
                     "group_key": group.key,
+                    "company_detail_query": _build_company_detail_query(dimension_detail_profile),
                 }
             )
             edges.append(
@@ -308,6 +325,7 @@ def build_graph_payload_from_profiles(
                 "non_default_count": group_active_profiles,
                 "coverage_ratio": _round_coverage(group_active_profiles, total_profiles),
                 "group_key": group.key,
+                "company_detail_query": _build_company_detail_query(group_detail_profile),
             }
         )
         edges.append(
@@ -330,6 +348,7 @@ def build_graph_payload_from_profiles(
         "non_default_count": total_profiles,
         "coverage_ratio": 1.0 if total_profiles else 0.0,
         "group_key": None,
+        "company_detail_query": _build_company_detail_query(profiles[0] if profiles else None),
     }
 
     nodes.extend([root_payload, *group_payloads, *dimension_payloads])
@@ -348,6 +367,7 @@ def build_graph_payload_from_profiles(
                     "keywords": node["keywords"],
                     "non_default_count": node["non_default_count"],
                     "coverage_ratio": node["coverage_ratio"],
+                    "company_detail_query": node["company_detail_query"],
                 }
                 for node in nodes
             ],
@@ -369,8 +389,6 @@ def build_static_graph_payload() -> dict[str, Any]:
 
 
 class JobRequirementGraphServiceProtocol(Protocol):
-    def reset_graph(self) -> None: ...
-
     def get_graph(self) -> dict[str, Any]: ...
 
     def ensure_graph_synced(self) -> None: ...
@@ -390,11 +408,6 @@ class Neo4jJobRequirementGraphService:
 
     def close(self) -> None:
         self.driver.close()
-
-    def reset_graph(self) -> None:
-        payload, signature = self._build_graph_payload()
-        with self.driver.session(database=self.database) as session:
-            session.execute_write(self._reset_graph_tx, payload, signature)
 
     def ensure_graph_synced(self) -> None:
         payload, signature = self._build_graph_payload()
@@ -463,6 +476,9 @@ class Neo4jJobRequirementGraphService:
               profile_count: $profile_count,
               non_default_count: $non_default_count,
               coverage_ratio: $coverage_ratio,
+              company_detail_job_title: $company_detail_job_title,
+              company_detail_industry: $company_detail_industry,
+              company_detail_company_name: $company_detail_company_name,
               graph_version: $graph_version,
               generated_at: $generated_at,
               profile_signature: $profile_signature,
@@ -478,6 +494,9 @@ class Neo4jJobRequirementGraphService:
             profile_count=root["profile_count"],
             non_default_count=root["non_default_count"],
             coverage_ratio=root["coverage_ratio"],
+            company_detail_job_title=(root["company_detail_query"] or {}).get("job_title"),
+            company_detail_industry=(root["company_detail_query"] or {}).get("industry"),
+            company_detail_company_name=(root["company_detail_query"] or {}).get("company_name"),
             graph_version=meta["graph_version"],
             generated_at=meta["generated_at"],
             profile_signature=signature,
@@ -497,7 +516,10 @@ class Neo4jJobRequirementGraphService:
                   profile_count: $profile_count,
                   non_default_count: $non_default_count,
                   coverage_ratio: $coverage_ratio,
-                  group_key: $group_key
+                  group_key: $group_key,
+                  company_detail_job_title: $company_detail_job_title,
+                  company_detail_industry: $company_detail_industry,
+                  company_detail_company_name: $company_detail_company_name
                 })
                 """
                 % node["type"],
@@ -511,6 +533,9 @@ class Neo4jJobRequirementGraphService:
                 non_default_count=node["non_default_count"],
                 coverage_ratio=node["coverage_ratio"],
                 group_key=node["group_key"],
+                company_detail_job_title=(node["company_detail_query"] or {}).get("job_title"),
+                company_detail_industry=(node["company_detail_query"] or {}).get("industry"),
+                company_detail_company_name=(node["company_detail_query"] or {}).get("company_name"),
             )
 
         for edge in payload["edges"]:
@@ -542,7 +567,18 @@ class Neo4jJobRequirementGraphService:
               coalesce(node.profile_count, 0) AS profile_count,
               coalesce(node.non_default_count, 0) AS non_default_count,
               coalesce(node.coverage_ratio, 0.0) AS coverage_ratio,
-              node.group_key AS group_key
+              node.group_key AS group_key,
+              CASE
+                WHEN node.company_detail_job_title IS NULL
+                  OR node.company_detail_industry IS NULL
+                  OR node.company_detail_company_name IS NULL
+                THEN null
+                ELSE {
+                  job_title: node.company_detail_job_title,
+                  industry: node.company_detail_industry,
+                  company_name: node.company_detail_company_name
+                }
+              END AS company_detail_query
             ORDER BY
               CASE labels(node)[0]
                 WHEN 'ProfileRoot' THEN 0

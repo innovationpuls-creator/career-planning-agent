@@ -172,6 +172,19 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("FEATURE_MAP_NEO4J_DATABASE", "NEO4J_DATABASE"),
     )
 
+    admin_username: str = Field(
+        default="admin",
+        validation_alias=AliasChoices("FEATURE_MAP_ADMIN_USERNAME", "ADMIN_USERNAME"),
+    )
+    admin_password: str = Field(
+        default="123456",
+        validation_alias=AliasChoices("FEATURE_MAP_ADMIN_PASSWORD", "ADMIN_PASSWORD"),
+    )
+    admin_display_name: str = Field(
+        default="管理员",
+        validation_alias=AliasChoices("FEATURE_MAP_ADMIN_DISPLAY_NAME", "ADMIN_DISPLAY_NAME"),
+    )
+
     use_local_competency_profile: bool = Field(
         default=True,
         validation_alias=AliasChoices(

@@ -65,15 +65,6 @@ class DocumentParser:
         return DocumentParser.parse_text(stream)
 
     @staticmethod
-    def parse_file(path: str | Path) -> str:
-        path_obj = Path(path)
-        if not path_obj.exists():
-            raise DocumentParserError(f"File not found: {path}")
-        extension = path_obj.suffix
-        with path_obj.open("rb") as f:
-            return DocumentParser.detect_and_parse(f, extension)
-
-    @staticmethod
     def parse_file_from_bytes(content: bytes, file_name: str, content_type: str | None = None) -> str:
         """Parse a document from raw bytes, inferring format from file name."""
         del content_type

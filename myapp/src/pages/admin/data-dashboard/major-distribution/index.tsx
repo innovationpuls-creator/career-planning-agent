@@ -4,6 +4,18 @@ import { Card, Col, Empty, Result, Row, Space, Statistic } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getMajorDistribution } from '@/services/ant-design-pro/api';
 
+const ADMIN_CHART_COLORS = [
+  '#c96442',
+  '#d97757',
+  '#e8e6dc',
+  '#87867f',
+  '#4d4c48',
+  '#5e5d59',
+  '#b05535',
+  '#faf0eb',
+];
+const ADMIN_CHART_PRIMARY = ADMIN_CHART_COLORS[0];
+
 const MajorDistributionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -64,6 +76,8 @@ const MajorDistributionPage: React.FC = () => {
       style: { fontWeight: 'bold' },
     },
     legend: { position: 'right' as const },
+    color: ADMIN_CHART_COLORS,
+    scale: { color: { range: ADMIN_CHART_COLORS } },
   };
 
   const educationPieConfig = {
@@ -76,6 +90,8 @@ const MajorDistributionPage: React.FC = () => {
       style: { fontWeight: 'bold' },
     },
     legend: { position: 'right' as const },
+    color: ADMIN_CHART_COLORS,
+    scale: { color: { range: ADMIN_CHART_COLORS } },
   };
 
   return (
@@ -133,7 +149,8 @@ const MajorDistributionPage: React.FC = () => {
                 yField="count"
                 label={{ position: 'top' as const }}
                 height={320}
-                color="#1677ff"
+                color={ADMIN_CHART_PRIMARY}
+                style={{ fill: ADMIN_CHART_PRIMARY }}
               />
             ) : (
               <Empty description="暂无学校分布数据" />

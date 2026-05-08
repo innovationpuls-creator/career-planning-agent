@@ -1,99 +1,110 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Project: 大学生职业规划智能体  
+Stack: FastAPI backend + Ant Design Pro / Umi Max frontend.
 
-## Project Overview
+This file is for routing and constraints only. Do not duplicate full specs here.
 
-大学生职业规划智能体 — an AI-assisted platform for university students' career development.
+---
 
-- **User flow**: Login → complete profile → upload resume (AI parses into 12-dimension competency profile) → job matching/favorites → generate snail learning path → generate career growth report (export DOCX/PDF) → browse job knowledge base.
-- **Admin flow**: User management, job management, job requirement comparison, data import, analytics dashboard.
+## Behavior Rules
 
-## Dev Commands
+- Do not guess. If a choice affects behavior, API contracts, data shape, or visible UI, ask first.
+- Keep changes minimal. Do not add features, abstractions, or configurability unless requested.
+- Touch only files required by the task. Do not refactor adjacent code unless asked.
+- Match existing style. Clean only imports, variables, or functions made unused by your own change.
+- For bugs, reproduce or identify the cause before fixing.
+- For non-trivial work, state a short plan and verification method before editing.
 
-### Frontend (`myapp/`)
-```bash
-cd myapp
-npm install
-npm start              # dev server (MOCK=none, no backend)
-npm run start:dev      # same as above
-npm run start:mock     # dev with local mock data
-npm run lint           # biome lint + tsc
-npm run tsc            # type-check only
-npm run test           # jest
-npm run build          # production build
-```
+---
 
-### Backend (`backend/`)
-```bash
-cd backend
-cp .env.example .env   # fill in APP_SECRET_KEY and AI credentials
-uv sync
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 9100   # dev server
-uv run pytest           # run all tests
-uv run pytest tests/test_auth.py::test_name  # single test
-```
+## Documentation Map
 
-### Data Initialization (first-time only)
-```bash
-cd backend
-uv run python scripts/rebuild_job_transfer_v2.py --with-import
-# Default data source: C:\Users\yzh\Desktop\feature_map\行业数据
-# Override: edit DEFAULT_SOURCE_DIR in app/services/job_import.py
-```
+Read the relevant doc before implementation.
+
+| Need | Read |
+|---|---|
+| Page features and routes | `docs/UI功能详细整理.md` |
+| Page → backend API mapping | `docs/UI功能后端接口对照.md` |
+| Visual design language | `docs/Design.md` |
+| Runtime Ant Design tokens | `myapp/config/defaultSettings.ts` |
+| Claude tokens | `myapp/src/styles/claude-tokens.ts` |
+| Motion tokens | `myapp/src/styles/motion.ts` |
+| Redesign specs/plans | `docs/superpowers/specs/`, `docs/superpowers/plans/` |
+| Change history | `docs/changes/` |
+| Deployment/env | `docs/deploy-centos.md`, `backend/.env.example` |
+| Playwright screenshots | `docs/images/test/README.md` |
+
+Do not guess endpoint shapes, dimension keys, page features, or token values. Read docs, then verify source.
+
+---
 
 ## Architecture
 
-### Backend — FastAPI + layered services
+Backend: `backend/app/` — FastAPI routers, settings, SQLAlchemy models, Pydantic schemas, services.  
+Frontend: `myapp/src/` — Umi route pages, API services, components, models.  
+Data: SQLite + Neo4j knowledge graph + Qdrant vector search.  
+AI: OpenAI-compatible LLM, embeddings, and Dify workflows are optional; app should degrade gracefully.
 
-```
-backend/app/
-├── api/          # FastAPI routers (one file per resource)
-├── core/         # Pydantic Settings from env vars
-├── db/           # SQLAlchemy Base + session
-├── models/       # ORM models
-├── schemas/      # Pydantic request/response DTOs
-└── services/     # Business logic (LLM, embeddings, vector store, Dify, etc.)
-```
+---
 
-**Database**: SQLite (data/app.db) for structured data; Neo4j for job requirement knowledge graph; Qdrant for vector similarity search.
+## Conventions
 
-**AI integration**: OpenAI-compatible LLM (`services/llm.py`), Embedding service (`services/embeddings.py`), Dify workflows for resume parsing and report generation.
+Styling: use `createStyles(({ css, token }) => ({ ... }))` from `antd-style`. Do not create `.less` or CSS modules for new components, except documented Ant Design/Mako workarounds from Learned Skills.
 
-**Key data models**: User, JobPosting, JobRequirementProfile (12-dimension), CareerRequirementProfile (aggregated), CareerTitleAlias, StudentCompetencyProfile (12-dim parsed from resume), SnailLearningResourceLibrary, CareerDevelopmentPlanWorkspace, JobTransferAnalysisTask.
+Colors: use `token.*` or shared token helpers. Never hardcode hex, rgb, rgba, hsl, or named colors in component files.
 
-**Startup behavior** (`app/main.py`): `init_db()` runs schema migrations via raw ALTER TABLE (for backwards compatibility), creates admin user, seeds learning resource library, syncs Neo4j graph. All routers are registered synchronously — no async initialization.
+SSE: backend uses `StreamingResponse` NDJSON; frontend uses `fetch` + `ReadableStream`. Event order: `meta → delta → done / error`.
 
-### Frontend — Ant Design Pro (Umi Max) + TypeScript
+Uploads: frontend uses `FormData`; backend uses `UploadFile` + `Form`. Resume max size: 10MB. Supported: PDF, DOC, DOCX.
 
-```
-myapp/src/
-├── pages/          # Route pages
-│   ├── Admin/      # Admin dashboard, user management, job management, data dashboard
-│   ├── career-development-report/
-│   ├── home-v2/
-│   ├── job-requirement-profile/
-│   ├── student-competency-profile/
-│   └── user/
-├── services/       # API client (umi-request based)
-├── components/
-└── models/         # Umi dva models
-```
+New endpoint flow: Schema → Model → Router → `main.py` → `api.ts` → Page.
 
-## Configuration
+---
 
-Backend `.env` is required. Minimum working config:
-```
-APP_SECRET_KEY=<any long random string>
-```
+## 12-Dimension Keys
 
-AI features (LLM, Dify, Embeddings, Qdrant) are optional — the app starts with reduced functionality if not set. See `.env.example` for all variables.
+Always use these exact keys. Never invent dimension names.
 
-## Adding a New API Endpoint
+| key | 中文 |
+|---|---|
+| `professional_skills` | 专业技能 |
+| `professional_background` | 专业背景 |
+| `education_requirement` | 学历要求 |
+| `teamwork` | 团队协作能力 |
+| `stress_adaptability` | 抗压/适应能力 |
+| `problem_solving` | 分析解决问题能力 |
+| `communication` | 沟通表达能力 |
+| `work_experience` | 工作经验 |
+| `documentation_awareness` | 文档规范意识 |
+| `responsibility` | 责任心/工作态度 |
+| `learning_ability` | 学习能力 |
+| `other_special` | 补充信息 |
 
-1. Define Pydantic schema in `backend/app/schemas/`
-2. Add SQLAlchemy model if needed in `backend/app/models/`
-3. Create router in `backend/app/api/`
-4. Register router in `backend/app/main.py`
-5. Add frontend service method in `myapp/src/services/`
-6. Add page/component in `myapp/src/pages/`
+---
+
+## Pitfalls
+
+- `.env`: minimum required value is `APP_SECRET_KEY`.
+- Admin defaults: `admin` / `123456` / `管理员`; resets every startup.
+- `.umi-undefined/`: dev cache; do not commit.
+- `myapp/src/pages/table-list/`: default Umi template; do not add features.
+- No Alembic: schema changes use raw SQL `ALTER TABLE` in `init_db()`.
+- `docs/Design.md`: aesthetic reference only, not runtime token source.
+
+---
+
+## Learned Skills
+
+Stored in `~/.claude/skills/learned/`. When a trigger matches, read the skill file before editing code.
+
+| Trigger | Skill file |
+|---|---|
+| Tabs collapse or width jitters | `ant-tabs-equal-width-flex` |
+| ProLayout overrides background | `ant-pro-layout-background-override` |
+| `colorBgSpotlight` creates dark bg | `antd-colorBgSpotlight-dark-background` |
+| `:global()` disappears under Mako | `antd-style-global-mako-bypass` |
+| antd font replacement fails | `antd-font-replacement` |
+| Browser renders unexpected CSS | `playwright-css-rules-inspection` |
+| Less/CSS changes not reflected | `umi-mako-css-not-updating` |
+| Playwright screenshots | `playwright-screenshot-verification` |

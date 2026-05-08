@@ -1,13 +1,16 @@
 // ============================================================
-// Design Token CSS Variables
+// Claude Design System — CSS Variables
+// All component overrides below reference these variables,
+// so changing a value here cascades everywhere.
 // ============================================================
 :root {
   // --- Font Stacks ---
   --font-heading: "STSongti SC", "SimSun", "Songti SC", "Noto Serif SC",
-    "Source Han Serif SC", "Source Han Serif CN", serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC",
-    "HarmanOS Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-  --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+    "Source Han Serif SC", Georgia, serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI",
+    Roboto, sans-serif;
+  --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono',
+    monospace;
 
   // --- Font Sizes ---
   --font-size-display: 32px;
@@ -36,7 +39,7 @@
   --letter-spacing-heading: 0.06em;
   --letter-spacing-tight: -0.01em;
 
-  // --- Spacing (基准 4px) ---
+  // --- Spacing (4px base) ---
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -46,42 +49,87 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  // --- Border Radius ---
+  // --- Border Radius (Claude scale) ---
   --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 32px;
   --radius-full: 9999px;
 
-  // --- Shadows ---
+  // --- Shadows (Claude warm) ---
+  --shadow-flat: none;
+  --shadow-contained: 1px solid #f0eee6;
+  --shadow-ring: 0px 0px 0px 1px #d1cfc5;
+  --shadow-whisper: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+  --shadow-inset: inset 0px 0px 0px 1px rgba(0, 0, 0, 0.15);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.10);
-  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: rgba(0, 0, 0, 0.05) 0px 4px 24px;
 
   // --- Page Layout ---
   --content-max-width: 1200px;
   --content-padding: 24px;
-  --header-height: 56px;
+  --header-height: 72px;
 
   // --- Motion ---
   --motion-fast: 0.15s;
   --motion-normal: 0.25s;
   --motion-slow: 0.35s;
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.7, 0, 0.3, 1);
 
-  // --- Chart Colors ---
-  --chart-blue: #4A90D9;
-  --chart-teal: #3BA7A0;
-  --chart-purple: #7E68C8;
-  --chart-orange: #D97A3E;
-  --chart-green: #4FA65F;
-  --chart-pink: #C56C93;
-  --chart-gray: #8C8C8C;
-  --chart-yellow: #C9A03E;
+  // --- Claude Color Tokens (referenced by component overrides) ---
+  --color-primary: #c96442;
+  --color-primary-hover: #d97757;
+  --color-primary-active: #b05535;
+  --color-primary-bg: #faf0eb;
+  --color-text: #141413;
+  --color-text-secondary: #5e5d59;
+  --color-text-tertiary: #87867f;
+  --color-border: #f0eee6;
+  --color-border-secondary: #f5f4ed;
+  --color-bg-container: #faf9f5;
+  --color-bg-spotlight: #f5f4ed;
+  --color-bg-overlay: rgba(245, 244, 237, 0.8);
+  --app-bg-page: linear-gradient(135deg, var(--color-bg-spotlight) 0%, var(--color-bg-container) 100%);
+  --color-charcoal-warm: #4d4c48;
+
+  // --- Chart Colors (Claude warm palette) ---
+  --chart-primary: #c96442;
+  --chart-hover: #d97757;
+  --chart-sand: #e8e6dc;
+  --chart-stone: #87867f;
+  --chart-charcoal: #4d4c48;
+  --chart-olive: #5e5d59;
+  --chart-dark: #30302e;
+  --chart-light: #faf0eb;
+
+  // --- Header / Navigation ---
+  --header-primary: #d15d2f;
+  --header-primary-light: #e58a5f;
+  --header-primary-bg: rgba(209, 93, 47, 0.07);
+  --header-border: rgba(188, 130, 92, 0.12);
+  --header-shadow: 0 10px 30px rgba(120, 80, 48, 0.06);
+  --header-utility-bg: rgba(255, 255, 255, 0.72);
+  --header-utility-border: rgba(188, 130, 92, 0.14);
+  --header-utility-shadow: 0 8px 22px rgba(120, 80, 48, 0.06);
+  --header-text-primary: rgba(30, 30, 34, 0.92);
+  --header-text-muted: rgba(30, 30, 34, 0.38);
+  --header-text-nav: rgba(40, 35, 32, 0.68);
+  --header-nav-hover-bg: rgba(209, 93, 47, 0.07);
+  --header-nav-hover-color: rgba(209, 93, 47, 0.92);
+  --header-nav-active-bg: linear-gradient(180deg, rgba(255, 239, 229, 0.96), rgba(255, 247, 241, 0.88));
+  --header-nav-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 20px rgba(209, 93, 47, 0.12);
+  --header-utility-btn-hover-color: #d15d2f;
+  --header-utility-btn-hover-bg: rgba(209, 93, 47, 0.08);
+  --header-utility-divider: rgba(80, 60, 48, 0.12);
+  --header-avatar-gradient: linear-gradient(135deg, #e9945e, #d15d2f);
+  --header-indicator-gradient: linear-gradient(90deg, #e58a5f, #d15d2f);
+  --header-bg: linear-gradient(180deg, rgba(255, 253, 248, 0.94), rgba(255, 250, 242, 0.86));
+  --header-padding-h: 48px;
+  --header-height: 72px;
+  --header-height-mobile: 64px;
 }
 
 // ============================================================
@@ -93,7 +141,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: var(--font-heading) !important;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -110,6 +158,14 @@ body,
   min-height: 100vh;
 }
 
+// ProLayout content area — unified warm gradient background
+// !important required: ProLayout injects styles via CSS-in-JS at runtime,
+// which loads after static stylesheets and would otherwise override this rule.
+.ant-pro-layout-content,
+.ant-pro-layout-container {
+  background: var(--app-bg-page) !important;
+}
+
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {
   left: unset;
 }
@@ -118,13 +174,12 @@ canvas {
   display: block;
 }
 
-ul,
-ol {
+ul, ol {
   list-style: none;
 }
 
 // ============================================================
-// Responsive Base
+// Responsive
 // ============================================================
 @media (max-width: 768px) {
   :root {
@@ -137,20 +192,16 @@ ol {
 
     &-thead > tr,
     &-tbody > tr {
-      > th,
-      > td {
+      > th, > td {
         white-space: pre;
-
-        > span {
-          display: block;
-        }
+        > span { display: block; }
       }
     }
   }
 }
 
 // ============================================================
-// Page Content Width
+// Page Layout
 // ============================================================
 .page-content {
   max-width: var(--content-max-width);
@@ -158,12 +209,6 @@ ol {
   padding: 0 var(--content-padding);
 }
 
-// ============================================================
-// Full Page Spin Overlay
-// ============================================================
-// ============================================================
-// Full Page Spin Overlay
-// ============================================================
 .full-page-spin {
   position: fixed;
   inset: 0;
@@ -171,29 +216,26 @@ ol {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-bg-overlay);
   backdrop-filter: blur(4px);
 }
 
 // ============================================================
-// Navigation — Top Header Menu (layout: 'top')
+// Navigation — Top Header
 // ============================================================
 .ant-pro-sider {
-  // Sider never visible in top layout — collapsed sider stays hidden
   display: none;
 }
 
-// Top nav bar
 .ant-pro-top-nav-header {
-  background: var(--color-bg-container, #ffffff) !important;
-  border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+  background: var(--color-bg-container) !important;
+  border-bottom: 1px solid var(--color-border) !important;
   box-shadow: none !important;
-  height: var(--header-height, 56px) !important;
-  line-height: var(--header-height, 56px) !important;
+  height: var(--header-height) !important;
+  line-height: var(--header-height) !important;
 
   .ant-pro-top-nav-header-logo {
-    height: var(--header-height, 56px) !important;
-
+    height: var(--header-height) !important;
     a {
       display: flex;
       align-items: center;
@@ -203,115 +245,106 @@ ol {
   }
 }
 
-// Menu bar (horizontal)
+// Override ant-design-pro-components library's hardcoded 56px wrapper height
+// Selector must match the library's specificity of (1 class + 2 ancestor classes)
+.ant-pro-layout .ant-layout-header.ant-pro-layout-header {
+  height: var(--header-height) !important;
+  line-height: var(--header-height) !important;
+}
+
 .ant-pro-top-nav-header-menu {
-  height: var(--header-height, 56px) !important;
+  height: var(--header-height) !important;
 
   .ant-menu {
-    height: var(--header-height, 56px) !important;
-    line-height: var(--header-height, 56px) !important;
+    height: var(--header-height) !important;
+    line-height: var(--header-height) !important;
     background: transparent !important;
     border-bottom: none !important;
 
-    // Top-level items
     .ant-menu-item {
-      height: var(--header-height, 56px) !important;
-      line-height: var(--header-height, 56px) !important;
+      height: var(--header-height) !important;
+      line-height: var(--header-height) !important;
       margin: 0 !important;
       padding: 0 16px !important;
       border-radius: 0 !important;
-      color: var(--color-text-secondary, #5c5c5e) !important;
+      color: var(--color-text-secondary) !important;
       font-size: 14px !important;
-      font-weight: 400 !important;
-      transition:
-        color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1)),
-        background-color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+      transition: color var(--motion-fast) var(--ease-standard),
+        background-color var(--motion-fast) var(--ease-standard);
 
       &:hover {
-        color: var(--color-text, #1c1c1e) !important;
-        background: var(--color-bg-spotlight, #fafafa) !important;
+        color: var(--color-text) !important;
+        background: var(--color-bg-spotlight) !important;
       }
 
-      // Selected — active indicator line at bottom
       &.ant-menu-item-selected {
-        color: var(--color-primary, #1655cc) !important;
-        background: var(--color-primary-bg, #eef3fb) !important;
+        color: var(--color-primary) !important;
+        background: var(--color-primary-bg) !important;
         font-weight: 500 !important;
-
-        &::after {
-          display: none !important;
-        }
-
-        // Bottom border bar as active indicator
-        border-bottom: 2px solid var(--color-primary, #1655cc) !important;
+        &::after { display: none !important; }
+        border-bottom: 2px solid var(--color-primary) !important;
       }
     }
 
-    // Submenu items
     .ant-menu-submenu {
-      height: var(--header-height, 56px) !important;
-      line-height: var(--header-height, 56px) !important;
+      height: var(--header-height) !important;
+      line-height: var(--header-height) !important;
 
       .ant-menu-submenu-title {
-        height: var(--header-height, 56px) !important;
-        line-height: var(--header-height, 56px) !important;
+        height: var(--header-height) !important;
+        line-height: var(--header-height) !important;
         padding: 0 16px !important;
-        color: var(--color-text-secondary, #5c5c5e) !important;
+        color: var(--color-text-secondary) !important;
         font-size: 14px !important;
-        transition: color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+        transition: color var(--motion-fast) var(--ease-standard);
 
         &:hover {
-          color: var(--color-text, #1c1c1e) !important;
-          background: var(--color-bg-spotlight, #fafafa) !important;
+          color: var(--color-text) !important;
+          background: var(--color-bg-spotlight) !important;
         }
       }
 
-      &.ant-menu-submenu-selected {
-        .ant-menu-submenu-title {
-          color: var(--color-primary, #1655cc) !important;
-          background: var(--color-primary-bg, #eef3fb) !important;
-          font-weight: 500 !important;
-        }
+      &.ant-menu-submenu-selected .ant-menu-submenu-title {
+        color: var(--color-primary) !important;
+        background: var(--color-primary-bg) !important;
+        font-weight: 500 !important;
       }
     }
   }
 }
 
 // ============================================================
-// PageContainer — Header Area
+// PageContainer
 // ============================================================
 .ant-pro-page-container {
-  // Reset container padding — handled by page layout
   padding: 0 !important;
   margin: 0 !important;
   background: transparent !important;
 
+  .ant-pro-page-container-warp-page-header,
+  .ant-pro-page-container-header {
+    display: none !important;
+  }
+
   .ant-pro-page-container-header {
     background: transparent !important;
-    border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
-    padding: 16px var(--content-padding, 24px) 12px !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding: 16px var(--content-padding) 12px !important;
     margin-bottom: 0 !important;
 
-    // Breadcrumb
     .ant-breadcrumb {
       margin-bottom: 4px !important;
-
       .ant-breadcrumb-link,
       .ant-breadcrumb-separator {
         font-size: 12px !important;
-        color: var(--color-text-tertiary, #98989d) !important;
+        color: var(--color-text-tertiary) !important;
       }
-
       .ant-breadcrumb-link {
         cursor: pointer !important;
-
-        &:hover {
-          color: var(--color-primary, #1655cc) !important;
-        }
+        &:hover { color: var(--color-primary) !important; }
       }
     }
 
-    // Title row
     .ant-pro-page-container-header-main {
       display: flex !important;
       align-items: center !important;
@@ -320,57 +353,47 @@ ol {
       gap: 8px !important;
     }
 
-    // Page title — H1 spec: 22px / 600 / colorText
     .ant-pro-page-container-header-title {
       font-size: 22px !important;
       font-weight: 600 !important;
-      color: var(--color-text, #1c1c1e) !important;
+      color: var(--color-text) !important;
       line-height: 1.4 !important;
       letter-spacing: -0.01em !important;
 
       .ant-title-prefix {
         margin-right: 8px !important;
-        color: var(--color-primary, #1655cc) !important;
-        vertical-align: middle !important;
+        color: var(--color-primary) !important;
       }
     }
 
-    // Subtitle — 14px / colorTextSecondary
     .ant-pro-page-container-header-subTitle {
       font-size: 14px !important;
-      font-weight: 400 !important;
-      color: var(--color-text-secondary, #5c5c5e) !important;
+      color: var(--color-text-secondary) !important;
       line-height: 1.5 !important;
-      margin: 0 !important;
     }
 
-    // Extra action buttons — right-aligned, 8px gap with title
     .ant-pro-page-container-header-actions {
       display: flex !important;
       align-items: center !important;
       gap: 8px !important;
-      flex-shrink: 0 !important;
     }
   }
 
-  // Tab bar (if used)
   .ant-pro-page-container-tab {
     background: transparent !important;
-    border-bottom: 1px solid var(--color-border-secondary, #ededef) !important;
-    padding: 0 var(--content-padding, 24px) !important;
+    border-bottom: 1px solid var(--color-border-secondary) !important;
+    padding: 0 var(--content-padding) !important;
   }
 
-  // Page content wrapper
   .ant-pro-page-container-children-container {
     padding: 0 !important;
   }
 }
 
 // ============================================================
-// ProTable — Unified Table Styles
+// ProTable
 // ============================================================
 .ant-pro-table {
-  // Table card container
   .ant-pro-table-list-toolbar {
     padding: 0 0 12px !important;
     margin-bottom: 0 !important;
@@ -385,102 +408,65 @@ ol {
 
 .ant-table-wrapper {
   .ant-table {
-    // --- Table header ---
     .ant-table-thead > tr > th {
-      background: var(--color-bg-spotlight, #fafafa) !important;
-      color: var(--color-text, #1c1c1e) !important;
+      background: var(--color-bg-spotlight) !important;
+      color: var(--color-text) !important;
       font-size: 14px !important;
       font-weight: 500 !important;
-      line-height: 1.4 !important;
       padding: 12px 16px !important;
-      border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+      border-bottom: 1px solid var(--color-border) !important;
       white-space: nowrap !important;
 
-      // Sort icon
-      .ant-table-column-sorter {
-        color: var(--color-text-tertiary, #98989d) !important;
-      }
-
-      // Filter icon
+      .ant-table-column-sorter,
       .ant-table-filter-trigger {
-        color: var(--color-text-tertiary, #98989d) !important;
-
-        &.active {
-          color: var(--color-primary, #1655cc) !important;
-        }
+        color: var(--color-text-tertiary) !important;
+      }
+      .ant-table-filter-trigger.active {
+        color: var(--color-primary) !important;
       }
     }
 
-    // --- Table body rows ---
     .ant-table-tbody > tr > td {
       padding: 12px 16px !important;
       font-size: 14px !important;
-      color: var(--color-text, #1c1c1e) !important;
-      border-bottom: 1px solid var(--color-border-secondary, #ededef) !important;
-      line-height: 1.5 !important;
-      transition:
-        background-color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
+      color: var(--color-text) !important;
+      border-bottom: 1px solid var(--color-border-secondary) !important;
+      transition: background-color var(--motion-fast) var(--ease-standard);
     }
 
-    // Hover row
     .ant-table-tbody > tr.ant-table-row:hover > td {
-      background: var(--color-bg-spotlight, #fafafa) !important;
+      background: var(--color-bg-spotlight) !important;
     }
 
-    // Selected row
     .ant-table-tbody > tr.ant-table-row-selected > td {
-      background: var(--color-primary-bg, #eef3fb) !important;
+      background: var(--color-primary-bg) !important;
     }
 
-    // Zebra (none — keep clean)
-
-    // --- Expandable row ---
     .ant-table-expanded-row > td {
-      background: var(--color-bg-spotlight, #fafafa) !important;
+      background: var(--color-bg-spotlight) !important;
       padding: 16px !important;
     }
 
-    // --- Action column links ---
-    .ant-table-cell-wrap-space {
-      .ant-typography,
-      a {
-        font-size: 14px !important;
-      }
-    }
-
-    // --- Pagination bar ---
     .ant-table-pagination {
       margin: 16px 0 0 !important;
       padding: 12px 0 !important;
-      border-top: 1px solid var(--color-border-secondary, #ededef) !important;
+      border-top: 1px solid var(--color-border-secondary) !important;
       display: flex !important;
       justify-content: flex-end !important;
-      align-items: center !important;
 
       .ant-pagination-total-text {
         font-size: 12px !important;
-        color: var(--color-text-tertiary, #98989d) !important;
-      }
-
-      .ant-select-selector {
-        height: 32px !important;
-
-        .ant-select-selection-item {
-          line-height: 30px !important;
-          font-size: 14px !important;
-        }
+        color: var(--color-text-tertiary) !important;
       }
     }
   }
 
-  // --- Empty state ---
   .ant-table-placeholder {
     background: transparent !important;
     padding: 48px 24px !important;
 
     .ant-empty-description {
-      color: var(--color-text-secondary, #5c5c5e) !important;
-      font-size: 14px !important;
+      color: var(--color-text-secondary) !important;
     }
   }
 }
@@ -491,9 +477,9 @@ ol {
 .ant-pro-table-search {
   margin-bottom: 16px !important;
   padding: 16px !important;
-  background: var(--color-bg-container, #ffffff) !important;
-  border: 1px solid var(--color-border, #e3e3e5) !important;
-  border-radius: var(--radius-lg, 8px) !important;
+  background: var(--color-bg-container) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
 
   .ant-form {
     display: flex !important;
@@ -501,138 +487,87 @@ ol {
     align-items: flex-end !important;
     gap: 8px !important;
 
-    // --- Individual form items ---
     .ant-form-item {
       margin: 0 !important;
-      padding: 0 !important;
-      flex-shrink: 0 !important;
 
-      .ant-form-item-label {
-        padding-bottom: 4px !important;
-
-        > label {
-          font-size: 14px !important;
-          font-weight: 500 !important;
-          color: var(--color-text, #1c1c1e) !important;
-          height: auto !important;
-          line-height: 1.5 !important;
-        }
-      }
-
-      .ant-form-item-control {
-        line-height: 1.5 !important;
+      .ant-form-item-label > label {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        color: var(--color-text) !important;
       }
     }
 
-    // Select — fixed 160px width (spec requirement)
     .ant-select {
       width: 160px !important;
-
       .ant-select-selector {
         height: 36px !important;
-        border-radius: var(--radius-md, 6px) !important;
-        border-color: var(--color-border, #e3e3e5) !important;
-        font-size: 14px !important;
-
-        &:hover {
-          border-color: var(--color-primary, #1655cc) !important;
-        }
+        border-radius: var(--radius-md) !important;
+        border-color: var(--color-border) !important;
+        &:hover { border-color: var(--color-primary) !important; }
       }
-
       &.ant-select-focused .ant-select-selector {
-        border-color: var(--color-primary, #1655cc) !important;
-        box-shadow: var(--shadow-inner, inset 0 1px 2px rgba(0, 0, 0, 0.04)) !important;
+        border-color: var(--color-primary) !important;
       }
     }
 
-    // Input — fixed 200px width
     .ant-input {
       width: 200px !important;
       height: 36px !important;
-      border-radius: var(--radius-md, 6px) !important;
-      border-color: var(--color-border, #e3e3e5) !important;
-      font-size: 14px !important;
-
-      &:hover {
-        border-color: var(--color-primary, #1655cc) !important;
-      }
-
-      &:focus,
-      &.ant-input-affix-wrapper-focused {
-        border-color: var(--color-primary, #1655cc) !important;
-        box-shadow: var(--shadow-inner, inset 0 1px 2px rgba(0, 0, 0, 0.04)) !important;
-      }
+      border-radius: var(--radius-md) !important;
+      border-color: var(--color-border) !important;
+      &:hover { border-color: var(--color-primary) !important; }
+      &:focus { border-color: var(--color-primary) !important; }
     }
 
-    // Date / Range pickers
     .ant-picker {
       width: 240px !important;
       height: 36px !important;
-      border-radius: var(--radius-md, 6px) !important;
+      border-radius: var(--radius-md) !important;
     }
   }
 
-  // --- Button group (right side) ---
   .ant-form-item:last-child {
     margin-left: auto !important;
   }
 
-  // Search button — primary
   .ant-btn-primary {
     height: 36px !important;
     padding: 0 20px !important;
-    font-size: 14px !important;
     font-weight: 500 !important;
-    border-radius: var(--radius-md, 6px) !important;
+    border-radius: var(--radius-md) !important;
   }
 
-  // Reset button — text type
   .ant-btn-text {
     height: 36px !important;
     padding: 0 12px !important;
-    font-size: 14px !important;
-    color: var(--color-text-secondary, #5c5c5e) !important;
-    border-radius: var(--radius-md, 6px) !important;
-
+    color: var(--color-text-secondary) !important;
+    border-radius: var(--radius-md) !important;
     &:hover {
-      color: var(--color-text, #1c1c1e) !important;
-      background: var(--color-bg-spotlight, #fafafa) !important;
+      color: var(--color-text) !important;
+      background: var(--color-bg-spotlight) !important;
     }
   }
 
-  // Collapse trigger ("更多筛选")
-  .ant-pro-table-search-collapse {
-    .ant-btn-link {
-      font-size: 14px !important;
-      color: var(--color-primary, #1655cc) !important;
-      padding: 0 8px !important;
-      height: 36px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-    }
+  .ant-pro-table-search-collapse .ant-btn-link {
+    color: var(--color-primary) !important;
   }
 
-  // Divider between form items and buttons
-  .ant-divider {
-    display: none !important;
-  }
+  .ant-divider { display: none !important; }
 }
 
 // ============================================================
-// Auth — Login Page (Split-Screen)
+// Auth — Split-Screen Layout
 // ============================================================
-@auth-left-gradient: linear-gradient(160deg, #0F2060 0%, #1A3A8F 50%, #0F4299 100%);
-
 .auth-root {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--color-bg-container);
 }
 
 .auth-left {
   width: 40%;
-  background: @auth-left-gradient;
+  background: linear-gradient(160deg, #f5f4ed 0%, #ece9df 50%, #e8e6dc 100%);
   display: flex;
   flex-direction: column;
   padding: 48px;
@@ -664,20 +599,20 @@ ol {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(201, 100, 66, 0.1);
 }
 
 .auth-left-logo-text {
   font-size: 15px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-charcoal-warm);
   letter-spacing: 0.01em;
 }
 
 .auth-left-title {
   font-size: 26px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text);
   line-height: 1.25;
   letter-spacing: -0.02em;
   margin-bottom: 10px;
@@ -686,7 +621,7 @@ ol {
 .auth-left-subtitle {
   font-size: 15px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-secondary);
   line-height: 1.6;
   margin-bottom: 24px;
 }
@@ -694,7 +629,7 @@ ol {
 .auth-left-divider {
   width: 32px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-primary);
   border-radius: 1px;
   margin-bottom: 20px;
 }
@@ -710,8 +645,7 @@ ol {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -719,13 +653,13 @@ ol {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--color-primary);
   flex-shrink: 0;
 }
 
 .auth-left-copyright {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-tertiary);
   line-height: 1.5;
   margin-top: auto;
 }
@@ -737,28 +671,19 @@ ol {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(201, 100, 66, 0.06);
   pointer-events: none;
 }
 
 // ============================================================
-// Input Autofill Override — prevents browser blue bg on autofill
+// Input Autofill Override
 // ============================================================
-input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container, #ffffff) inset !important;
-  -webkit-text-fill-color: var(--color-text, #1c1c1e) !important;
-  transition: background-color 5000s ease-in-out 0s !important;
-}
-
-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container, #ffffff) inset !important;
-  -webkit-text-fill-color: var(--color-text, #1c1c1e) !important;
-}
-
-// Ant Design Input / Input.Password autofill safe wrapper
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
 .ant-input-affix-wrapper input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container, #ffffff) inset !important;
-  -webkit-text-fill-color: var(--color-text, #1c1c1e) !important;
+  -webkit-box-shadow: 0 0 0 100px var(--color-bg-container) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
 }
 
 .auth-right {
@@ -767,7 +692,7 @@ input:-webkit-autofill:focus {
   align-items: center;
   justify-content: center;
   padding: 24px 32px;
-  background: #ffffff;
+  background: var(--color-bg-container);
   animation: authFadeInRight 0.35s ease-out 0.06s both;
 }
 
@@ -787,25 +712,22 @@ input:-webkit-autofill:focus {
 }
 
 // ============================================================
-// Drawer — shared base styles
+// Drawer
 // ============================================================
 .ant-drawer {
   .ant-drawer-header {
-    border-bottom: 1px solid var(--color-border, #e3e3e5) !important;
+    border-bottom: 1px solid var(--color-border) !important;
     padding: 16px 20px !important;
 
     .ant-drawer-title {
       font-size: 16px !important;
       font-weight: 500 !important;
-      color: var(--color-text, #1c1c1e) !important;
+      color: var(--color-text) !important;
     }
 
     .ant-drawer-close {
-      color: var(--color-text-tertiary, #98989d) !important;
-
-      &:hover {
-        color: var(--color-text, #1c1c1e) !important;
-      }
+      color: var(--color-text-tertiary) !important;
+      &:hover { color: var(--color-text) !important; }
     }
   }
 
@@ -817,8 +739,6 @@ input:-webkit-autofill:focus {
 // ============================================================
 // Typography — Heading Styles (Serif)
 // ============================================================
-
-// Display Title (Hero, Page Hero)
 .heading-display,
 h1.heading-display {
   font-family: var(--font-heading);
@@ -826,11 +746,10 @@ h1.heading-display {
   font-weight: var(--font-weight-display);
   line-height: var(--line-height-display);
   letter-spacing: var(--letter-spacing-heading);
-  color: var(--color-text, #1c1c1e);
+  color: var(--color-text);
   margin: 0;
 }
 
-// H1 — Page Title
 .heading-1,
 h1:not(.heading-display) {
   font-family: var(--font-heading);
@@ -838,151 +757,87 @@ h1:not(.heading-display) {
   font-weight: var(--font-weight-display);
   line-height: var(--line-height-display);
   letter-spacing: var(--letter-spacing-heading);
-  color: var(--color-text, #1c1c1e);
+  color: var(--color-text);
   margin: 0;
 }
 
-// H2 — Section Title
-.heading-2,
-h2 {
+.heading-2, h2 {
   font-family: var(--font-heading);
   font-size: var(--font-size-h2);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-heading);
   letter-spacing: 0.04em;
-  color: var(--color-text, #1c1c1e);
+  color: var(--color-text);
   margin: 0;
 }
 
-// H3 — Card / Module Title
-.heading-3,
-h3 {
+.heading-3, h3 {
   font-family: var(--font-heading);
   font-size: var(--font-size-h3);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-heading);
   letter-spacing: 0.02em;
-  color: var(--color-text, #1c1c1e);
+  color: var(--color-text);
   margin: 0;
 }
 
-// Body text
 // ============================================================
-// Ant Design Typography — Force Songti SC serif heading
-// (overrides antd cssVar: true generated inline font-family)
+// Force serif headings on antd Typography
 // ============================================================
-
-// Override antd's injected CSS variable — must come before any component rules
-:root,
-html,
-body {
+:root, html, body {
   --ant-typography-font-family: var(--font-heading) !important;
 }
 
 .ant-typography,
-.ant-typography h1,
-.ant-typography h2,
-.ant-typography h3,
-.ant-typography h4,
-.ant-typography h5,
-.ant-typography h6,
-.ant-typography p,
-.ant-typography div,
-.ant-typography span,
-.ant-typography article,
-.ant-typography section {
+.ant-typography h1, .ant-typography h2, .ant-typography h3,
+.ant-typography h4, .ant-typography h5, .ant-typography h6,
+.ant-typography p, .ant-typography div, .ant-typography span {
   font-family: var(--font-heading) !important;
   letter-spacing: 0.04em;
 }
 
-// antd Typography inner elements — override inline font-family
-.ant-typography h1,
-.ant-typography h2 {
+.ant-typography h1, .ant-typography h2 {
   font-weight: 700 !important;
   letter-spacing: 0.06em !important;
 }
 
-.ant-typography h3,
-.ant-typography h4 {
+.ant-typography h3, .ant-typography h4 {
   font-weight: 600 !important;
   letter-spacing: 0.04em !important;
 }
 
 // ============================================================
-// Ant Design interactive components — Segmented, Button, Input, Tag
-// (force Songti SC for Eastern visual style consistency)
+// Force serif on interactive components
 // ============================================================
-
-// Segmented tab labels
-.ant-segmented-item-label {
-  font-family: var(--font-heading) !important;
-  letter-spacing: 0.04em !important;
-}
-
-// Buttons
-.ant-btn {
-  font-family: var(--font-heading) !important;
-  letter-spacing: 0.02em !important;
-}
-
-// Inputs
-.ant-input {
-  font-family: var(--font-heading) !important;
-}
-
-.ant-input::placeholder {
-  font-family: var(--font-heading) !important;
-  letter-spacing: 0.02em !important;
-}
-
-.ant-input-affix-wrapper {
-  font-family: var(--font-heading) !important;
-}
-
-// Tags (skill chips, dimension tags, etc.)
-.ant-tag {
-  font-family: var(--font-heading) !important;
-  letter-spacing: 0.02em !important;
-}
-
-// Checkbox / Radio labels
+.ant-segmented-item-label,
+.ant-btn,
+.ant-input,
+.ant-input::placeholder,
+.ant-input-affix-wrapper,
+.ant-tag,
 .ant-checkbox-wrapper,
-.ant-radio-wrapper {
-  font-family: var(--font-heading) !important;
-}
-
-// Select / Dropdown
+.ant-radio-wrapper,
 .ant-select-selection-item,
-.ant-select-selection-placeholder {
-  font-family: var(--font-heading) !important;
-}
-
-// Form labels
-.ant-form-item-label > label {
+.ant-select-selection-placeholder,
+.ant-form-item-label > label,
+.ant-tabs-tab,
+.ant-tabs-tab-btn {
   font-family: var(--font-heading) !important;
   letter-spacing: 0.02em !important;
-}
-
-// Tabs
-.ant-tabs-tab {
-  font-family: var(--font-heading) !important;
-  letter-spacing: 0.04em !important;
 }
 
 .ant-tabs-tab-btn {
-  font-family: var(--font-heading) !important;
   letter-spacing: 0.04em !important;
 }
 
 // ============================================================
-// Body text — use sans-serif body font
+// Body text — sans-serif
 // ============================================================
-.body-text,
-p {
+.body-text, p {
   font-family: var(--font-body);
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-regular);
   line-height: var(--line-height-body);
-  color: var(--color-text, #1c1c1e);
+  color: var(--color-text);
   margin: 0;
 }

@@ -5,6 +5,18 @@ import { Card, Col, Empty, Result, Row, Space, Statistic, Table } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getCompetencyAnalysis } from '@/services/ant-design-pro/api';
 
+const ADMIN_CHART_COLORS = [
+  '#c96442',
+  '#d97757',
+  '#e8e6dc',
+  '#87867f',
+  '#4d4c48',
+  '#5e5d59',
+  '#b05535',
+  '#faf0eb',
+];
+const ADMIN_CHART_PRIMARY = ADMIN_CHART_COLORS[0];
+
 const DIMENSION_LABELS: Record<string, string> = {
   professional_skills: '专业技能',
   professional_background: '专业背景',
@@ -157,8 +169,17 @@ const CompetencyAnalysisPage: React.FC = () => {
                       dimension: { alias: '维度' },
                       value: { alias: '平均得分' },
                     }}
-                    area={{ style: { fillOpacity: 0.25 } }}
-                    scale={{ y: { domainMin: 0, domainMax: 1 } }}
+                    area={{
+                      style: {
+                        fill: ADMIN_CHART_PRIMARY,
+                        fillOpacity: 0.25,
+                      },
+                    }}
+                    color={ADMIN_CHART_PRIMARY}
+                    scale={{
+                      color: { range: [ADMIN_CHART_PRIMARY] },
+                      y: { domainMin: 0, domainMax: 1 },
+                    }}
                     height={320}
                   />
                 ) : (
@@ -186,10 +207,13 @@ const CompetencyAnalysisPage: React.FC = () => {
                 xField="dimension"
                 yField="count"
                 seriesField="level"
+                colorField="level"
                 isStack
+                stack
                 label={{ position: 'middle' as const }}
                 legend={{ position: 'top' as const }}
-                color={['#52c41a', '#faad14', '#ff4d4f']}
+                color={ADMIN_CHART_COLORS}
+                scale={{ color: { range: ADMIN_CHART_COLORS } }}
                 height={320}
               />
             ) : (

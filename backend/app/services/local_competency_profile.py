@@ -194,29 +194,11 @@ class IntentClassifier(str, Enum):
         "为什么", "推荐", "规划", "方向",
     }
 
-    @classmethod
-    def build_classifier_messages(cls, prompt: str) -> list[ChatMessage]:
-        return [
-            ChatMessage(
-                role="system",
-                content=(
-                    "你是一个意图分类器。请将用户输入分类为以下三类之一：\n"
-                    f"1. {cls.CREATE_PROFILE.value} — 用户要求创建或提取12维画像\n"
-                    f"2. {cls.MODIFY_PROFILE.value} — 用户要求修改已有的12维画像\n"
-                    f"3. {cls.QA.value} — 用户提出咨询问题或询问建议\n"
-                    "只输出分类名称，不要输出其他内容。"
-                ),
-            ),
-            ChatMessage(role="user", content=prompt),
-        ]
-
-
 def analyze_intent(prompt: str, *, has_files: bool = False) -> IntentClassifier:
     """Keyword-based intent classification.
 
     Falls back to CREATE_PROFILE when there are uploaded files or when
-    the prompt is empty. For ambiguous queries, the caller can use the
-    LLM-based classifier via ``build_classifier_messages()`` instead.
+    the prompt is empty.
     """
     text = prompt.strip().lower()
     if not text:
@@ -360,12 +342,9 @@ class LocalCompetencyProfileClient:
         upload_id = uuid4().hex
 
         import io
-        try:
-            parsed = DocumentParser.parse_file_from_bytes(
-                content, file_name, content_type
-            )
-        except (DocumentParserError, AttributeError):
-            parsed = content.decode("utf-8-sig")
+        parsed = DocumentParser.parse_file_from_bytes(
+            content, file_name, content_type
+        )
 
         self._extracted_texts[upload_id] = parsed
 

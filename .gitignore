@@ -10,6 +10,22 @@ everything-claude-code
 start.bat
 .env
 artifacts
+docs
+.playwright-mcp/
+myapp/test-results/
+myapp/playwright-report*/
+myapp/tests/
+myapp/src/**/*.test.ts
+myapp/src/**/*.test.tsx
+myapp/src/.umi-test/
+myapp/src/.umi-production/testBrowser.tsx
+myapp/src/.umi/testBrowser.tsx
+myapp/src/.umi-undefined/testBrowser.tsx
+backend/.pytest_cache/
+backend/.pytest-tmp/
+
+.superpowers/
+test-results/
 
 # Root-only local data
 /行业数据/

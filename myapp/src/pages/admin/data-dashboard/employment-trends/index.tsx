@@ -4,6 +4,19 @@ import { Card, Col, Empty, Result, Row, Space, Statistic } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { getEmploymentTrends } from '@/services/ant-design-pro/api';
 
+const ADMIN_CHART_COLORS = [
+  '#c96442',
+  '#d97757',
+  '#e8e6dc',
+  '#87867f',
+  '#4d4c48',
+  '#5e5d59',
+  '#b05535',
+  '#faf0eb',
+];
+const ADMIN_CHART_PRIMARY = ADMIN_CHART_COLORS[0];
+const ADMIN_CHART_SECONDARY = ADMIN_CHART_COLORS[1];
+
 const EmploymentTrendsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -112,7 +125,8 @@ const EmploymentTrendsPage: React.FC = () => {
                     yField="count"
                     label={{ position: 'top' as const }}
                     height={320}
-                    color="#1677ff"
+                    color={ADMIN_CHART_PRIMARY}
+                    style={{ fill: ADMIN_CHART_PRIMARY }}
                   />
                 ) : (
                   <Empty description="暂无行业分布数据" />
@@ -128,7 +142,8 @@ const EmploymentTrendsPage: React.FC = () => {
                     yField="count"
                     label={{ position: 'top' as const }}
                     height={320}
-                    color="#52c41a"
+                    color={ADMIN_CHART_SECONDARY}
+                    style={{ fill: ADMIN_CHART_SECONDARY }}
                   />
                 ) : (
                   <Empty description="暂无岗位分布数据" />
@@ -148,7 +163,8 @@ const EmploymentTrendsPage: React.FC = () => {
                     radius={0.78}
                     label={{ text: 'range', style: { fontWeight: 'bold' } }}
                     legend={{ position: 'right' as const }}
-                    color={['#ff7875', '#ffbb96', '#ffd666', '#95de64']}
+                    color={ADMIN_CHART_COLORS}
+                    scale={{ color: { range: ADMIN_CHART_COLORS } }}
                     height={300}
                   />
                 </Col>
@@ -159,7 +175,8 @@ const EmploymentTrendsPage: React.FC = () => {
                     yField="count"
                     label={{ position: 'top' as const }}
                     height={300}
-                    color="#1677ff"
+                    color={ADMIN_CHART_PRIMARY}
+                    style={{ fill: ADMIN_CHART_PRIMARY }}
                   />
                 </Col>
               </Row>

@@ -7,14 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.user import User, utc_now
+from app.models.user import User
 from app.schemas.auth import CurrentUserData
+from app.utils.datetime_utils import utc_now
 
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "123456"
-ADMIN_DISPLAY_NAME = "管理员"
 
 
 def hash_password(password: str) -> str:
@@ -39,13 +37,13 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 
 
 def ensure_admin_user(db: Session) -> User:
-    user = get_user_by_username(db, ADMIN_USERNAME)
-    admin_password_hash = hash_password(ADMIN_PASSWORD)
+    user = get_user_by_username(db, settings.admin_username)
+    admin_password_hash = hash_password(settings.admin_password)
     if user is None:
         user = User(
-            username=ADMIN_USERNAME,
+            username=settings.admin_username,
             password_hash=admin_password_hash,
-            display_name=ADMIN_DISPLAY_NAME,
+            display_name=settings.admin_display_name,
             role="admin",
             is_active=True,
         )
@@ -55,8 +53,8 @@ def ensure_admin_user(db: Session) -> User:
         return user
 
     updated = False
-    if user.display_name != ADMIN_DISPLAY_NAME:
-        user.display_name = ADMIN_DISPLAY_NAME
+    if user.display_name != settings.admin_display_name:
+        user.display_name = settings.admin_display_name
         updated = True
     if user.role != "admin":
         user.role = "admin"
@@ -64,7 +62,7 @@ def ensure_admin_user(db: Session) -> User:
     if not user.is_active:
         user.is_active = True
         updated = True
-    if not verify_password(ADMIN_PASSWORD, user.password_hash):
+    if not verify_password(settings.admin_password, user.password_hash):
         user.password_hash = admin_password_hash
         updated = True
 
@@ -99,6 +97,7 @@ def create_user(db: Session, username: str, password: str) -> User:
 def authenticate_user(db: Session, username: str, password: str) -> User:
     ensure_admin_user(db)
     user = get_user_by_username(db, username)
+
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -20,20 +20,30 @@ jest.mock('@ant-design/pro-components', () => ({
 }));
 
 jest.mock('../shared/useCareerGoalPlanningData', () => ({
-  useCareerGoalPlanningData: (...args: any[]) => mockedUseCareerGoalPlanningData(...args),
+  useCareerGoalPlanningData: (...args: any[]) =>
+    mockedUseCareerGoalPlanningData(...args),
 }));
 
 jest.mock('@/services/ant-design-pro/api', () => ({
   getHomeV2: (...args: any[]) => mockedGetHomeV2(...args),
-  getStudentCompetencyLatestAnalysis: (...args: any[]) => mockedGetStudentCompetencyLatestAnalysis(...args),
-  getCareerDevelopmentPlanWorkspace: (...args: any[]) => mockedGetCareerDevelopmentPlanWorkspace(...args),
-  getPersonalGrowthReportWorkspace: (...args: any[]) => mockedGetPersonalGrowthReportWorkspace(...args),
-  updatePersonalGrowthReportWorkspace: (...args: any[]) => mockedUpdatePersonalGrowthReportWorkspace(...args),
-  exportPersonalGrowthReport: (...args: any[]) => mockedExportPersonalGrowthReport(...args),
-  createPersonalGrowthReportTask: (...args: any[]) => mockedCreatePersonalGrowthReportTask(...args),
-  getPersonalGrowthReportTask: (...args: any[]) => mockedGetPersonalGrowthReportTask(...args),
-  cancelPersonalGrowthReportTask: (...args: any[]) => mockedCancelPersonalGrowthReportTask(...args),
-  streamPersonalGrowthReportTask: (...args: any[]) => mockedStreamPersonalGrowthReportTask(...args),
+  getStudentCompetencyLatestAnalysis: (...args: any[]) =>
+    mockedGetStudentCompetencyLatestAnalysis(...args),
+  getCareerDevelopmentPlanWorkspace: (...args: any[]) =>
+    mockedGetCareerDevelopmentPlanWorkspace(...args),
+  getPersonalGrowthReportWorkspace: (...args: any[]) =>
+    mockedGetPersonalGrowthReportWorkspace(...args),
+  updatePersonalGrowthReportWorkspace: (...args: any[]) =>
+    mockedUpdatePersonalGrowthReportWorkspace(...args),
+  exportPersonalGrowthReport: (...args: any[]) =>
+    mockedExportPersonalGrowthReport(...args),
+  createPersonalGrowthReportTask: (...args: any[]) =>
+    mockedCreatePersonalGrowthReportTask(...args),
+  getPersonalGrowthReportTask: (...args: any[]) =>
+    mockedGetPersonalGrowthReportTask(...args),
+  cancelPersonalGrowthReportTask: (...args: any[]) =>
+    mockedCancelPersonalGrowthReportTask(...args),
+  streamPersonalGrowthReportTask: (...args: any[]) =>
+    mockedStreamPersonalGrowthReportTask(...args),
 }));
 
 const favorite = {
@@ -78,11 +88,6 @@ const latestAnalysis = {
   priority_gap_dimensions: ['团队协作'],
   recommended_keywords: {},
   action_advices: [],
-  score: {
-    completeness: 78,
-    competitiveness: 72,
-    overall: 75,
-  },
 } as unknown as API.StudentCompetencyLatestAnalysisPayload;
 
 const goalWorkspace = {
@@ -107,9 +112,12 @@ const goalWorkspace = {
     uses_latest_profile: true,
   },
   growth_plan_phases: [
-    { phase_key: 'short_term', phase_label: '短期行动（0-3个月）', time_horizon: '0-3个月', goal_statement: '补齐基础' },
-    { phase_key: 'mid_term', phase_label: '中期行动（3-9个月）', time_horizon: '3-9个月', goal_statement: '形成项目' },
-    { phase_key: 'long_term', phase_label: '长期行动（9-24个月）', time_horizon: '9-24个月', goal_statement: '完成求职准备' },
+    {
+      phase_key: 'short_term',
+      phase_label: '短期行动（0-3个月）',
+      time_horizon: '0-3个月',
+      goal_statement: '补齐基础',
+    },
   ],
   review_framework: { metrics: [] },
   current_learning_steps: [],
@@ -124,25 +132,43 @@ const readyWorkspace = {
   favorite,
   generated_markdown: '# 个人职业成长报告\n\n## 自我认知\n具备基础开发能力。',
   edited_markdown:
-    '# 个人职业成长报告\n\n## 自我认知\n具备基础开发能力。\n\n## 职业方向分析\n适合前端工程方向。\n\n## 匹配度判断\n项目证据仍需补强。\n\n## 发展建议\n优先补齐项目和工程化能力。\n\n## 行动计划\n### 短期行动（0-3个月）\n- 完成一个组件化项目\n\n### 中期行动（3-9个月）\n- 沉淀作品集\n\n### 长期行动（9-24个月）\n- 完成求职准备',
-  export_meta: {
-    available_formats: ['md', 'docx', 'pdf'],
-  },
+    '# 个人职业成长报告\n\n## 自我认知\n### 关键洞察\n> 具备稳定学习习惯。\n\n- 能完成组件开发\n\n| 能力 | 状态 |\n| --- | --- |\n| 沟通 | 已具备 |\n\n## 职业方向分析\n适合前端工程方向。\n\n## 匹配度判断\n项目证据仍需补强。\n\n## 发展建议\n优先补齐项目和工程化能力。\n\n## 行动计划\n### 短期行动（0-3个月）\n- 完成一个组件化项目',
+  export_meta: { available_formats: ['md', 'docx', 'pdf'] },
   content_status: 'ready',
   generation_status: 'ready',
   last_generated_at: '2026-03-29T00:00:00Z',
   last_saved_at: '2026-03-29T00:00:00Z',
   updated_at: '2026-03-29T00:00:00Z',
   sections: [
-    { key: 'self_cognition', title: '自我认知', content: '具备基础开发能力。', completed: true },
-    { key: 'career_direction_analysis', title: '职业方向分析', content: '适合前端工程方向。', completed: true },
-    { key: 'match_assessment', title: '匹配度判断', content: '项目证据仍需补强。', completed: true },
-    { key: 'development_suggestions', title: '发展建议', content: '优先补齐项目和工程化能力。', completed: true },
+    {
+      key: 'self_cognition',
+      title: '自我认知',
+      content:
+        '### 关键洞察\n> 具备稳定学习习惯。\n\n- 能完成组件开发\n\n| 能力 | 状态 |\n| --- | --- |\n| 沟通 | 已具备 |',
+      completed: true,
+    },
+    {
+      key: 'career_direction_analysis',
+      title: '职业方向分析',
+      content: '适合前端工程方向。',
+      completed: true,
+    },
+    {
+      key: 'match_assessment',
+      title: '匹配度判断',
+      content: '项目证据仍需补强。',
+      completed: true,
+    },
+    {
+      key: 'development_suggestions',
+      title: '发展建议',
+      content: '优先补齐项目和工程化能力。',
+      completed: true,
+    },
     {
       key: 'action_plan',
       title: '行动计划',
-      content:
-        '### 短期行动（0-3个月）\n- 完成一个组件化项目\n\n### 中期行动（3-9个月）\n- 沉淀作品集\n\n### 长期行动（9-24个月）\n- 完成求职准备',
+      content: '### 短期行动（0-3个月）\n- 完成一个组件化项目',
       completed: true,
     },
   ],
@@ -162,6 +188,17 @@ const emptyWorkspace = {
 } as API.PersonalGrowthReportPayload;
 
 async function* emptyStream() {}
+
+async function* runningStream() {
+  yield {
+    stage: 'collect_match_report',
+    task_id: 'task-running',
+    status: 'running',
+    status_text: '正在整理职业匹配结果和目标差距。',
+    progress: 36,
+    created_at: '2026-04-14T10:00:01Z',
+  };
+}
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -200,15 +237,26 @@ beforeEach(() => {
     setActionError: mockedSetActionError,
   });
   mockedGetHomeV2.mockResolvedValue({ data: homePayload });
-  mockedGetStudentCompetencyLatestAnalysis.mockResolvedValue({ data: latestAnalysis });
-  mockedGetCareerDevelopmentPlanWorkspace.mockResolvedValue({ data: goalWorkspace });
-  mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
+  mockedGetStudentCompetencyLatestAnalysis.mockResolvedValue({
+    data: latestAnalysis,
+  });
+  mockedGetCareerDevelopmentPlanWorkspace.mockResolvedValue({
+    data: goalWorkspace,
+  });
+  mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({
+    data: readyWorkspace,
+  });
+  mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({
+    data: readyWorkspace,
+  });
   mockedStreamPersonalGrowthReportTask.mockReturnValue(emptyStream());
 });
 
 describe('PersonalGrowthReportPage', () => {
-  it('renders the empty state hero with CTA and prerequisite steps', async () => {
-    mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({ data: emptyWorkspace });
+  it('renders the empty report hero and creates a task from the CTA', async () => {
+    mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({
+      data: emptyWorkspace,
+    });
     mockedCreatePersonalGrowthReportTask.mockResolvedValue({
       data: {
         task_id: 'task-1',
@@ -227,37 +275,25 @@ describe('PersonalGrowthReportPage', () => {
         task_id: 'task-1',
         favorite_id: 1,
         status: 'running',
-        progress: 36,
+        progress: 12,
         overwrite_current: false,
         latest_event: {
-          stage: 'collect_match_report',
-          status_text: '正在整理职业匹配结果和目标差距。',
-          progress: 36,
-          created_at: '2026-04-14T10:00:00Z',
+          stage: 'prepare_base_workspace',
+          status_text: '正在准备职业规划工作台基础数据。',
+          progress: 12,
+          created_at: '2026-04-14T10:00:01Z',
         },
         created_at: '2026-04-14T10:00:00Z',
-        updated_at: '2026-04-14T10:00:00Z',
+        updated_at: '2026-04-14T10:00:01Z',
       },
     });
 
     render(<PersonalGrowthReportPage />);
 
-    // Hero title is present
-    expect(await screen.findByText('个人职业成长报告')).toBeTruthy();
+    expect(await screen.findByText('生成报告')).toBeTruthy();
+    expect(screen.getByTestId('prerequisite-check')).toBeTruthy();
 
-    // CTA button
-    expect(screen.getByText('开始分析')).toBeTruthy();
-
-    // View details link
-    expect(screen.getByText('查看前置条件详情')).toBeTruthy();
-
-    // Prerequisite step labels
-    expect(screen.getByText('目标岗位')).toBeTruthy();
-    expect(screen.getByText('我的资料')).toBeTruthy();
-    expect(screen.getByText('12维解析')).toBeTruthy();
-
-    // Click CTA triggers task creation
-    fireEvent.click(screen.getByText('开始分析'));
+    fireEvent.click(screen.getByText('生成报告'));
 
     await waitFor(() =>
       expect(mockedCreatePersonalGrowthReportTask).toHaveBeenCalledWith(
@@ -267,15 +303,185 @@ describe('PersonalGrowthReportPage', () => {
     );
   });
 
-  it('shows backend failure when task creation succeeds but task immediately fails', async () => {
-    mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({ data: emptyWorkspace });
+  it('shows generation progress preview and cancels a running task', async () => {
+    mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({
+      data: {
+        ...emptyWorkspace,
+        active_task: {
+          task_id: 'task-running',
+          favorite_id: 1,
+          status: 'running',
+          progress: 24,
+          overwrite_current: false,
+          status_text: '正在收集简历解析与 12 维画像结果。',
+          started_at: '2026-04-14T10:00:00Z',
+          updated_at: '2026-04-14T10:00:00Z',
+          can_cancel: true,
+        },
+      },
+    });
+    mockedGetPersonalGrowthReportTask.mockResolvedValue({
+      data: {
+        task_id: 'task-running',
+        favorite_id: 1,
+        status: 'running',
+        progress: 24,
+        overwrite_current: false,
+        latest_event: {
+          stage: 'collect_resume_analysis',
+          status_text: '正在收集简历解析与 12 维画像结果。',
+          progress: 24,
+          created_at: '2026-04-14T10:00:00Z',
+        },
+        created_at: '2026-04-14T10:00:00Z',
+        updated_at: '2026-04-14T10:00:00Z',
+      },
+    });
+    mockedStreamPersonalGrowthReportTask.mockReturnValue(runningStream());
+    mockedCancelPersonalGrowthReportTask.mockResolvedValue({
+      data: {
+        task_id: 'task-running',
+        favorite_id: 1,
+        status: 'cancelled',
+        progress: 36,
+        overwrite_current: false,
+        latest_event: {
+          stage: 'task_cancelled',
+          status_text: '已取消个人职业成长报告生成。',
+          progress: 36,
+          created_at: '2026-04-14T10:00:02Z',
+        },
+        created_at: '2026-04-14T10:00:00Z',
+        updated_at: '2026-04-14T10:00:02Z',
+      },
+    });
+
+    render(<PersonalGrowthReportPage />);
+
+    expect(await screen.findByTestId('generation-progress')).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getAllByText('正在整理职业匹配结果和目标差距。').length).toBeGreaterThan(0),
+    );
+
+    fireEvent.click(screen.getByText('取消'));
+
+    await waitFor(() =>
+      expect(mockedCancelPersonalGrowthReportTask).toHaveBeenCalledWith(
+        'task-running',
+        expect.any(Object),
+      ),
+    );
+  });
+
+  it('renders chapter navigation, mobile selector, and markdown content', async () => {
+    render(<PersonalGrowthReportPage />);
+
+    const nav = await screen.findByTestId('chapter-nav');
+    expect(screen.getByTestId('chapter-nav-select')).toBeTruthy();
+    expect(screen.getByText('关键洞察')).toBeTruthy();
+    expect(screen.getByText('具备稳定学习习惯。')).toBeTruthy();
+    expect(screen.getByText('能力')).toBeTruthy();
+
+    const buttons = nav.querySelectorAll('button');
+    const careerButton = Array.from(buttons).find((button) =>
+      button.textContent?.includes('职业方向分析'),
+    )!;
+    fireEvent.click(careerButton);
+
+    expect(careerButton.getAttribute('aria-current')).toBe('true');
+    expect(screen.getByText('适合前端工程方向。')).toBeTruthy();
+  });
+
+  it('marks dirty after rich text editing and saves the report', async () => {
+    const { container } = render(<PersonalGrowthReportPage />);
+    await screen.findByTestId('chapter-content');
+
+    fireEvent.click(screen.getByText('编辑本章'));
+
+    const tiptap = container.querySelector('.tiptap') as HTMLElement;
+    expect(tiptap).toBeTruthy();
+    fireEvent.click(tiptap);
+    tiptap.innerHTML = '<p>新的自我认知内容</p>';
+    fireEvent.input(tiptap);
+
+    expect(await screen.findByText('有未保存的更改')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('保存报告'));
+
+    await waitFor(() => {
+      expect(mockedUpdatePersonalGrowthReportWorkspace).toHaveBeenCalled();
+    });
+  });
+
+  it('saves the current report from editor even when no local draft is dirty', async () => {
+    render(<PersonalGrowthReportPage />);
+    await screen.findByTestId('chapter-content');
+
+    fireEvent.click(screen.getByText('编辑本章'));
+    const saveButton = await screen.findByRole('button', { name: /保存报告/ });
+    expect(saveButton.hasAttribute('disabled')).toBe(false);
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockedUpdatePersonalGrowthReportWorkspace).toHaveBeenCalled();
+    });
+  });
+
+  it('restores the structure template after local edits', async () => {
+    const { container } = render(<PersonalGrowthReportPage />);
+    await screen.findByTestId('chapter-content');
+
+    fireEvent.click(screen.getByText('编辑本章'));
+    const tiptap = container.querySelector('.tiptap') as HTMLElement;
+    fireEvent.click(tiptap);
+    tiptap.innerHTML = '<p>临时改动</p>';
+    fireEvent.input(tiptap);
+
+    fireEvent.click(screen.getByText('恢复结构模板'));
+
+    expect(await screen.findByText('有未保存的更改')).toBeTruthy();
+    expect(
+      await screen.findByText('围绕兴趣、优势、性格、能力特点展开。'),
+    ).toBeTruthy();
+  });
+
+  it('exports Word and PDF from the hero actions', async () => {
+    mockedExportPersonalGrowthReport.mockResolvedValue({
+      blob: new Blob(['test'], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      }),
+      filename: 'test.docx',
+    });
+
+    render(<PersonalGrowthReportPage />);
+    await screen.findByTestId('chapter-content');
+
+    fireEvent.click(screen.getByText('导出 Word'));
+    await waitFor(() =>
+      expect(mockedExportPersonalGrowthReport).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ format: 'docx' }),
+      ),
+    );
+
+    fireEvent.click(screen.getByText('导出 PDF'));
+    await waitFor(() =>
+      expect(mockedExportPersonalGrowthReport).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ format: 'pdf' }),
+      ),
+    );
+  });
+
+  it('creates a regenerate task with overwrite_current when report exists', async () => {
     mockedCreatePersonalGrowthReportTask.mockResolvedValue({
       data: {
-        task_id: 'task-2',
+        task_id: 'task-regenerate',
         favorite_id: 1,
         status: 'queued',
         progress: 0,
-        overwrite_current: false,
+        overwrite_current: true,
         status_text: '已开始准备个人职业成长报告生成任务。',
         started_at: '2026-04-14T10:00:00Z',
         updated_at: '2026-04-14T10:00:00Z',
@@ -284,188 +490,32 @@ describe('PersonalGrowthReportPage', () => {
     });
     mockedGetPersonalGrowthReportTask.mockResolvedValue({
       data: {
-        task_id: 'task-2',
+        task_id: 'task-regenerate',
         favorite_id: 1,
-        status: 'failed',
-        progress: 100,
-        overwrite_current: false,
-        error_message: '个人职业成长报告生成失败：收藏目标不存在。',
+        status: 'running',
+        progress: 5,
+        overwrite_current: true,
         latest_event: {
-          stage: 'failed',
-          status_text: '个人职业成长报告生成失败：收藏目标不存在。',
-          progress: 100,
-          created_at: '2026-04-14T10:00:01Z',
+          stage: 'queued',
+          status_text: '已开始准备个人职业成长报告生成任务。',
+          progress: 5,
+          created_at: '2026-04-14T10:00:00Z',
         },
         created_at: '2026-04-14T10:00:00Z',
-        updated_at: '2026-04-14T10:00:01Z',
+        updated_at: '2026-04-14T10:00:00Z',
       },
     });
 
     render(<PersonalGrowthReportPage />);
-    fireEvent.click(await screen.findByText('开始分析'));
+    await screen.findByTestId('chapter-content');
+
+    fireEvent.click(screen.getByText('重新生成'));
 
     await waitFor(() =>
-      expect(mockedSetActionError).toHaveBeenCalledWith('个人职业成长报告生成失败：收藏目标不存在。'),
+      expect(mockedCreatePersonalGrowthReportTask).toHaveBeenCalledWith(
+        { favorite_id: 1, overwrite_current: true },
+        expect.any(Object),
+      ),
     );
-  });
-
-  it('renders report with status bar, sidebar, section editor, and detail drawer', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
-
-    render(<PersonalGrowthReportPage />);
-
-    // Sidebar renders with section navigation
-    expect(await screen.findByTestId('report-sidebar')).toBeTruthy();
-    expect(screen.getAllByText('自我认知').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('职业方向分析').length).toBeGreaterThan(0);
-
-    // Section editor renders for the active section
-    expect(screen.getByTestId('section-editor')).toBeTruthy();
-
-    // Status bar shows title (appears in both status bar heading and drawer profile)
-    expect(screen.getAllByText('前端工程师').length).toBeGreaterThanOrEqual(1);
-
-    // Detail drawer opens with prerequisite and profile info
-    const detailButtons = screen.getAllByText('查看详情');
-    fireEvent.click(detailButtons[0]);
-    expect(await screen.findByText('报告详情')).toBeTruthy();
-    expect(screen.getAllByText('前置条件').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('我的资料').length).toBeGreaterThan(0);
-
-    // Action buttons are present
-    expect(screen.getByText('保存报告')).toBeTruthy();
-    expect(screen.getByText('重新生成报告')).toBeTruthy();
-  });
-
-  it('renders save and export buttons in the glass action bar', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
-
-    render(<PersonalGrowthReportPage />);
-
-    await screen.findByTestId('report-sidebar');
-
-    // Verify action buttons are rendered
-    expect(screen.getByText('保存报告')).toBeTruthy();
-    expect(screen.getByText('导出 Word')).toBeTruthy();
-    expect(screen.getByText('导出 PDF')).toBeTruthy();
-    expect(screen.getByText('恢复结构模板')).toBeTruthy();
-  });
-
-  it('switches section editor when clicking sidebar sections', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
-
-    render(<PersonalGrowthReportPage />);
-    const sidebar = await screen.findByTestId('report-sidebar');
-
-    // Find sidebar buttons by nav-title text within the sidebar
-    const sidebarButtons = sidebar.querySelectorAll('button');
-    const selfCogBtn = Array.from(sidebarButtons).find(
-      (btn) => btn.textContent?.includes('自我认知'),
-    )!;
-    const careerBtn = Array.from(sidebarButtons).find(
-      (btn) => btn.textContent?.includes('职业方向分析'),
-    )!;
-
-    // Default active section is self_cognition
-    expect(selfCogBtn.getAttribute('aria-current')).toBe('true');
-
-    // Click 职业方向分析
-    fireEvent.click(careerBtn);
-
-    // Now career direction should be active
-    expect(careerBtn.getAttribute('aria-current')).toBe('true');
-    expect(selfCogBtn.getAttribute('aria-current')).toBeFalsy();
-  });
-
-  it('shows dirty indicator after editing content', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
-
-    const { container } = render(<PersonalGrowthReportPage />);
-    await screen.findByTestId('report-sidebar');
-
-    // Simulate editor change — dirty should appear after onChange fires
-    const tiptap = container.querySelector('.tiptap') as HTMLElement;
-    expect(tiptap).toBeTruthy();
-    fireEvent.click(tiptap);
-    tiptap.innerHTML = '<p>Completely new modified content for dirty check</p>';
-    fireEvent.input(tiptap);
-
-    await waitFor(() => {
-      expect(screen.getByText('有未保存的更改')).toBeTruthy();
-    });
-  });
-
-  it('calls save API when save button clicked after edit', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
-
-    const { container } = render(<PersonalGrowthReportPage />);
-    await screen.findByTestId('report-sidebar');
-
-    // Edit to enable save button
-    const tiptap = container.querySelector('.tiptap') as HTMLElement;
-    fireEvent.click(tiptap);
-    tiptap.innerHTML = '<p>Content to save</p>';
-    fireEvent.input(tiptap);
-
-    await waitFor(() => {
-      expect(screen.getByText('有未保存的更改')).toBeTruthy();
-    });
-
-    // Click save
-    fireEvent.click(screen.getByText('保存报告'));
-
-    await waitFor(() => {
-      expect(mockedUpdatePersonalGrowthReportWorkspace).toHaveBeenCalled();
-    });
-  });
-
-  it('calls export API when export Word button is clicked', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockResolvedValue({ data: readyWorkspace });
-    mockedExportPersonalGrowthReport.mockResolvedValue({
-      blob: new Blob(['test'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }),
-      filename: 'test.docx',
-    });
-
-    render(<PersonalGrowthReportPage />);
-    await screen.findByTestId('report-sidebar');
-
-    fireEvent.click(screen.getByText('导出 Word'));
-
-    await waitFor(() => {
-      expect(mockedExportPersonalGrowthReport).toHaveBeenCalledWith(
-        1,
-        expect.objectContaining({ format: 'docx' }),
-      );
-    });
-  });
-
-  it('handles save failure gracefully', async () => {
-    mockedUpdatePersonalGrowthReportWorkspace.mockRejectedValue(new Error('保存失败：服务端错误。'));
-
-    const { container } = render(<PersonalGrowthReportPage />);
-    await screen.findByTestId('report-sidebar');
-
-    // Edit to enable save button
-    const tiptap = container.querySelector('.tiptap') as HTMLElement;
-    fireEvent.click(tiptap);
-    tiptap.innerHTML = '<p>Content that triggers failure</p>';
-    fireEvent.input(tiptap);
-
-    await waitFor(() => {
-      expect(screen.getByText('有未保存的更改')).toBeTruthy();
-    });
-
-    // Click save — the error should be caught and not crash the page
-    // The handleSave function catches the error and shows message.error
-    fireEvent.click(screen.getByText('保存报告'));
-
-    // The save API should have been called
-    await waitFor(() => {
-      expect(mockedUpdatePersonalGrowthReportWorkspace).toHaveBeenCalled();
-    });
-
-    // The page should still be functional — sidebar and editor remain
-    expect(screen.getByTestId('report-sidebar')).toBeTruthy();
-    expect(screen.getByTestId('section-editor')).toBeTruthy();
   });
 });

@@ -20,7 +20,6 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { createStyles } from 'antd-style';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
 import {
@@ -49,6 +48,16 @@ type UserFormValues = {
 };
 
 const textFallback = (value?: string | null) => value || '暂无';
+
+const adminTagStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-primary-bg)',
+  borderColor: 'var(--color-primary)',
+  color: 'var(--color-primary)',
+};
+
+const adminAvatarStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-primary)',
+};
 
 const formatDatetime = (value?: string | null) => {
   if (!value) {
@@ -83,7 +92,10 @@ const normalizeStatusFilter = (value: UserTableParams['is_active']) => {
 };
 
 const roleTag = (role?: string) => (
-  <Tag color={role === 'admin' ? 'gold' : 'blue'}>
+  <Tag
+    color={role === 'admin' ? 'gold' : undefined}
+    style={role === 'admin' ? undefined : adminTagStyle}
+  >
     {role === 'admin' ? '管理员' : '普通用户'}
   </Tag>
 );
@@ -150,10 +162,15 @@ const UserManagementPage: React.FC = () => {
   const handleCreate = async () => {
     try {
       const values = await createForm.validateFields();
+      const username = values.username;
+      const password = values.password;
+      if (!username || !password) {
+        return;
+      }
       setSubmitting(true);
       await createAdminUser({
-        username: values.username!,
-        password: values.password!,
+        username,
+        password,
         display_name: values.display_name,
         role: values.role || 'user',
         is_active: values.is_active !== false,
@@ -468,7 +485,7 @@ const UserManagementPage: React.FC = () => {
               <Avatar
                 size={64}
                 src={detailRecord.avatar}
-                style={{ backgroundColor: 'var(--chart-blue, #4A90D9)' }}
+                style={adminAvatarStyle}
               >
                 {(detailRecord.display_name || detailRecord.username)
                   .slice(0, 1)

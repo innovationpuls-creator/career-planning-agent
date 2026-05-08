@@ -1,4 +1,7 @@
+import json
+
 from app.models.job_posting import JobPosting
+from app.models.job_requirement_profile import JobRequirementProfile
 from app.services.job_requirement_vertical import (
     build_tiered_vertical_comparison,
     build_vertical_job_profile_payload,
@@ -26,6 +29,41 @@ def build_job_posting(
         address=address,
         company_size=company_size,
         company_type=company_type,
+    )
+
+
+def build_requirement_profile(
+    *,
+    industry: str,
+    job_title: str,
+    company_name: str,
+    **dimensions: list[str],
+) -> JobRequirementProfile:
+    payload = {field: json.dumps(["无明确要求"], ensure_ascii=False) for field in (
+        "professional_skills",
+        "professional_background",
+        "education_requirement",
+        "teamwork",
+        "stress_adaptability",
+        "communication",
+        "work_experience",
+        "documentation_awareness",
+        "responsibility",
+        "learning_ability",
+        "problem_solving",
+        "other_special",
+    )}
+    payload.update(
+        {
+            key: json.dumps(value, ensure_ascii=False)
+            for key, value in dimensions.items()
+        }
+    )
+    return JobRequirementProfile(
+        industry=industry,
+        job_title=job_title,
+        company_name=company_name,
+        **payload,
     )
 
 
@@ -158,3 +196,56 @@ def test_build_tiered_vertical_comparison_places_missing_salary_at_lowest_end():
     assert [tier.level for tier in tiered.tiers] == ["高级", "中级", "低级"]
     assert tiered.tiers[0].items[0].company_name == "甲公司"
     assert tiered.tiers[2].items[-1].company_name == "丁公司"
+
+
+def test_build_vertical_job_profile_payload_adds_tier_dimension_comparison():
+    payload = build_vertical_job_profile_payload(
+        rows=[
+            build_job_posting(
+                id=1,
+                industry="互联网",
+                job_title="Java",
+                company_name="甲公司",
+                salary_range="2-3万",
+            ),
+            build_job_posting(
+                id=2,
+                industry="软件",
+                job_title="Java",
+                company_name="乙公司",
+                salary_range="1-2万",
+            ),
+        ],
+        job_title="Java",
+        selected_industries=["互联网", "软件"],
+        available_industries=["互联网", "软件"],
+        profile_rows=[
+            build_requirement_profile(
+                industry="互联网",
+                job_title="Java",
+                company_name="甲公司",
+                professional_skills=["Java", "Spring"],
+                communication=["沟通表达"],
+            ),
+            build_requirement_profile(
+                industry="软件",
+                job_title="Java",
+                company_name="乙公司",
+                professional_skills=["Python"],
+            ),
+        ],
+    )
+
+    high_tier = next(item for item in payload.dimension_comparison if item.level == "高级")
+    internet = high_tier.industries[0]
+    skills = next(item for item in internet.dimensions if item.key == "professional_skills")
+    communication = next(item for item in internet.dimensions if item.key == "communication")
+
+    assert internet.industry == "互联网"
+    assert len(internet.dimensions) == 12
+    assert skills.title == "专业技能"
+    assert skills.profile_count == 1
+    assert skills.non_default_count == 1
+    assert skills.coverage_ratio == 1.0
+    assert skills.keywords == ["Java", "Spring"]
+    assert communication.coverage_ratio == 1.0

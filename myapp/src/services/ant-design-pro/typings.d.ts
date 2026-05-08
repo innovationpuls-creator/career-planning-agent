@@ -184,6 +184,12 @@ declare namespace API {
     data: JobRequirementComparisonDetailItem;
   };
 
+  type JobRequirementCompanyDetailQuery = {
+    job_title: string;
+    industry: string;
+    company_name: string;
+  };
+
   type JobRequirementGraphNode = {
     id: string;
     type: 'ProfileRoot' | 'DimensionGroup' | 'Dimension';
@@ -195,6 +201,7 @@ declare namespace API {
     non_default_count: number;
     coverage_ratio: number;
     group_key?: string | null;
+    company_detail_query?: JobRequirementCompanyDetailQuery | null;
   };
 
   type JobRequirementGraphEdge = {
@@ -220,6 +227,7 @@ declare namespace API {
 
   type VerticalJobProfileCompany = {
     company_name: string;
+    industry?: string | null;
     salary_range?: string;
     salary_sort_value?: number | null;
     salary_sort_label: string;
@@ -240,6 +248,7 @@ declare namespace API {
     available_industries: string[];
     groups: VerticalJobProfileGroup[];
     tiered_comparison?: TieredVerticalComparisonPayload;
+    dimension_comparison?: VerticalTierDimensionComparison[];
     meta: {
       total_industries: number;
       total_companies: number;
@@ -918,6 +927,25 @@ declare namespace API {
   type TieredVerticalComparisonPayload = {
     job_title: string;
     tiers: SalaryTierGroup[];
+  };
+
+  type VerticalDimensionComparisonItem = {
+    key: string;
+    title: string;
+    profile_count: number;
+    non_default_count: number;
+    coverage_ratio: number;
+    keywords: string[];
+  };
+
+  type VerticalIndustryDimensionComparison = {
+    industry: string;
+    dimensions: VerticalDimensionComparisonItem[];
+  };
+
+  type VerticalTierDimensionComparison = {
+    level: string;
+    industries: VerticalIndustryDimensionComparison[];
   };
 
   type SnailLearningPathReviewPayload = {

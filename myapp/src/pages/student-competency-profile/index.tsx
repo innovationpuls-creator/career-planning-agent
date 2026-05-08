@@ -1,866 +1,338 @@
-import { message, Upload } from 'antd';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  createCareerDevelopmentFavorite,
-  deleteCareerDevelopmentFavorite,
-  deleteStudentCompetencyLatestAnalysis,
-  getCareerDevelopmentFavorites,
-  getCareerDevelopmentMatchInit,
-  getStudentCompetencyConversation,
-  getStudentCompetencyLatestAnalysis,
-  getStudentCompetencyRuntime,
-  streamStudentCompetencyChat,
-  syncStudentCompetencyResult,
-} from '@/services/ant-design-pro/api';
-import { goToSnailLearningPath } from '../career-development-report/learning-path/learningPathUtils';
-import ResumeMatchWorkspace from './components/ResumeMatchWorkspace';
-import ResumeParsingWorkspace from './components/ResumeParsingWorkspace';
+  ClaudeButton,
+  FadeInWhenVisible,
+  PageError,
+  PageLoading,
+} from "@/components/ui";
+import { Space, Tabs } from "antd";
+import React, { useCallback, useRef } from "react";
+import { ChatStream } from "./components/ChatStream";
+import { DimensionKeywordEditor } from "./components/DimensionKeywordEditor";
+import { GapAnalysisPanel } from "./components/GapAnalysisPanel";
+import { RadarScorePanel } from "./components/RadarScorePanel";
+import { ResumeUploadZone } from "./components/ResumeUploadZone";
+import { useCompetencyData } from "./hooks/useCompetencyData";
+import { useResumeStream } from "./hooks/useResumeStream";
+import { useStyles } from "./pageStyles";
 import {
-  appendStreamLine,
   buildConversation,
   buildDefaultProfile,
   buildId,
-  clearSnapshot,
-  cloneProfile,
-  DEFAULT_TITLE,
   DEFAULT_VALUE,
-  emptyLatestAnalysis,
-  extractRequestError,
   getUploadKind,
-  hasMeaningfulValues,
   hasProfileResult,
-  type InteractionStage,
-  type JobProfileDimensions,
   normalizeProfile,
+  PROFILE_FIELDS,
   type ProfileKey,
   type ResultTabKey,
-  type RuntimeConfig,
-  restoreSnapshot,
-  SNAPSHOT_VERSION,
-  saveSnapshot,
-  stripFilesFromConversation,
-  toRuntimeFields,
-  type WorkspaceConversation,
-  type WorkspaceMessage,
-  type WorkspaceUpload,
-  type WorkspaceViewState,
-} from './shared';
-
-type ModuleKey = 'resume' | 'career';
-
-const buildFavoriteTargetKey = (report: API.CareerDevelopmentMatchReport) =>
-  `${report.canonical_job_title}::${report.industry || ''}`;
+} from "./shared";
+import "./tabs-global.css";
 
 const StudentCompetencyProfilePage: React.FC = () => {
-  const [activeModule, setActiveModule] = useState<ModuleKey>('resume');
-  const [interactionStage, setInteractionStage] =
-    useState<InteractionStage>('empty');
-  const [conversation, setConversation] = useState<WorkspaceConversation>(
-    buildConversation(),
-  );
-  const [composerValue, setComposerValue] = useState('');
-  const [composerUploads, setComposerUploads] = useState<WorkspaceUpload[]>([]);
-  const [composerError, setComposerError] = useState<string>();
-  const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [editorProfile, setEditorProfile] = useState<JobProfileDimensions>(
-    buildDefaultProfile(),
-  );
-  const [tagInputs, setTagInputs] = useState<
-    Partial<Record<ProfileKey, string>>
-  >({});
-  const [latestAnalysis, setLatestAnalysis] =
-    useState<API.StudentCompetencyLatestAnalysisPayload>(() =>
-      emptyLatestAnalysis(),
-    );
-  const [isLoadingLatestAnalysis, setIsLoadingLatestAnalysis] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeResultTab, setActiveResultTab] =
-    useState<ResultTabKey>('comparison');
-  const [activeGapKey, setActiveGapKey] = useState<string>();
+  const { styles } = useStyles();
 
-  const [careerMatchInit, setCareerMatchInit] =
-    useState<API.CareerDevelopmentMatchInitPayload>();
-  const [careerMatchLoading, setCareerMatchLoading] = useState(false);
-  const [careerMatchError, setCareerMatchError] = useState<string>();
-  const [careerFavorites, setCareerFavorites] = useState<
-    API.CareerDevelopmentFavoritePayload[]
-  >([]);
-  const [activeRecommendationId, setActiveRecommendationId] =
-    useState<string>();
-  const [activeResultTabCareer, setActiveResultTabCareer] = useState<
-    'comparison' | 'advice' | 'company'
-  >('comparison');
-  const [careerFavoriteSubmitting, setCareerFavoriteSubmitting] =
-    useState(false);
+  const competency = useCompetencyData();
 
   const uploadFilesRef = useRef<Record<string, File>>({});
-  const streamControllerRef = useRef<AbortController | null>(null);
-  const interactionTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>(
-    [],
-  );
-  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
-  const defaultProfileRef = useRef<JobProfileDimensions>(buildDefaultProfile());
+  const sendTextRef = useRef<((text: string) => Promise<void>) | null>(null);
 
-  const currentProfile =
-    conversation.currentProfile || defaultProfileRef.current;
-  const readyUploads = composerUploads.filter(
-    (item) => item.status === 'ready',
-  );
-  const canSubmit =
-    !isSubmitting &&
-    (composerValue.trim().length > 0 || readyUploads.length > 0);
-  const submitDisabledReason =
-    !composerValue.trim() && readyUploads.length === 0
-      ? '请先上传文件或补充描述'
-      : undefined;
-  const runtimeFields = toRuntimeFields(runtimeConfig);
-
-  const workspaceStage = isEditing
-    ? 'edit'
-    : hasProfileResult(currentProfile)
-      ? 'view'
-      : 'empty';
-  const workspaceViewState: WorkspaceViewState = isEditing
-    ? 'edit'
-    : isSubmitting
-      ? 'parsing'
-      : hasProfileResult(currentProfile)
-        ? 'completed'
-        : 'empty';
-
-  const clearInteractionTimers = useCallback(() => {
-    for (const timer of interactionTimeoutsRef.current) {
-      clearTimeout(timer);
-    }
-    interactionTimeoutsRef.current = [];
-  }, []);
-
-  const scheduleUploadTransition = useCallback(() => {
-    clearInteractionTimers();
-    setInteractionStage('uploading');
-
-    interactionTimeoutsRef.current = [
-      setTimeout(() => {
-        setInteractionStage('transforming');
-      }, 160),
-      setTimeout(() => {
-        setInteractionStage('workspace');
-      }, 940),
-    ];
-  }, [clearInteractionTimers]);
-
-  const recommendations = careerMatchInit?.recommendations || [];
-  const activeRecommendation =
-    recommendations.find((item) => item.report_id === activeRecommendationId) ||
-    recommendations[0];
-  const activeRecommendationFavorite = activeRecommendation
-    ? careerFavorites.find(
-        (item) =>
-          item.report_id === activeRecommendation.report_id ||
-          item.target_key === buildFavoriteTargetKey(activeRecommendation),
-      )
-    : undefined;
-
-  const loadCareerMatchData = useCallback(async () => {
-    setCareerMatchLoading(true);
-    setCareerMatchError(undefined);
-    try {
-      const [initRes, favoriteRes] = await Promise.all([
-        getCareerDevelopmentMatchInit({ skipErrorHandler: true }),
-        getCareerDevelopmentFavorites({ skipErrorHandler: true }),
-      ]);
-      setCareerMatchInit(initRes.data);
-      setCareerFavorites(favoriteRes.data || []);
-      setActiveRecommendationId((current) => {
-        const nextRecommendations = initRes.data.recommendations || [];
-        const stillExists = nextRecommendations.some(
-          (item) => item.report_id === current,
-        );
-        if (stillExists) return current;
-        return (
-          initRes.data.default_report_id || nextRecommendations[0]?.report_id
-        );
-      });
-    } catch (err) {
-      setCareerMatchError(extractRequestError(err));
-      setCareerMatchInit(undefined);
-      setActiveRecommendationId(undefined);
-    } finally {
-      setCareerMatchLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    getStudentCompetencyRuntime({ skipErrorHandler: true })
-      .then((res) => setRuntimeConfig(res.data))
-      .catch((err) => {
-        message.error(`加载运行配置失败：${extractRequestError(err)}`);
-      });
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    // Restore from localStorage snapshot for instant UI on reload
-    const snapshot = restoreSnapshot();
-    if (snapshot) {
-      setConversation(snapshot.conversation);
-      if (snapshot.latestAnalysis) {
-        setLatestAnalysis(snapshot.latestAnalysis);
-      }
-      if (snapshot.interactionStage) {
-        setInteractionStage(snapshot.interactionStage as InteractionStage);
-      }
-      if (snapshot.activeResultTab) {
-        setActiveResultTab(snapshot.activeResultTab);
-      }
-      if (snapshot.activeGapKey) {
-        setActiveGapKey(snapshot.activeGapKey);
-      }
-    }
-
-    const loadLatest = async () => {
-      setIsLoadingLatestAnalysis(true);
-      try {
-        const res = await getStudentCompetencyLatestAnalysis({
-          skipErrorHandler: true,
-        });
-        if (cancelled) return;
-        setLatestAnalysis(res.data);
-
-        if (res.data.available && res.data.workspace_conversation_id) {
-          clearInteractionTimers();
-          setInteractionStage('workspace');
-          const conversationId = res.data.workspace_conversation_id;
-          setConversation((current) => ({
-            ...current,
-            id: conversationId,
-            title: DEFAULT_TITLE,
-            updatedAt: res.data.updated_at || new Date().toISOString(),
-            currentProfile: normalizeProfile(res.data.profile),
-          }));
-
-          try {
-            const conversationRes = await getStudentCompetencyConversation(
-              conversationId,
-              { skipErrorHandler: true },
-            );
-            if (cancelled) return;
-            setConversation((current) => ({
-              ...current,
-              id: conversationId,
-              difyConversationId: conversationRes.data.dify_conversation_id,
-              lastMessageId: conversationRes.data.last_message_id,
-              currentProfile: normalizeProfile(conversationRes.data.profile),
-              updatedAt: conversationRes.data.updated_at || current.updatedAt,
-            }));
-          } catch (err) {
-            console.warn('Failed to load student competency conversation', err);
+  const handleStreamComplete = useCallback(
+    (data: {
+      workspace_conversation_id?: string;
+      dify_conversation_id?: string;
+      last_message_id?: string;
+      profile?: Record<string, string[]>;
+      latest_analysis?: API.StudentCompetencyLatestAnalysisPayload;
+    }) => {
+      if (data.profile) {
+        competency.setConversation((prev) => {
+          const existing = prev.currentProfile || buildDefaultProfile();
+          const incoming = normalizeProfile(data.profile);
+          const merged = {} as Record<ProfileKey, string[]>;
+          for (const key of PROFILE_FIELDS.map(([k]) => k)) {
+            const existingKw = existing[key];
+            const incomingKw = incoming[key];
+            const incomingIsDefault =
+              incomingKw.length === 0 ||
+              (incomingKw.length === 1 && incomingKw[0] === DEFAULT_VALUE);
+            merged[key] = incomingIsDefault ? existingKw : incomingKw;
           }
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setLatestAnalysis(
-            emptyLatestAnalysis(
-              `加载最新结果失败：${extractRequestError(err)}`,
-            ),
-          );
-        }
-      } finally {
-        if (!cancelled) setIsLoadingLatestAnalysis(false);
+          return { ...prev, currentProfile: merged };
+        });
       }
-    };
-
-    void loadLatest();
-    return () => {
-      cancelled = true;
-    };
-  }, [clearInteractionTimers]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (cancelled) return;
-      await loadCareerMatchData();
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadCareerMatchData]);
-
-  useEffect(() => {
-    setEditorProfile(cloneProfile(currentProfile));
-    setTagInputs({});
-  }, [currentProfile]);
-
-  useEffect(() => {
-    const nextGapKey =
-      latestAnalysis.priority_gap_dimensions?.[0] ||
-      latestAnalysis.action_advices?.[0]?.key ||
-      latestAnalysis.comparison_dimensions?.[0]?.key;
-    if (nextGapKey) {
-      setActiveGapKey((current) => current || nextGapKey);
-    }
-  }, [latestAnalysis]);
-
-  useEffect(() => {
-    if (!activeRecommendation) return;
-    const nextGapKey =
-      activeRecommendation.priority_gap_dimensions?.[0] ||
-      activeRecommendation.action_advices?.[0]?.key ||
-      activeRecommendation.comparison_dimensions?.[0]?.key;
-    if (nextGapKey) {
-      setActiveGapKey(nextGapKey);
-    }
-  }, [activeRecommendation?.report_id]);
-
-  useEffect(() => {
-    if (hasProfileResult(currentProfile) && interactionStage === 'empty') {
-      clearInteractionTimers();
-      setInteractionStage('workspace');
-    }
-  }, [clearInteractionTimers, currentProfile, interactionStage]);
-
-  useEffect(
-    () => () => {
-      clearInteractionTimers();
-      streamControllerRef.current?.abort();
+      if (data.latest_analysis) {
+        competency.setLatestAnalysis(data.latest_analysis);
+        competency.setActiveResultTab("result");
+      }
+      competency.setConversation((prev) => ({
+        ...prev,
+        id: data.workspace_conversation_id || prev.id,
+        difyConversationId:
+          data.dify_conversation_id || prev.difyConversationId,
+        lastMessageId: data.last_message_id || prev.lastMessageId,
+      }));
     },
-    [clearInteractionTimers],
+    [competency]
   );
 
-  useEffect(() => {
-    const viewport = messagesViewportRef.current;
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
-    }
-  }, [conversation.messages]);
-
-  /* ── Auto-save snapshot on meaningful state changes ── */
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
+  const handleStreamMessagesChange = useCallback(
+    (messages: import("./shared").WorkspaceMessage[]) => {
+      competency.setConversation((prev) => ({
+        ...prev,
+        messages,
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    [competency.setConversation]
   );
-  useEffect(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      saveSnapshot({
-        version: SNAPSHOT_VERSION,
-        conversation: stripFilesFromConversation(conversation),
-        interactionStage,
-        latestAnalysis,
-        activeResultTab,
-        activeGapKey,
-        savedAt: new Date().toISOString(),
-      });
-    }, 500);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [
-    conversation,
-    latestAnalysis,
-    interactionStage,
-    activeResultTab,
-    activeGapKey,
-  ]);
 
-  const updateConversationMessage = (
-    messageId: string,
-    updater: (message: WorkspaceMessage) => WorkspaceMessage,
-  ) => {
-    setConversation((current) => ({
-      ...current,
-      updatedAt: new Date().toISOString(),
-      messages: current.messages.map((messageItem) =>
-        messageItem.id === messageId ? updater(messageItem) : messageItem,
-      ),
-    }));
-  };
+  const stream = useResumeStream(
+    competency.conversation,
+    handleStreamComplete,
+    handleStreamMessagesChange
+  );
 
-  const handleQueueUpload = (file: File) => {
-    setComposerError(undefined);
-    const kind = getUploadKind(file);
-    if (!kind) {
-      setComposerError('不支持的文件类型');
-      if (!hasProfileResult(currentProfile)) {
-        clearInteractionTimers();
-        setInteractionStage('empty');
-      }
-      return Upload.LIST_IGNORE;
-    }
-
-    const maxLength =
-      kind === 'image'
-        ? (runtimeConfig?.image_upload.max_length ?? 3)
-        : (runtimeConfig?.document_upload.max_length ?? 3);
-    const readyCount = composerUploads.filter(
-      (item) => item.kind === kind && item.status === 'ready',
-    ).length;
-    if (readyCount >= maxLength) {
-      setComposerError(
-        `${kind === 'image' ? '图片' : '文档'}最多上传 ${maxLength} 个`,
-      );
-      if (!hasProfileResult(currentProfile)) {
-        clearInteractionTimers();
-        setInteractionStage('empty');
-      }
-      return Upload.LIST_IGNORE;
-    }
-
-    const uploadId = buildId('upload');
-    uploadFilesRef.current[uploadId] = file;
-    setComposerUploads((current) => [
-      {
-        id: uploadId,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        kind,
-        status: 'ready',
-        createdAt: new Date().toISOString(),
-        file,
-      },
-      ...current,
-    ]);
-    if (workspaceViewState === 'empty' && activeModule === 'resume') {
-      scheduleUploadTransition();
-    } else {
-      clearInteractionTimers();
-      setInteractionStage('workspace');
-    }
-    return Upload.LIST_IGNORE;
-  };
-
-  const handleRemoveUpload = (uploadId: string) => {
-    delete uploadFilesRef.current[uploadId];
-    setComposerUploads((current) =>
-      current.filter((item) => item.id !== uploadId),
-    );
-  };
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-
-    const prompt = composerValue.trim();
-    clearInteractionTimers();
-    setInteractionStage('workspace');
-    const workspaceConversationId = conversation.id || buildId('conversation');
-    const createdAt = new Date().toISOString();
-    const userMessageId = buildId('user');
-    const userMessage: WorkspaceMessage = {
-      id: userMessageId,
-      role: 'user',
-      kind: 'chat',
-      content:
-        prompt ||
-        readyUploads.map((item) => item.name).join('、') ||
-        '上传文件开始解析',
-      createdAt,
-      status: 'completed',
-      uploads: readyUploads,
-    };
-
-    setConversation((current) => ({
-      ...current,
-      id: workspaceConversationId,
-      updatedAt: createdAt,
-      messages: [...current.messages, userMessage],
-    }));
-    setIsSubmitting(true);
-    setComposerError(undefined);
-
-    const formData = new FormData();
-    formData.append('workspace_conversation_id', workspaceConversationId);
-    formData.append('prompt', prompt);
-    if (conversation.difyConversationId) {
-      formData.append('dify_conversation_id', conversation.difyConversationId);
-    }
-    readyUploads.forEach((item) => {
-      const file = uploadFilesRef.current[item.id];
-      if (!file) return;
-      if (item.kind === 'image') {
-        formData.append('image_files', file);
-      } else {
-        formData.append('document_files', file);
-      }
-    });
-
-    const controller = new AbortController();
-    streamControllerRef.current = controller;
-    const assistantMessageId = buildId('assistant');
-
-    setConversation((current) => ({
-      ...current,
-      messages: [
-        ...current.messages,
-        {
-          id: assistantMessageId,
-          role: 'assistant',
-          kind: 'status',
-          content: '',
-          createdAt: new Date().toISOString(),
-          status: 'streaming',
-          stage: 'prepare',
-          progress: 0,
-        },
-      ],
-    }));
-
-    try {
-      const submittedUploadIds = new Set(readyUploads.map((item) => item.id));
-      for await (const event of streamStudentCompetencyChat(
-        formData,
-        controller.signal,
-      )) {
-        if (event.event === 'meta') {
-          updateConversationMessage(assistantMessageId, (messageItem) => ({
-            ...messageItem,
-            id: event.assistant_message_id,
-            createdAt: event.created_at,
-          }));
-        }
-
-        if (event.event === 'delta') {
-          updateConversationMessage(
-            event.assistant_message_id,
-            (messageItem) => ({
-              ...messageItem,
-              kind: 'status',
-              status: 'streaming',
-              content: appendStreamLine(messageItem.content, event.delta),
-              stage: event.stage,
-              progress: event.progress,
-              createdAt: event.created_at,
-            }),
-          );
-        }
-
-        if (event.event === 'done') {
-          const resultPayload = event.data;
-          const updatedProfile = resultPayload.profile
-            ? normalizeProfile(resultPayload.profile)
-            : undefined;
-          updateConversationMessage(
-            event.assistant_message_id,
-            (messageItem) => ({
-              ...messageItem,
-              status: 'completed',
-              content: resultPayload.assistant_message,
-            }),
-          );
-
-          setConversation((current) => {
-            const resultMessages =
-              resultPayload.output_mode === 'profile'
-                ? [
-                    ...current.messages,
-                    {
-                      id: buildId('result'),
-                      role: 'assistant',
-                      kind: 'result',
-                      content: resultPayload.assistant_message,
-                      createdAt: new Date().toISOString(),
-                      status: 'completed',
-                      assetName: `简历解析结果-${Date.now()}.json`,
-                    } as WorkspaceMessage,
-                  ]
-                : current.messages;
-
-            return {
-              ...current,
-              id: resultPayload.workspace_conversation_id,
-              difyConversationId: resultPayload.dify_conversation_id,
-              lastMessageId: resultPayload.last_message_id,
-              currentProfile: updatedProfile || current.currentProfile,
-              updatedAt: new Date().toISOString(),
-              messages: resultMessages,
-            };
-          });
-
-          if (
-            resultPayload.output_mode === 'profile' &&
-            resultPayload.latest_analysis
-          ) {
-            setLatestAnalysis(resultPayload.latest_analysis);
-            setActiveResultTab('result');
-            setActiveGapKey(
-              resultPayload.latest_analysis.priority_gap_dimensions?.[0] ||
-                resultPayload.latest_analysis.action_advices?.[0]?.key,
-            );
-            void loadCareerMatchData();
-          }
-        }
-
-        if (event.event === 'error') {
-          updateConversationMessage(
-            event.assistant_message_id,
-            (messageItem) => ({
-              ...messageItem,
-              status: 'error',
-              content: event.detail,
-            }),
-          );
-          throw new Error(event.detail);
-        }
-      }
-
-      setComposerValue('');
-      readyUploads.forEach((item) => {
-        delete uploadFilesRef.current[item.id];
-      });
-      setComposerUploads((current) =>
-        current.map((item) =>
-          submittedUploadIds.has(item.id)
-            ? {
-                ...item,
-                status: 'submitted',
-                file: undefined,
-              }
-            : item,
-        ),
-      );
-    } catch (err) {
-      const detail = extractRequestError(err);
-      setComposerError(detail);
-      setInteractionStage('workspace');
-      message.error(`解析失败：${detail}`);
-      setConversation((current) => ({
-        ...current,
-        updatedAt: new Date().toISOString(),
-        messages: current.messages.map((messageItem) =>
-          messageItem.id === assistantMessageId ||
-          (messageItem.kind === 'status' && messageItem.status === 'streaming')
-            ? {
-                ...messageItem,
-                status: 'error',
-                content: detail,
-                stage: 'error',
-              }
-            : messageItem,
-        ),
+  const handleUpload = useCallback(
+    (file: File) => {
+      const kind = getUploadKind(file);
+      if (!kind) return false;
+      const uploadId = buildId("upload");
+      uploadFilesRef.current[uploadId] = file;
+      stream.reset();
+      competency.setConversation((prev) => ({
+        ...prev,
+        messages: [],
       }));
-    } finally {
-      setIsSubmitting(false);
-      streamControllerRef.current = null;
-    }
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    setActiveResultTab('result');
-  };
-
-  const handleCancelEdit = () => {
-    setEditorProfile(cloneProfile(currentProfile));
-    setTagInputs({});
-    setIsEditing(false);
-  };
-
-  const handleSave = async () => {
-    if (!editorProfile) return;
-    setIsSavingProfile(true);
-    try {
-      const res = await syncStudentCompetencyResult(
-        {
-          workspace_conversation_id: conversation.id,
-          dify_conversation_id: conversation.difyConversationId,
-          profile: editorProfile,
-        },
-        { skipErrorHandler: true },
-      );
-
-      setConversation((current) => ({
-        ...current,
-        id: res.data.workspace_conversation_id,
-        difyConversationId: res.data.dify_conversation_id,
-        lastMessageId: res.data.last_message_id,
-        currentProfile: normalizeProfile(res.data.profile),
-        updatedAt: new Date().toISOString(),
-      }));
-      if (res.data.latest_analysis) {
-        setLatestAnalysis(res.data.latest_analysis);
-      }
-      void loadCareerMatchData();
-      setIsEditing(false);
-      message.success('结果已保存');
-    } catch (err) {
-      message.error(`保存失败：${extractRequestError(err)}`);
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const handleResetConversation = async () => {
-    clearSnapshot();
-    try {
-      await deleteStudentCompetencyLatestAnalysis({ skipErrorHandler: true });
-    } catch (err) {
-      console.warn('Failed to delete latest student competency analysis', err);
-    }
-
-    clearInteractionTimers();
-    streamControllerRef.current?.abort();
-    uploadFilesRef.current = {};
-    setInteractionStage('empty');
-    setConversation(buildConversation());
-    setComposerValue('');
-    setComposerUploads([]);
-    setComposerError(undefined);
-    setLatestAnalysis(emptyLatestAnalysis());
-    setEditorProfile(buildDefaultProfile());
-    setTagInputs({});
-    setIsEditing(false);
-    setActiveResultTab('comparison');
-    setActiveGapKey(undefined);
-    setCareerMatchInit(undefined);
-    setActiveRecommendationId(undefined);
-    void loadCareerMatchData();
-    message.success('已重置解析');
-  };
-
-  const handleTagInputChange = (key: ProfileKey, value: string) => {
-    setTagInputs((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleAddTag = (key: ProfileKey) => {
-    const rawValue = (tagInputs[key] || '').trim();
-    if (!rawValue) return;
-    setEditorProfile((current) => {
-      const next = cloneProfile(current);
-      const values = next[key].filter((item) => hasMeaningfulValues([item]));
-      if (!values.includes(rawValue)) {
-        next[key] = [...values, rawValue];
-      }
-      return next;
-    });
-    setTagInputs((current) => ({ ...current, [key]: '' }));
-  };
-
-  const handleRemoveTag = (key: ProfileKey, value: string) => {
-    setEditorProfile((current) => {
-      const next = cloneProfile(current);
-      const values = next[key].filter((item) => item !== value);
-      next[key] = values.length ? values : [DEFAULT_VALUE];
-      return next;
-    });
-  };
-
-  const handleToggleCareerFavorite = async () => {
-    if (!activeRecommendation) return;
-    setCareerFavoriteSubmitting(true);
-    try {
-      if (activeRecommendationFavorite) {
-        await deleteCareerDevelopmentFavorite(
-          activeRecommendationFavorite.favorite_id,
-          { skipErrorHandler: true },
-        );
-        setCareerFavorites((current) =>
-          current.filter(
-            (item) =>
-              item.favorite_id !== activeRecommendationFavorite.favorite_id,
-          ),
-        );
-        message.success('已取消收藏');
-      } else {
-        const res = await createCareerDevelopmentFavorite(
-          {
-            source_kind: 'recommendation',
-            report: activeRecommendation,
-          },
-          { skipErrorHandler: true },
-        );
-        setCareerFavorites((current) => {
-          const next = current.filter(
-            (item) => item.favorite_id !== res.data.favorite_id,
-          );
-          return [...next, res.data];
+      competency.setInteractionStage("workspace");
+      // Auto-send the file to the backend stream
+      const send = sendTextRef.current;
+      if (send) {
+        queueMicrotask(() => {
+          send("");
         });
-        message.success('已收藏结果');
       }
-    } catch (err) {
-      message.error(`操作失败：${extractRequestError(err)}`);
-    } finally {
-      setCareerFavoriteSubmitting(false);
-    }
-  };
-
-  const handleGenerateCareerPlan = () => {
-    if (!activeRecommendationFavorite) {
-      message.warning('请先收藏当前目标岗位，再生成蜗牛学习路径。');
-      return;
-    }
-    goToSnailLearningPath(activeRecommendationFavorite.favorite_id);
-  };
-
-  const careerWorkspace = (
-    <ResumeMatchWorkspace
-      sourceLabel={
-        conversation.messages.find((item) => item.kind === 'result')
-          ?.assetName ||
-        (hasProfileResult(currentProfile) ? '简历解析结果' : '当前12维画像')
-      }
-      sourceUpdatedAt={careerMatchInit?.source?.updated_at}
-      activeDimensionCount={careerMatchInit?.source?.active_dimension_count}
-      recommendations={recommendations}
-      loading={careerMatchLoading}
-      error={careerMatchError}
-      available={careerMatchInit?.available}
-      activeRecommendationId={activeRecommendationId}
-      activeResultTab={activeResultTabCareer}
-      activeGapKey={activeGapKey}
-      favorite={activeRecommendationFavorite}
-      favoriteSubmitting={careerFavoriteSubmitting}
-      onRecommendationChange={setActiveRecommendationId}
-      onResultTabChange={setActiveResultTabCareer}
-      onActiveGapChange={setActiveGapKey}
-      onToggleFavorite={handleToggleCareerFavorite}
-      onGeneratePlan={handleGenerateCareerPlan}
-    />
+      return true;
+    },
+    [competency, stream]
   );
+
+  const handleSendText = useCallback(
+    async (text: string) => {
+      const effectiveId = competency.conversation.id || buildConversation().id;
+      if (!competency.conversation.id) {
+        competency.setConversation((prev) => ({
+          ...prev,
+          id: effectiveId,
+        }));
+      }
+      const formData = new FormData();
+      formData.append("prompt", text);
+      formData.append("workspace_conversation_id", effectiveId);
+      if (competency.conversation.difyConversationId) {
+        formData.append(
+          "dify_conversation_id",
+          competency.conversation.difyConversationId
+        );
+      }
+      const fileEntries = Object.entries(uploadFilesRef.current);
+      fileEntries.forEach(([, file]) => {
+        formData.append("document_files", file);
+      });
+      if (fileEntries.length > 0) {
+        const meta = fileEntries.map(([, f]) => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+        }));
+        formData.append("_file_meta", JSON.stringify(meta));
+      }
+      uploadFilesRef.current = {};
+      await stream.sendMessage(formData);
+    },
+    [competency.conversation, stream]
+  );
+  sendTextRef.current = handleSendText;
+
+  const handleSendFile = useCallback(
+    async (file: File) => {
+      const kind = getUploadKind(file);
+      if (!kind) return;
+
+      const effectiveId = competency.conversation.id || buildConversation().id;
+      if (!competency.conversation.id) {
+        competency.setConversation((prev) => ({
+          ...prev,
+          id: effectiveId,
+        }));
+      }
+
+      const formData = new FormData();
+      formData.append("prompt", "");
+      formData.append("workspace_conversation_id", effectiveId);
+      if (competency.conversation.difyConversationId) {
+        formData.append(
+          "dify_conversation_id",
+          competency.conversation.difyConversationId
+        );
+      }
+      formData.append("document_files", file);
+      formData.append(
+        "_file_meta",
+        JSON.stringify([
+          {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+          },
+        ])
+      );
+      competency.setInteractionStage("workspace");
+      await stream.sendMessage(formData);
+    },
+    [competency.conversation, stream]
+  );
+
+  const hasResult = hasProfileResult(
+    competency.conversation.currentProfile || competency.currentProfile
+  );
+
+  if (competency.loading) return <PageLoading />;
+  if (competency.error) return <PageError message={competency.error} />;
 
   return (
-    <ResumeParsingWorkspace
-      activeModule={activeModule}
-      onModuleChange={setActiveModule}
-      careerWorkspace={careerWorkspace}
-      interactionStage={interactionStage}
-      stage={workspaceStage}
-      viewState={workspaceViewState}
-      conversation={conversation}
-      runtimeFields={runtimeFields}
-      currentProfile={currentProfile}
-      editorProfile={editorProfile}
-      tagInputs={tagInputs}
-      composerValue={composerValue}
-      composerUploads={composerUploads}
-      composerError={composerError}
-      submitDisabledReason={submitDisabledReason}
-      canSubmit={canSubmit}
-      isSubmitting={isSubmitting || isSavingProfile}
-      fileUploadEnabled={runtimeConfig?.file_upload_enabled ?? true}
-      analysis={latestAnalysis}
-      analysisLoading={isLoadingLatestAnalysis}
-      activeResultTab={activeResultTab}
-      activeGapKey={activeGapKey}
-      messagesViewportRef={messagesViewportRef}
-      onComposerValueChange={setComposerValue}
-      onRemoveUpload={handleRemoveUpload}
-      onBeforeUpload={handleQueueUpload}
-      onSubmit={handleSubmit}
-      onTagInputChange={handleTagInputChange}
-      onAddTag={handleAddTag}
-      onRemoveTag={handleRemoveTag}
-      onEdit={handleEdit}
-      onSave={handleSave}
-      onCancelEdit={handleCancelEdit}
-      onResetConversation={handleResetConversation}
-      onResultTabChange={setActiveResultTab}
-      onActiveGapChange={setActiveGapKey}
-    />
+    <div className={styles.shell}>
+      <div className={styles.page}>
+        {!hasResult && !stream.isStreaming && (
+          <FadeInWhenVisible>
+            <div className={styles.uploadSection}>
+              <ResumeUploadZone
+                onUpload={handleUpload}
+                disabled={stream.isStreaming}
+              />
+            </div>
+          </FadeInWhenVisible>
+        )}
+
+        {(stream.messages.length > 0 ||
+          competency.interactionStage === "workspace") && (
+          <FadeInWhenVisible>
+            <div className={styles.section}>
+              <ChatStream
+                messages={stream.messages}
+                isStreaming={stream.isStreaming}
+                onSendText={handleSendText}
+                onSendFile={handleSendFile}
+              />
+            </div>
+          </FadeInWhenVisible>
+        )}
+
+        {hasResult && (
+          <FadeInWhenVisible>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: 12,
+              }}
+            >
+              <ClaudeButton
+                variant="ghost"
+                onClick={async () => {
+                  const shouldResetStream = await competency.reset();
+                  if (shouldResetStream) stream.reset();
+                }}
+              >
+                重新解析
+              </ClaudeButton>
+            </div>
+            <Tabs
+              className={styles.tabs}
+              activeKey={competency.activeResultTab}
+              onChange={(key) =>
+                competency.setActiveResultTab(key as ResultTabKey)
+              }
+              items={[
+                {
+                  key: "result",
+                  label: "能力雷达",
+                  children: (
+                    <RadarScorePanel
+                      scores={competency.analysis.chart_series}
+                      onDimensionClick={competency.setActiveGapKey}
+                    />
+                  ),
+                },
+                {
+                  key: "advice",
+                  label: "差距分析",
+                  children: (
+                    <GapAnalysisPanel
+                      advices={competency.analysis.action_advices}
+                      priorityGaps={competency.analysis.priority_gap_dimensions}
+                      activeGapKey={competency.activeGapKey}
+                      onGapSelect={competency.setActiveGapKey}
+                    />
+                  ),
+                },
+                {
+                  key: "keyword",
+                  label: "关键字提取",
+                  children: (
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          marginBottom: 12,
+                        }}
+                      >
+                        {competency.isEditing ? (
+                          <Space>
+                            <ClaudeButton
+                              variant="ghost"
+                              onClick={competency.cancelEdit}
+                            >
+                              取消
+                            </ClaudeButton>
+                            <ClaudeButton
+                              variant="terracotta"
+                              onClick={() =>
+                                competency.save(
+                                  competency.conversation.id,
+                                  competency.conversation.difyConversationId
+                                )
+                              }
+                            >
+                              保存
+                            </ClaudeButton>
+                          </Space>
+                        ) : (
+                          <ClaudeButton
+                            variant="warm-sand"
+                            onClick={competency.startEdit}
+                          >
+                            编辑
+                          </ClaudeButton>
+                        )}
+                      </div>
+                      <DimensionKeywordEditor
+                        dimensions={competency.editorProfile}
+                        tagInputs={competency.tagInputs}
+                        isEditing={competency.isEditing}
+                        onUpdateTagInput={competency.updateTagInput}
+                        onAddTag={competency.addTag}
+                        onRemoveTag={competency.removeTag}
+                      />
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </FadeInWhenVisible>
+        )}
+      </div>
+    </div>
   );
 };
 

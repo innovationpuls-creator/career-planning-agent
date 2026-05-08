@@ -62,6 +62,43 @@ export type CareerDevelopmentPlanWorkspaceExportResult = {
   filename?: string;
 };
 
+/** Normalise a failed HTTP response into a human-readable error string. */
+export async function parseErrorResponse(response: {
+  status: number;
+  headers: { get(key: string): string | null };
+  json(): Promise<any>;
+  text(): Promise<string>;
+}): Promise<string> {
+  let detail = `Request failed with status ${response.status}.`;
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      const payload = await response.json();
+      if (Array.isArray(payload.detail)) {
+        detail = payload.detail
+          .map((e: any) => e.msg || JSON.stringify(e))
+          .join('; ');
+      } else if (typeof payload.detail === 'string') {
+        detail = payload.detail;
+      } else if (payload.detail) {
+        detail = JSON.stringify(payload.detail);
+      }
+    } catch {
+      // JSON parse failed — keep default status message
+    }
+  } else {
+    try {
+      const text = await response.text();
+      if (text && !text.trimStart().startsWith('<')) {
+        detail = text;
+      }
+    } catch {
+      // text() failed — keep default status message
+    }
+  }
+  return detail;
+}
+
 /** 获取当前的用户 GET /api/currentUser */
 export async function currentUser(options?: { [key: string]: any }) {
   return request<{
@@ -105,66 +142,6 @@ export async function register(
     },
     data: body,
     ...(options || {}),
-  });
-}
-
-export async function getNotices(options?: { [key: string]: any }) {
-  return request<API.NoticeIconList>('/api/notices', {
-    method: 'GET',
-    ...(options || {}),
-  });
-}
-
-/** 获取规则列表 GET /api/rule */
-export async function rule(
-  params: {
-    // query
-    /** 当前的页码 */
-    current?: number;
-    /** 页面的容量 */
-    pageSize?: number;
-  },
-  options?: { [key: string]: any },
-) {
-  return request<API.RuleList>('/api/rule', {
-    method: 'GET',
-    params: {
-      ...params,
-    },
-    ...(options || {}),
-  });
-}
-
-/** 更新规则 PUT /api/rule */
-export async function updateRule(options?: { [key: string]: any }) {
-  return request<API.RuleListItem>('/api/rule', {
-    method: 'POST',
-    data: {
-      method: 'update',
-      ...(options || {}),
-    },
-  });
-}
-
-/** 新建规则 POST /api/rule */
-export async function addRule(options?: { [key: string]: any }) {
-  return request<API.RuleListItem>('/api/rule', {
-    method: 'POST',
-    data: {
-      method: 'post',
-      ...(options || {}),
-    },
-  });
-}
-
-/** 删除规则 DELETE /api/rule */
-export async function removeRule(options?: { [key: string]: any }) {
-  return request<Record<string, any>>('/api/rule', {
-    method: 'POST',
-    data: {
-      method: 'delete',
-      ...(options || {}),
-    },
   });
 }
 
@@ -366,23 +343,6 @@ export async function getCareerDevelopmentMatchInit(options?: { [key: string]: a
   );
 }
 
-export async function createCareerDevelopmentMatchReport(
-  body: API.CareerDevelopmentMatchReportRequest,
-  options?: { [key: string]: any },
-) {
-  return request<API.CareerDevelopmentMatchCustomResponse>(
-    '/api/career-development-report/job-exploration-match/report',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: body,
-      ...(options || {}),
-    },
-  );
-}
-
 export async function getCareerDevelopmentFavorites(options?: { [key: string]: any }) {
   return request<API.CareerDevelopmentFavoriteListResponse>('/api/career-development-report/favorites', {
     method: 'GET',
@@ -462,19 +422,7 @@ export async function* streamCareerDevelopmentGoalPlanTask(
   );
 
   if (!response.ok) {
-    let detail = `Request failed with status ${response.status}.`;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      try {
-        const payload = (await response.json()) as { detail?: string };
-        detail = payload.detail || detail;
-      } catch {}
-    } else {
-      try {
-        detail = (await response.text()) || detail;
-      } catch {}
-    }
-    throw new Error(detail);
+    throw new Error(await parseErrorResponse(response));
   }
 
   if (!response.body) {
@@ -658,19 +606,7 @@ export async function* streamPersonalGrowthReportTask(
   );
 
   if (!response.ok) {
-    let detail = `Request failed with status ${response.status}.`;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      try {
-        const payload = (await response.json()) as { detail?: string };
-        detail = payload.detail || detail;
-      } catch {}
-    } else {
-      try {
-        detail = (await response.text()) || detail;
-      } catch {}
-    }
-    throw new Error(detail);
+    throw new Error(await parseErrorResponse(response));
   }
 
   if (!response.body) {
@@ -742,19 +678,7 @@ export async function exportPersonalGrowthReport(
   );
 
   if (!response.ok) {
-    let detail = `Request failed with status ${response.status}.`;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      try {
-        const payload = (await response.json()) as { detail?: string };
-        detail = payload.detail || detail;
-      } catch {}
-    } else {
-      try {
-        detail = (await response.text()) || detail;
-      } catch {}
-    }
-    throw new Error(detail);
+    throw new Error(await parseErrorResponse(response));
   }
 
   const blob = await response.blob();
@@ -799,166 +723,6 @@ export async function generateCareerDevelopmentPlanLearningResources(
       ...(options || {}),
     },
   );
-}
-
-export async function submitCareerDevelopmentPlanMilestone(
-  favoriteId: number,
-  milestoneId: string,
-  formData: FormData,
-  options?: { [key: string]: any },
-) {
-  return request<API.PlanWorkspaceMilestoneSubmissionResponse>(
-    `/api/career-development-report/goal-setting-path-planning/workspaces/${favoriteId}/milestones/${milestoneId}/submit`,
-    {
-      method: 'POST',
-      requestType: 'form',
-      data: formData,
-      ...(options || {}),
-    },
-  );
-}
-
-export async function integrityCheckCareerDevelopmentPlanWorkspace(
-  favoriteId: number,
-  body: API.PlanWorkspaceIntegrityCheckRequest,
-  options?: { [key: string]: any },
-) {
-  return request<API.PlanWorkspaceIntegrityCheckResponse>(
-    `/api/career-development-report/goal-setting-path-planning/workspaces/${favoriteId}/integrity-check`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: body,
-      ...(options || {}),
-    },
-  );
-}
-
-export async function createCareerDevelopmentPlanWorkspaceReview(
-  favoriteId: number,
-  body: API.PlanWorkspaceReviewRequest,
-  options?: { [key: string]: any },
-) {
-  return request<API.PlanWorkspaceReviewResponse>(
-    `/api/career-development-report/goal-setting-path-planning/workspaces/${favoriteId}/reviews`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: body,
-      ...(options || {}),
-    },
-  );
-}
-
-export async function exportCareerDevelopmentPlanWorkspace(
-  favoriteId: number,
-  body: API.PlanWorkspaceExportRequest,
-): Promise<CareerDevelopmentPlanWorkspaceExportResult> {
-  const token = getAccessToken();
-  const response = await fetch(
-    `/api/career-development-report/goal-setting-path-planning/workspaces/${favoriteId}/export`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    },
-  );
-
-  if (!response.ok) {
-    let detail = `Request failed with status ${response.status}.`;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      try {
-        const payload = (await response.json()) as { detail?: string };
-        detail = payload.detail || detail;
-      } catch {}
-    } else {
-      try {
-        detail = (await response.text()) || detail;
-      } catch {}
-    }
-    throw new Error(detail);
-  }
-
-  const blob = await response.blob();
-  const disposition = response.headers.get('content-disposition') || '';
-  const filenameMatch =
-    disposition.match(/filename\\*=UTF-8''([^;]+)/i) || disposition.match(/filename=\"?([^\";]+)\"?/i);
-  const filename = filenameMatch?.[1] ? decodeURIComponent(filenameMatch[1]) : undefined;
-  return { blob, filename };
-}
-
-export async function getJobTransferOptions(options?: { [key: string]: any }) {
-  return request<API.JobTransferOptionsResponse>('/api/job-transfer/options', {
-    method: 'GET',
-    ...(options || {}),
-  });
-}
-
-/** 获取指定职业的换岗路径 GET /api/job-transfer/{career_id} */
-export async function getJobTransferSource(careerId: number, options?: { [key: string]: any }) {
-  return request<API.JobTransferSourceResponse>(`/api/job-transfer/source/${careerId}`, {
-    method: 'GET',
-    ...(options || {}),
-  });
-}
-
-export async function getJobTransferProfile(careerId: number, options?: { [key: string]: any }) {
-  return request<API.JobTransferResponse>(`/api/job-transfer/${careerId}`, {
-    method: 'GET',
-    ...(options || {}),
-  });
-}
-
-/** 流式获取指定职业的换岗路径 GET /api/job-transfer/{career_id}/stream */
-export async function getJobTransferProfileStream(
-  careerId: number,
-  options?: { [key: string]: any },
-) {
-  return request<Response>(`/api/job-transfer/${careerId}/stream`, {
-    method: 'GET',
-    getResponse: true,
-    responseType: 'text',
-    ...(options || {}),
-  });
-}
-
-/** 创建换岗路径分析任务 POST /api/job-transfer/tasks */
-export async function createJobTransferTask(
-  careerId: number,
-  options?: { [key: string]: any },
-) {
-  return request<API.JobTransferTaskCreateResponse>('/api/job-transfer/tasks', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: { career_id: careerId },
-    ...(options || {}),
-  });
-}
-
-/** 获取换岗路径任务快照 GET /api/job-transfer/tasks/{task_id} */
-export async function getJobTransferTaskSnapshot(taskId: string, options?: { [key: string]: any }) {
-  return request<API.JobTransferTaskSnapshotResponse>(`/api/job-transfer/tasks/${taskId}`, {
-    method: 'GET',
-    ...(options || {}),
-  });
-}
-
-/** 取消换岗路径任务 POST /api/job-transfer/tasks/{task_id}/cancel */
-export async function cancelJobTransferTask(taskId: string, options?: { [key: string]: any }) {
-  return request<API.JobTransferTaskSnapshotResponse>(`/api/job-transfer/tasks/${taskId}/cancel`, {
-    method: 'POST',
-    ...(options || {}),
-  });
 }
 
 /** 获取学生就业能力画像状态事件 GET /api/student-competency-profile/status-events */
@@ -1085,19 +849,7 @@ export async function* streamStudentCompetencyChat(
   });
 
   if (!response.ok) {
-    let detail = `Request failed with status ${response.status}.`;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      try {
-        const payload = (await response.json()) as { detail?: string };
-        detail = payload.detail || detail;
-      } catch {}
-    } else {
-      try {
-        detail = (await response.text()) || detail;
-      } catch {}
-    }
-    throw new Error(detail);
+    throw new Error(await parseErrorResponse(response));
   }
 
   if (!response.body) {

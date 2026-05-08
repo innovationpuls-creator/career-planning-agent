@@ -1,8 +1,6 @@
 """Tests for the document parser service."""
 
 import io
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -108,21 +106,3 @@ class TestDetectAndParse:
         result = DocumentParser.detect_and_parse(buf, ".TXT")
         assert result == "content"
 
-    def test_raises_error_for_nonexistent_file_path(self):
-        with pytest.raises(DocumentParserError, match="not found"):
-            DocumentParser.parse_file("/nonexistent/path/file.pdf")
-
-
-class TestParseFile:
-    def test_parses_txt_file_from_path(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False, encoding="utf-8"
-        ) as f:
-            f.write("文件内容测试")
-            tmp_path = f.name
-
-        try:
-            result = DocumentParser.parse_file(tmp_path)
-            assert "文件内容测试" in result
-        finally:
-            Path(tmp_path).unlink(missing_ok=True)

@@ -216,10 +216,3 @@ class TestIntentClassifier:
         result = analyze_intent("")
         assert result == IntentClassifier.CREATE_PROFILE
 
-    def test_determine_with_llm_fallback_creates_classifier_messages(self):
-        messages = IntentClassifier.build_classifier_messages("请帮我提取12维画像")
-        assert len(messages) == 2
-        assert messages[0].role == "system"
-        assert "分类" in messages[0].content
-        assert messages[1].role == "user"
-        assert "12维画像" in messages[1].content

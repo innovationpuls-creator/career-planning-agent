@@ -22,6 +22,10 @@ import {
 
 const { Password } = Input;
 
+const ADMIN_AVATAR_STYLE: React.CSSProperties = {
+  backgroundColor: 'var(--color-primary)',
+};
+
 type ProfileFormValues = {
   username?: string;
   display_name?: string;
@@ -161,7 +165,7 @@ const AdminProfilePage: React.FC = () => {
                 <Avatar
                   size={72}
                   src={avatarUrl || profile?.avatar}
-                  style={{ backgroundColor: '#1677ff' }}
+                  style={ADMIN_AVATAR_STYLE}
                 >
                   {(
                     profileForm.getFieldValue('display_name') ||

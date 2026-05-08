@@ -4,6 +4,7 @@ import logging
 import socket
 import subprocess
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,6 +14,8 @@ logging.basicConfig(
     format="%(asctime)s %(name)-30s %(levelname)-8s %(message)s",
     stream=sys.stdout,
 )
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -230,7 +233,7 @@ def _ensure_qdrant_running() -> None:
     qdrant_cfg = backend_root / "qdrant-bin" / "config" / "config.yaml"
 
     if not qdrant_bin.is_file():
-        print(f"[qdrant] binary not found at {qdrant_bin}, skipping auto-start", flush=True)
+        logger.warning("qdrant binary not found at %s, skipping auto-start", qdrant_bin)
         return
 
     try:
@@ -241,9 +244,9 @@ def _ensure_qdrant_running() -> None:
             stderr=subprocess.DEVNULL,
             cwd=backend_root.as_posix(),
         )
-        print("[qdrant] started automatically", flush=True)
-    except Exception as exc:
-        print(f"[qdrant] auto-start failed: {exc}", flush=True)
+        logger.info("qdrant started automatically")
+    except Exception:
+        logger.exception("qdrant auto-start failed")
 
 
 _qdrant_process: subprocess.Popen[bytes] | None = None
@@ -257,6 +260,7 @@ def _is_neo4j_running() -> bool:
         sock.close()
         return result == 0
     except Exception:
+        logger.debug("neo4j connectivity check failed")
         return False
 
 
@@ -277,12 +281,11 @@ def _ensure_neo4j_running() -> None:
         for _ in range(15):
             if _is_neo4j_running():
                 break
-            import time
             time.sleep(1)
         _neo4j_started_by_backend = True
-        print("[neo4j] started automatically", flush=True)
-    except Exception as exc:
-        print(f"[neo4j] auto-start failed: {exc}", flush=True)
+        logger.info("neo4j started automatically")
+    except Exception:
+        logger.exception("neo4j auto-start failed")
 
 
 def init_db() -> None:
@@ -331,8 +334,8 @@ def init_db() -> None:
             graph_service.ensure_graph_synced()
         finally:
             graph_service.close()
-    except Exception as exc:
-        print(f"[job-requirement-graph] neo4j sync skipped: {exc}", flush=True)
+    except Exception:
+        logger.warning("job-requirement-graph neo4j sync skipped", exc_info=True)
 
 
 @asynccontextmanager
@@ -348,7 +351,7 @@ async def lifespan(_: FastAPI):
                 _qdrant_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 _qdrant_process.kill()
-            print("[qdrant] stopped", flush=True)
+            logger.info("qdrant stopped")
             _qdrant_process = None
         if _neo4j_started_by_backend:
             try:
@@ -357,9 +360,9 @@ async def lifespan(_: FastAPI):
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                print("[neo4j] stopped", flush=True)
+                logger.info("neo4j stopped")
             except Exception:
-                pass
+                logger.exception("neo4j stop failed")
             _neo4j_started_by_backend = False
 
 

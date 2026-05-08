@@ -1,15 +1,14 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { Button, Card, Col, Row, Select, Space, Spin, Typography } from 'antd';
+import { Typography } from 'antd';
 import { createStyles } from 'antd-style';
-import React, { useEffect, useState } from 'react';
-import VerticalTierComparison from '@/components/VerticalTierComparison';
-import {
-  getIndustryOptionsByJobTitle,
-  getJobTitleOptions,
-  getVerticalJobProfile,
-} from '@/services/ant-design-pro/api';
+import React from 'react';
+import { claudeColors, claudeFonts } from '@/styles/claude-tokens';
+import { ComparisonSummary } from './components/ComparisonSummary';
+import { FilterBar } from './components/FilterBar';
+import { TierComparison } from './components/TierComparison';
+import { useComparisonData } from './hooks/useComparisonData';
 
-const useStyles = createStyles(({ css, token }) => ({
+const useStyles = createStyles(({ css }) => ({
   pageContainer: css`
     :global(.ant-pro-page-container-children-container) {
       padding-inline: 0;
@@ -19,108 +18,30 @@ const useStyles = createStyles(({ css, token }) => ({
   shell: css`
     min-height: calc(100vh - 112px);
     padding: 24px;
-    background: linear-gradient(160deg, ${token.colorBgLayout} 0%, ${token.colorBgContainer} 100%);
+    background: ${claudeColors.parchment};
   `,
   header: css`
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   `,
-  heading2: css`
-    font-family: var(--font-heading);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    font-size: 20px;
+  title: css`
+    margin: 0;
+    font-family: ${claudeFonts.heading};
+    color: ${claudeColors.nearBlack};
   `,
-  filterCard: css`
-    margin-bottom: 20px;
-    border-radius: 16px;
-    border: 1px solid ${token.colorBorderSecondary};
-    background: ${token.colorBgContainer};
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-
-    :global(.ant-card-head) {
-      border-bottom-color: ${token.colorBorderSecondary};
-    }
+  subtitle: css`
+    margin: 8px 0 0;
+    color: ${claudeColors.oliveGray};
+    line-height: 1.7;
   `,
-  resultCard: css`
-    border-radius: 16px;
-    border: 1px solid ${token.colorBorderSecondary};
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-
-    :global(.ant-card-head) {
-      border-bottom-color: ${token.colorBorderSecondary};
-    }
-  `,
-  loading: css`
-    display: flex;
-    justify-content: center;
-    padding: 48px 0;
-  `,
-  industrySelect: css`
-    width: 100%;
-
-    :global(.ant-select-selection-overflow-item) {
-      max-width: 100%;
-    }
-
-    :global(.ant-select-selection-item) {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  stack: css`
+    display: grid;
+    gap: 18px;
   `,
 }));
 
 const VerticalJobProfilePage: React.FC = () => {
   const { styles } = useStyles();
-  const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>(
-    [],
-  );
-  const [industryOptions, setIndustryOptions] = useState<API.IndustryOption[]>(
-    [],
-  );
-  const [loading, setLoading] = useState(false);
-  const [industryLoading, setIndustryLoading] = useState(false);
-  const [result, setResult] = useState<API.VerticalJobProfilePayload>();
-  const [jobTitle, setJobTitle] = useState<string>();
-  const [industries, setIndustries] = useState<string[]>([]);
-
-  useEffect(() => {
-    void getJobTitleOptions({ skipErrorHandler: true }).then((response) => {
-      setJobTitleOptions(response.data || []);
-    });
-  }, []);
-
-  const handleJobTitleChange = async (value?: string) => {
-    setJobTitle(value);
-    setIndustries([]);
-    setIndustryOptions([]);
-    if (!value) {
-      return;
-    }
-    setIndustryLoading(true);
-    try {
-      const response = await getIndustryOptionsByJobTitle(value);
-      setIndustryOptions(response.data || []);
-    } finally {
-      setIndustryLoading(false);
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!jobTitle) {
-      return;
-    }
-    setLoading(true);
-    try {
-      const response = await getVerticalJobProfile({
-        job_title: jobTitle,
-        industry: industries,
-      });
-      setResult(response.data);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const comparison = useComparisonData();
 
   return (
     <PageContainer
@@ -128,73 +49,34 @@ const VerticalJobProfilePage: React.FC = () => {
       title={false}
       breadcrumbRender={false}
     >
-      <div className={styles.shell}>
+      <main className={styles.shell}>
         <div className={styles.header}>
-          <Typography.Title
-            level={2}
-            className={styles.heading2}
-            style={{ marginBottom: 0 }}
-          >
-            垂直岗位图谱
+          <Typography.Title level={2} className={styles.title}>
+            同岗行业对比
           </Typography.Title>
+          <p className={styles.subtitle}>
+            选择岗位和行业，查看初级、中级、高级薪资层级下的公司样本与 12 维度覆盖差异。
+          </p>
         </div>
-        <Card title="筛选条件" className={styles.filterCard}>
-          <Row gutter={[16, 16]} align="bottom">
-            <Col xs={24} md={10}>
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <Typography.Text>岗位名称</Typography.Text>
-                <Select
-                  id="job_title"
-                  placeholder="请选择岗位名称"
-                  options={jobTitleOptions}
-                  value={jobTitle}
-                  onChange={(value) => void handleJobTitleChange(value)}
-                />
-              </Space>
-            </Col>
-            <Col xs={24} md={10}>
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <Typography.Text>行业</Typography.Text>
-                <Select
-                  id="industry"
-                  mode="multiple"
-                  placeholder="请选择行业"
-                  options={industryOptions}
-                  value={industries}
-                  loading={industryLoading}
-                  onChange={(value) => setIndustries(value)}
-                  className={styles.industrySelect}
-                />
-              </Space>
-            </Col>
-            <Col xs={24} md={4}>
-              <Button
-                type="primary"
-                loading={loading}
-                onClick={() => void handleSearch()}
-                block
-              >
-                查询
-              </Button>
-            </Col>
-          </Row>
-        </Card>
-        <Card
-          title={result?.job_title || '阶段路径'}
-          className={styles.resultCard}
-        >
-          {loading ? (
-            <div className={styles.loading}>
-              <Spin />
-            </div>
-          ) : (
-            <VerticalTierComparison
-              comparison={result?.tiered_comparison}
-              mode="detailed"
-            />
-          )}
-        </Card>
-      </div>
+
+        <div className={styles.stack}>
+          <FilterBar
+            query={comparison.query}
+            jobTitles={comparison.jobTitles}
+            industries={comparison.industries}
+            loading={comparison.loading}
+            industryLoading={comparison.industryLoading}
+            onJobTitleChange={comparison.setJobTitle}
+            onIndustriesChange={comparison.setIndustries}
+            onSearch={() => void comparison.runQuery()}
+          />
+          <ComparisonSummary data={comparison.comparisonData} />
+          <TierComparison
+            data={comparison.comparisonData}
+            loading={comparison.loading}
+          />
+        </div>
+      </main>
     </PageContainer>
   );
 };

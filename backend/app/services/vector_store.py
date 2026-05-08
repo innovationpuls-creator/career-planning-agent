@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import uuid
@@ -10,6 +11,8 @@ from threading import Lock
 from qdrant_client import QdrantClient, models
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_pywin32_available() -> None:
@@ -239,31 +242,6 @@ class QdrantGroupedVectorStore:
             )
         return items
 
-    def has_group_embedding(self, *, entity_id: int, group_key: str) -> bool:
-        if not self._client.collection_exists(self.collection_name):
-            return False
-        records = self._client.retrieve(
-            collection_name=self.collection_name,
-            ids=[self.build_vector_id(entity_id, group_key)],
-            with_vectors=False,
-            with_payload=False,
-        )
-        return bool(records)
-
-    def ensure_collection_readable(self) -> None:
-        if not self._client.collection_exists(self.collection_name):
-            return
-        self._client.scroll(
-            collection_name=self.collection_name,
-            limit=1,
-            with_payload=False,
-            with_vectors=False,
-        )
-
-    def reset_collection(self) -> None:
-        if self._client.collection_exists(self.collection_name):
-            self._client.delete_collection(self.collection_name)
-
     def _ensure_collection(self, vector_size: int) -> None:
         if self._client.collection_exists(self.collection_name):
             info = self._client.get_collection(self.collection_name)
@@ -296,5 +274,5 @@ def drop_collection_if_exists(*, path: str, collection_name: str) -> bool:
         finally:
             client.close()
     except Exception:
-        print(f"[qdrant] drop_collection '{collection_name}' skipped (service unavailable)", flush=True)
+        logger.warning("qdrant drop_collection '%s' skipped (service unavailable)", collection_name)
         return False

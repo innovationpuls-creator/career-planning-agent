@@ -9,15 +9,10 @@ from app.models.job_posting import JobPosting
 from app.schemas.job_posting import JobPostingItem, JobPostingListResponse
 from app.schemas.job_requirement_vertical import IndustryOptionsResponse, JobTitleOptionsResponse
 from app.services.job_requirement_vertical import list_industry_options, list_job_title_options
+from app.utils.query import clean_multi_values
 
 
 router = APIRouter(prefix="/api/job-postings", tags=["job-postings"])
-
-
-def _clean_multi_values(values: list[str] | None) -> list[str]:
-    if not values:
-        return []
-    return [value.strip() for value in values if value and value.strip()]
 
 
 @router.get("/job-titles", response_model=JobTitleOptionsResponse)
@@ -49,8 +44,8 @@ def list_job_postings(
     _: User = Depends(require_admin_user),
 ) -> JobPostingListResponse:
     filters = []
-    industries = _clean_multi_values(industry)
-    job_titles = _clean_multi_values(job_title)
+    industries = clean_multi_values(industry)
+    job_titles = clean_multi_values(job_title)
 
     if industries:
         filters.append(or_(*[JobPosting.industry == value for value in industries]))

@@ -1,44 +1,45 @@
 import type { ProLayoutProps } from '@ant-design/pro-components';
+import { claudeColors, claudeRadius } from '../src/styles/claude-tokens';
 
-/** 设计 token — 完整定义，支撑全局样式系统 */
+/** 设计 token — Claude warm palette */
 const designToken = {
-  // === 主色 ===
-  colorPrimary: '#1655CC',
-  colorPrimaryHover: '#2966D4',
-  colorPrimaryActive: '#0F4299',
-  colorPrimaryBg: '#EEF3FB',
-  colorPrimaryBgHover: '#E0E9F6',
+  // === 主色 (Terracotta) ===
+  colorPrimary: claudeColors.terracotta,
+  colorPrimaryHover: claudeColors.primaryHover,
+  colorPrimaryActive: claudeColors.primaryActive,
+  colorPrimaryBg: claudeColors.primaryBg,
+  colorPrimaryBgHover: '#f3e5db',
 
   // === 功能色 ===
-  colorSuccess: '#1F8E3D',
-  colorSuccessBg: '#EDF7F0',
-  colorSuccessBorder: '#A3D4AE',
+  colorSuccess: claudeColors.success,
+  colorSuccessBg: '#eef5ec',
+  colorSuccessBorder: '#b8d4b0',
 
-  colorWarning: '#B07800',
+  colorWarning: claudeColors.warning,
   colorWarningBg: '#FDF6E3',
   colorWarningBorder: '#F0C850',
 
-  colorError: '#C53B37',
-  colorErrorBg: '#FDF0EF',
-  colorErrorBorder: '#F0A8A5',
+  colorError: claudeColors.error,
+  colorErrorBg: '#faeaea',
+  colorErrorBorder: '#d9a0a0',
 
-  colorInfo: '#1655CC',
-  colorInfoBg: '#EEF3FB',
-  colorInfoBorder: '#BDD0F0',
+  colorInfo: claudeColors.terracotta,
+  colorInfoBg: claudeColors.primaryBg,
+  colorInfoBorder: '#e8c8b8',
 
-  // === 中性色 ===
-  colorText: '#1C1C1E',
-  colorTextSecondary: '#5C5C5E',
-  colorTextTertiary: '#98989D',
-  colorTextQuaternary: '#C5C5C8',
+  // === 中性色 (Claude warm grays) ===
+  colorText: claudeColors.nearBlack,
+  colorTextSecondary: claudeColors.oliveGray,
+  colorTextTertiary: claudeColors.stoneGray,
+  colorTextQuaternary: claudeColors.warmSilver,
 
-  colorBorder: '#E3E3E5',
-  colorBorderSecondary: '#EDEDEF',
+  colorBorder: claudeColors.borderCream,
+  colorBorderSecondary: claudeColors.parchment,
   colorBgBase: '#FFFFFF',
-  colorBgContainer: '#FFFFFF',
-  colorBgElevated: '#FFFFFF',
-  colorBgLayout: '#F5F6F8',
-  colorBgSpotlight: '#FAFAFA',
+  colorBgContainer: claudeColors.ivory,
+  colorBgElevated: claudeColors.ivory,
+  colorBgLayout: claudeColors.parchment,
+  colorBgSpotlight: claudeColors.parchment,
 
   // === 字号层级 ===
   fontSize: 14,
@@ -60,10 +61,10 @@ const designToken = {
 
   // === 字体栈 ===
   fontFamily:
-    '-apple-system, BlinkMacSystemFont, "PingFang SC", "HarmanOS Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
+    '-apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif',
   fontFamilyCode: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
   fontFamilyHeading:
-    '"STSongti SC", "SimSun", "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif',
+    '"STSongti SC", "SimSun", "Songti SC", "Noto Serif SC", Georgia, serif',
 
   // === 行高 ===
   lineHeight: 1.6,
@@ -83,20 +84,20 @@ const designToken = {
   marginXS: 8,
   marginXXS: 4,
 
-  // === 圆角 ===
-  borderRadius: 6,
-  borderRadiusSM: 4,
-  borderRadiusLG: 8,
+  // === 圆角 (Claude scale) ===
+  borderRadius: claudeRadius.md,
+  borderRadiusSM: claudeRadius.sm,
+  borderRadiusLG: claudeRadius.lg,
   borderRadiusXS: 2,
-  borderRadiusOuter: 4,
+  borderRadiusOuter: claudeRadius.sm,
 
-  // === 阴影 ===
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  // === 阴影 (Claude warm shadows) ===
+  boxShadow: 'rgba(0, 0, 0, 0.05) 0px 4px 24px',
   boxShadowSecondary: '0 1px 2px rgba(0, 0, 0, 0.06)',
 
-  // === Auth 页专属渐变 ===
+  // === Auth 页专属渐变 (Parchment) ===
   authLeftGradient:
-    'linear-gradient(160deg, #0F2060 0%, #1A3A8F 50%, #0F4299 100%)',
+    'linear-gradient(160deg, #f5f4ed 0%, #ece9df 50%, #e8e6dc 100%)',
 
   // === 控制尺寸 ===
   controlHeight: 36,
@@ -110,18 +111,18 @@ const designToken = {
   menuItemBorderRadius: 0,
   menuIconMarginInline: 8,
   menuIconSize: 14,
-  // Selected / active
-  menuItemSelectedColor: '#1655CC',
-  menuItemSelectedBg: '#EEF3FB',
+  // Selected / active (Terracotta)
+  menuItemSelectedColor: claudeColors.terracotta,
+  menuItemSelectedBg: claudeColors.primaryBg,
   // Hover
-  menuItemHoverColor: '#1C1C1E',
-  menuItemHoverBg: '#FAFAFA',
+  menuItemHoverColor: claudeColors.nearBlack,
+  menuItemHoverBg: claudeColors.parchment,
   // General
-  menuItemColor: '#5C5C5E',
-  menuBg: '#FFFFFF',
-  menuSubMenuItemBg: '#FFFFFF',
+  menuItemColor: claudeColors.oliveGray,
+  menuBg: claudeColors.ivory,
+  menuSubMenuItemBg: claudeColors.ivory,
   menuDarkItemSelectedColor: '#FFFFFF',
-  menuDarkItemSelectedBg: '#1655CC',
+  menuDarkItemSelectedBg: claudeColors.terracotta,
   menuDarkItemHoverBg: 'rgba(255,255,255,0.1)',
   // Collapsed sider
   menuCollapsedWidth: 80,
@@ -133,16 +134,16 @@ const settings: ProLayoutProps & {
   logo?: string;
 } = {
   navTheme: 'light',
-  colorPrimary: '#1655CC',
+  colorPrimary: claudeColors.terracotta,
   layout: 'top',
-  contentWidth: 'Fluid',
+  contentWidth: 'Fixed',
   fixedHeader: true,
   fixSiderbar: true,
   splitMenus: false,
   colorWeak: false,
   title: '大学生职业规划智能体',
   pwa: true,
-  logo: 'https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg',
+  logo: '/images/logo/brand-logo.png',
   iconfontUrl: '',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   token: designToken as any,

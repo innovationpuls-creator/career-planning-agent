@@ -120,7 +120,7 @@ export type MessageStatus = 'completed' | 'streaming' | 'error';
 export type MessageKind = 'chat' | 'status' | 'result';
 export type WorkspaceStage = 'empty' | 'view' | 'edit';
 export type WorkspaceViewState = 'empty' | 'parsing' | 'completed' | 'edit';
-export type ResultTabKey = 'result' | 'comparison' | 'advice';
+export type ResultTabKey = 'result' | 'advice' | 'keyword';
 export type JobProfileDimensions = Record<ProfileKey, string[]>;
 
 export type RuntimeField = {

@@ -42,6 +42,18 @@ const DEFAULT_VALUE = '无明确要求';
 
 const textFallback = (value?: string | null) => value || '暂无原文';
 
+const adminTagStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-primary-bg)',
+  borderColor: 'var(--color-primary)',
+  color: 'var(--color-primary)',
+};
+
+const adminMutedTagStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-bg-spotlight)',
+  borderColor: 'var(--color-border)',
+  color: 'var(--color-text-secondary)',
+};
+
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object') {
     return (
@@ -65,7 +77,7 @@ const renderDimensionValues = (value?: string[]) => {
   return (
     <Space wrap size={[8, 8]}>
       {value?.map((item) => (
-        <Tag color="blue" key={item}>
+        <Tag key={item} style={adminTagStyle}>
           {item}
         </Tag>
       ))}
@@ -124,7 +136,7 @@ const JobRequirementComparisonsPage: React.FC = () => {
         options: INDUSTRY_OPTIONS,
         placeholder: '请选择行业',
       },
-      render: (_, record) => <Tag color="blue">{record.industry}</Tag>,
+      render: (_, record) => <Tag style={adminTagStyle}>{record.industry}</Tag>,
     },
     {
       title: '公司',
@@ -136,7 +148,9 @@ const JobRequirementComparisonsPage: React.FC = () => {
       dataIndex: 'job_detail_count',
       search: false,
       width: 120,
-      render: (_, record) => <Tag color="cyan">{record.job_detail_count} 条</Tag>,
+      render: (_, record) => (
+        <Tag style={adminMutedTagStyle}>{record.job_detail_count} 条</Tag>
+      ),
     },
     {
       title: '已提取维度',
@@ -240,7 +254,11 @@ const JobRequirementComparisonsPage: React.FC = () => {
               <Card
                 size="small"
                 title={`${currentDetail.industry} / ${currentDetail.job_title} / ${currentDetail.company_name}`}
-                extra={<Tag color="cyan">{currentDetail.job_detail_count} 条原文</Tag>}
+                extra={
+                  <Tag style={adminMutedTagStyle}>
+                    {currentDetail.job_detail_count} 条原文
+                  </Tag>
+                }
               >
                 <Typography.Title level={5}>合并后的岗位原文</Typography.Title>
                 <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>

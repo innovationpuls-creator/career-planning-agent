@@ -39,7 +39,7 @@ def test_get_job_requirement_graph_returns_expected_nodes_edges_and_meta():
     assert any(node["title"] == "分析解决问题能力" for node in payload["data"]["nodes"])
     assert any(edge["type"] == "HAS_GROUP" for edge in payload["data"]["edges"])
     assert any(edge["type"] == "HAS_DIMENSION" for edge in payload["data"]["edges"])
-    assert payload["data"]["meta"]["graph_version"] == "2.1.0"
+    assert payload["data"]["meta"]["graph_version"] == "2.2.0"
 
     app.dependency_overrides.clear()
 
@@ -105,13 +105,28 @@ def test_build_graph_payload_from_profiles_aggregates_keywords_and_coverage():
     assert professional_skills["profile_count"] == 2
     assert professional_skills["non_default_count"] == 2
     assert professional_skills["coverage_ratio"] == 1.0
+    assert professional_skills["company_detail_query"] == {
+        "job_title": "Java",
+        "industry": "互联网",
+        "company_name": "甲公司",
+    }
 
     professional_background = next(
         node for node in payload["nodes"] if node["id"] == "professional_background"
     )
     assert professional_background["non_default_count"] == 1
     assert professional_background["coverage_ratio"] == 0.5
+    assert professional_background["company_detail_query"] == {
+        "job_title": "Java",
+        "industry": "互联网",
+        "company_name": "甲公司",
+    }
 
     root_node = payload["nodes"][0]
     assert root_node["title"] == "岗位要求画像"
     assert root_node["keywords"][0] == "Java"
+    assert root_node["company_detail_query"] == {
+        "job_title": "Java",
+        "industry": "互联网",
+        "company_name": "甲公司",
+    }

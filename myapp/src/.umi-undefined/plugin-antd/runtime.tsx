@@ -9,7 +9,7 @@ import {
 import { ApplyPluginsType } from 'umi';
 import { getPluginManager } from '../core/plugin';
 import { AntdConfigContext, AntdConfigContextSetter } from './context';
-import merge from 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/lodash/merge'
+import merge from '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/lodash/merge'
 
 let cacheAntdConfig = null;
 
@@ -19,7 +19,7 @@ const getAntdConfig = () => {
       key: 'antd',
       type: ApplyPluginsType.modify,
       initialValue: {
-        ...{"theme":{"cssVar":true,"token":{"fontFamily":"AlibabaSans, sans-serif"}}},
+        ...{"theme":{"cssVar":true,"token":{"fontFamily":"-apple-system, BlinkMacSystemFont, \"PingFang SC\", \"HarmanOS Sans SC\", \"Microsoft YaHei\", \"Helvetica Neue\", Arial, sans-serif","fontFamilyCode":"'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace","fontFamilyHeading":"\"STSongti SC\", \"SimSun\", \"Songti SC\", \"Noto Serif SC\", \"Source Han Serif SC\", serif"}}},
         appConfig: {},
       },
     });

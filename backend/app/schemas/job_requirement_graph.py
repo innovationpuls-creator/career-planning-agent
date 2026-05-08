@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 
 
+class JobRequirementCompanyDetailQuery(BaseModel):
+    job_title: str
+    industry: str
+    company_name: str
+
+
 class JobRequirementGraphNode(BaseModel):
     id: str
     type: str
@@ -12,6 +18,7 @@ class JobRequirementGraphNode(BaseModel):
     non_default_count: int = 0
     coverage_ratio: float = 0
     group_key: str | None = None
+    company_detail_query: JobRequirementCompanyDetailQuery | None = None
 
 
 class JobRequirementGraphEdge(BaseModel):

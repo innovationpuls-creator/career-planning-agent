@@ -52,6 +52,8 @@ def test_get_vertical_job_profile_defaults_to_all_available_industries():
     assert "addresses" in first_company
     assert "company_sizes" in first_company
     assert "company_types" in first_company
+    assert "dimension_comparison" in payload["data"]
+    assert isinstance(payload["data"]["dimension_comparison"], list)
 
 
 def test_get_vertical_job_profile_filters_by_selected_industries():

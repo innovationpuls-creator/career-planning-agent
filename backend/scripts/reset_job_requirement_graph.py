@@ -10,7 +10,7 @@ def main() -> None:
         database=settings.neo4j_database,
     )
     try:
-        service.reset_graph()
+        service.ensure_graph_synced()
     finally:
         service.close()
 

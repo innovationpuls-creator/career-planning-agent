@@ -3,16 +3,16 @@
 // DO NOT CHANGE IT MANUALLY!
 import React, { useEffect, useState } from 'react';
 import { ApplyPluginsType } from 'umi';
-import { renderClient, RenderClientOpts } from 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/@umijs/renderer-react';
+import { renderClient, RenderClientOpts } from '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/@umijs/renderer-react';
 import { createHistory } from './core/history';
 import { createPluginManager } from './core/plugin';
 import { getRoutes } from './core/route';
 import type { Location } from 'history';
 
-import Loading from 'C:/Users/yzh/Desktop/feature_map_text/myapp/src/loading.tsx';
+import Loading from '/Users/torch/torch/opt/career-planning-agent/myapp/src/loading.tsx';
 
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/src/global.less';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/src/global.tsx';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/src/global.less';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/src/global.tsx';
 import 'antd/dist/reset.css';
 const publicPath = '/';
 const runtimePublicPath = false;

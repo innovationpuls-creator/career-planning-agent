@@ -3,7 +3,7 @@
 import {
   IntlCache,
   createIntl,
-} from 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/react-intl';
+} from '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/react-intl';
 type OptionalIntlConfig = Omit<Parameters<typeof createIntl>[0], 'locale' | 'defaultLocale'>;
 export interface IRuntimeConfig {
     locale?: {

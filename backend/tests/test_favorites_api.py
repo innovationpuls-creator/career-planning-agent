@@ -69,68 +69,6 @@ def _seed_profile_and_analysis(user_id: int) -> None:
         db.commit()
 
 
-def _seed_report_cache(user_id: int, report_id: str) -> None:
-    """Seed a match report into the cache so it can be looked up by report_id."""
-    from app.models.career_match_report_cache import CareerMatchReportCache
-    import json
-
-    CareerMatchReportCache.__table__.create(bind=engine, checkfirst=True)
-
-    report = CareerDevelopmentMatchReport(
-        report_id=report_id,
-        target_scope="career",
-        target_title="后端开发工程师",
-        canonical_job_title="后端开发工程师",
-        representative_job_title="后端开发",
-        industry="互联网",
-        overall_match=82,
-        strength_dimension_count=1,
-        priority_gap_dimension_count=1,
-        group_summaries=[
-            CareerDevelopmentMatchGroupSummary(
-                group_key="execution",
-                label="执行力",
-                match_score=82,
-                target_requirement=88,
-                gap=6,
-                status_label="中等差距",
-                dimension_keys=["communication"],
-            )
-        ],
-        comparison_dimensions=[
-            StudentCompetencyComparisonDimensionItem(
-                key="communication",
-                title="沟通能力",
-                user_values=["团队协作"],
-                market_keywords=["跨团队沟通", "文档撰写"],
-                market_weight=0.8,
-                normalized_weight=0.8,
-                market_target=78,
-                user_readiness=62,
-                gap=16,
-                presence=1,
-                richness=0.7,
-                status_label="中等差距",
-                matched_market_keywords=["团队协作"],
-                missing_market_keywords=["跨团队沟通"],
-                coverage_score=0.65,
-                alignment_score=0.6,
-            )
-        ],
-        priority_gap_dimensions=["communication"],
-        action_advices=[],
-    )
-    with SessionLocal() as db:
-        db.add(
-            CareerMatchReportCache(
-                user_id=user_id,
-                report_id=report_id,
-                report_json=json.dumps(report.model_dump(mode="json"), ensure_ascii=False),
-            )
-        )
-        db.commit()
-
-
 # ─────────────────────────────────────────────────────────────
 # Tests: Create favorite with report_id (simplified API)
 # ─────────────────────────────────────────────────────────────
@@ -144,7 +82,6 @@ def test_create_favorite_with_report_id_only():
     _seed_profile_and_analysis(user_id)
 
     report_id = f"career:backend-dev-{uuid4()}"
-    _seed_report_cache(user_id, report_id)
 
     report = CareerDevelopmentMatchReport(
         report_id=report_id,

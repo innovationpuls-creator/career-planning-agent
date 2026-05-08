@@ -4,15 +4,15 @@
 import React from 'react';
 import { ConfigProvider } from 'antd';
 
-import moment from 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/bn-bd';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/en';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/fa';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/id';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/ja';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/pt-br';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/zh-cn';
-import 'C:/Users/yzh/Desktop/feature_map_text/myapp/node_modules/dayjs/locale/zh-tw';
+import moment from '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/bn-bd';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/en';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/fa';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/id';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/ja';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/pt-br';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/zh-cn';
+import '/Users/torch/torch/opt/career-planning-agent/myapp/node_modules/dayjs/locale/zh-tw';
 import { RawIntlProvider, getLocale, getDirection , setIntl, getIntl, localeInfo, event, LANG_CHANGE_EVENT } from './localeExports';
 
 

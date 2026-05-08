@@ -11,7 +11,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { createStyles } from 'antd-style';
 import * as React from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import RichTextToolbar from './RichTextToolbar';
 
 type RichTextEditorProps = {
@@ -239,7 +239,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   readonly = false,
 }) => {
   const { styles, cx } = useStyles();
-  const isInternalUpdateRef = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -257,7 +256,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     editable: !readonly,
     onUpdate: useCallback(
       ({ editor: ed }: { editor: Editor }) => {
-        isInternalUpdateRef.current = true;
         onChange(ed.getHTML());
       },
       [onChange],
@@ -266,10 +264,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    if (isInternalUpdateRef.current) {
-      isInternalUpdateRef.current = false;
-      return;
-    }
     const currentHTML = editor.getHTML();
     if (content !== currentHTML) {
       editor.commands.setContent(content);

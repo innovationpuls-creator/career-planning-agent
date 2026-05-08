@@ -264,11 +264,6 @@ class DifyGoalPlanningResult:
 
 
 @dataclass(slots=True)
-class DifyGoalPlanningRuntimeConfig:
-    input_variables: list[str]
-
-
-@dataclass(slots=True)
 class MarkdownHeading:
     line_index: int
     level: int

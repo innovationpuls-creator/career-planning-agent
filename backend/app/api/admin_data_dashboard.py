@@ -1,7 +1,7 @@
 import json
 import re
 
-from fastapi import Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -27,7 +27,7 @@ from app.schemas.admin_data_dashboard import (
 from app.schemas.student_competency_profile import JOB_PROFILE_FIELD_ORDER
 
 
-router = __import__("fastapi", fromlist=["APIRouter"]).APIRouter(prefix="/api/admin/data-dashboard", tags=["admin-data-dashboard"])
+router = APIRouter(prefix="/api/admin/data-dashboard", tags=["admin-data-dashboard"])
 
 
 def _parse_salary_bucket(salary_range: str | None) -> str | None:

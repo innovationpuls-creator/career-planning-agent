@@ -1,36 +1,22 @@
 import { TestBrowser } from '@@/testBrowser';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import * as React from 'react';
+import {
+  createMockLocation,
+  localStorageMock,
+  mockedCurrentUser,
+  mockedGetJobTitleOptions,
+  mockedLogin,
+  resetAllMocks,
+} from '../auth-test-utils';
 
 const { act } = React;
-
-const mockedLogin = jest.fn();
-const mockedCurrentUser = jest.fn();
-const mockedRegister = jest.fn();
-const mockedSubmitOnboardingProfile = jest.fn();
-const mockedGetJobTitleOptions = jest.fn();
-
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: jest.fn((key: string) => store[key] ?? null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-  };
-})();
 
 jest.mock('@/services/ant-design-pro/api', () => ({
   currentUser: (...args: any[]) => mockedCurrentUser(...args),
   login: (...args: any[]) => mockedLogin(...args),
-  register: (...args: any[]) => mockedRegister(...args),
-  submitOnboardingProfile: (...args: any[]) => mockedSubmitOnboardingProfile(...args),
+  register: (...args: any[]) => jest.fn()(...args),
+  submitOnboardingProfile: (...args: any[]) => jest.fn()(...args),
   getJobTitleOptions: (...args: any[]) => mockedGetJobTitleOptions(...args),
   getHomeV2: jest.fn(),
   getVerticalJobProfile: jest.fn(),
@@ -59,34 +45,24 @@ jest.mock('antd', () => {
           value: value ?? '',
           onChange: (event: any) => onChange?.(event.target.value || undefined),
         },
-        ReactLib.createElement('option', { key: 'placeholder', value: '' }, placeholder),
+        ReactLib.createElement(
+          'option',
+          { key: 'placeholder', value: '' },
+          placeholder,
+        ),
         ...options.map((option: any) =>
-          ReactLib.createElement('option', { key: option.value, value: option.value }, option.label),
+          ReactLib.createElement(
+            'option',
+            { key: option.value, value: option.value },
+            option.label,
+          ),
         ),
       ),
   };
 });
 
-const createMockLocation = (href: string) => {
-  const url = new URL(href);
-  return {
-    href,
-    pathname: url.pathname,
-    search: url.search,
-    hash: url.hash,
-    origin: url.origin,
-    protocol: url.protocol,
-    host: url.host,
-    hostname: url.hostname,
-    port: url.port,
-    assign: jest.fn(),
-    replace: jest.fn(),
-    reload: jest.fn(),
-  } as unknown as Location;
-};
-
 const fillLoginForm = (
-  rootContainer: any,
+  rootContainer: { baseElement: HTMLElement },
   values: { username: string; password: string },
 ) => {
   const usernameInput = rootContainer.baseElement.querySelector(
@@ -107,16 +83,11 @@ const fillLoginForm = (
   });
 };
 
-describe('Login And Register Pages', () => {
+describe('Login Page', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
-    mockedLogin.mockReset();
-    mockedCurrentUser.mockReset();
-    mockedRegister.mockReset();
-    mockedSubmitOnboardingProfile.mockReset();
-    mockedGetJobTitleOptions.mockReset();
-    localStorageMock.clear();
+    resetAllMocks();
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
       value: localStorageMock,
@@ -145,30 +116,99 @@ describe('Login And Register Pages', () => {
     });
   });
 
-  it('should show login form', async () => {
+  // ── Layout: Claude split-screen ────────────────────────────
+
+  it('should render split-screen layout with left brand panel and right form panel', async () => {
     const historyRef = React.createRef<any>();
     const rootContainer = render(
       <TestBrowser
         historyRef={historyRef}
-        location={{
-          pathname: '/user/login',
-        }}
+        location={{ pathname: '/user/login' }}
       />,
     );
 
     await rootContainer.findByTestId('login-form-card');
-    expect(rootContainer.getByTestId('register-account-link')).toBeTruthy();
+
+    const authRoot = rootContainer.baseElement.querySelector('.auth-root');
+    expect(authRoot).not.toBeNull();
+
+    const leftPanel = rootContainer.baseElement.querySelector('.auth-left');
+    const rightPanel = rootContainer.baseElement.querySelector('.auth-right');
+    expect(leftPanel).not.toBeNull();
+    expect(rightPanel).not.toBeNull();
+
     rootContainer.unmount();
   });
+
+  it('should display serif title in the left brand panel', async () => {
+    const historyRef = React.createRef<any>();
+    const rootContainer = render(
+      <TestBrowser
+        historyRef={historyRef}
+        location={{ pathname: '/user/login' }}
+      />,
+    );
+
+    await rootContainer.findByTestId('login-form-card');
+
+    const title = rootContainer.getByText('大学生职业规划智能体');
+    expect(title).toBeTruthy();
+
+    const computedStyle = window.getComputedStyle(title);
+    expect(computedStyle.fontFamily).toMatch(/serif|STSongti|Georgia/i);
+
+    rootContainer.unmount();
+  });
+
+  it('should show product features in the left panel', async () => {
+    const historyRef = React.createRef<any>();
+    const rootContainer = render(
+      <TestBrowser
+        historyRef={historyRef}
+        location={{ pathname: '/user/login' }}
+      />,
+    );
+
+    await rootContainer.findByTestId('login-form-card');
+
+    expect(rootContainer.getByText('智能职业规划与路径推荐')).toBeTruthy();
+    expect(rootContainer.getByText('个性化成长报告生成')).toBeTruthy();
+    expect(rootContainer.getByText('岗位能力图谱与对比分析')).toBeTruthy();
+
+    rootContainer.unmount();
+  });
+
+  // ── Claude component integration ──────────────────────────
+
+  it('should render login form with form fields', async () => {
+    const historyRef = React.createRef<any>();
+    const rootContainer = render(
+      <TestBrowser
+        historyRef={historyRef}
+        location={{ pathname: '/user/login' }}
+      />,
+    );
+
+    await rootContainer.findByTestId('login-form-card');
+
+    expect(rootContainer.getByTestId('register-account-link')).toBeTruthy();
+
+    const usernameInput = rootContainer.baseElement.querySelector('#username');
+    const passwordInput = rootContainer.baseElement.querySelector('#password');
+    expect(usernameInput).not.toBeNull();
+    expect(passwordInput).not.toBeNull();
+
+    rootContainer.unmount();
+  });
+
+  // ── Preserved functionality ────────────────────────────────
 
   it('should navigate to register page when clicking register link', async () => {
     const historyRef = React.createRef<any>();
     const rootContainer = render(
       <TestBrowser
         historyRef={historyRef}
-        location={{
-          pathname: '/user/login',
-        }}
+        location={{ pathname: '/user/login' }}
       />,
     );
 
@@ -196,7 +236,10 @@ describe('Login And Register Pages', () => {
 
     const historyRef = React.createRef<any>();
     const rootContainer = render(
-      <TestBrowser historyRef={historyRef} location={{ pathname: '/user/login' }} />,
+      <TestBrowser
+        historyRef={historyRef}
+        location={{ pathname: '/user/login' }}
+      />,
     );
 
     await rootContainer.findByTestId('login-form-card');
@@ -207,7 +250,9 @@ describe('Login And Register Pages', () => {
     });
 
     await waitFor(() => {
-      expect(historyRef.current?.location?.pathname).toBe('/admin/job-postings');
+      expect(historyRef.current?.location?.pathname).toBe(
+        '/admin/job-postings',
+      );
     });
 
     rootContainer.unmount();
@@ -232,11 +277,17 @@ describe('Login And Register Pages', () => {
 
     const historyRef = React.createRef<any>();
     const rootContainer = render(
-      <TestBrowser historyRef={historyRef} location={{ pathname: '/user/login' }} />,
+      <TestBrowser
+        historyRef={historyRef}
+        location={{ pathname: '/user/login' }}
+      />,
     );
 
     await rootContainer.findByTestId('login-form-card');
-    fillLoginForm(rootContainer, { username: 'user-demo', password: 'user-password' });
+    fillLoginForm(rootContainer, {
+      username: 'user-demo',
+      password: 'user-password',
+    });
 
     await act(async () => {
       fireEvent.click(await rootContainer.findByText('Login'));
@@ -249,90 +300,23 @@ describe('Login And Register Pages', () => {
     rootContainer.unmount();
   });
 
-  it('should register with multi-step form and redirect to home v2', async () => {
-    mockedRegister.mockResolvedValue({
-      status: 'ok',
-      currentAuthority: 'user',
-      success: true,
-    });
-    mockedLogin.mockResolvedValue({
-      success: true,
-      status: 'ok',
-      currentAuthority: 'user',
-      token: 'user-access-token',
-    });
-    mockedSubmitOnboardingProfile.mockResolvedValue({
-      success: true,
-      data: {
-        onboarding_completed: true,
-        profile: {
-          full_name: '张三',
-          school: '测试大学',
-          major: '计算机',
-          education_level: '本科',
-          grade: '大三',
-          target_job_title: 'Java',
-        },
-        attachments: [],
-        vertical_profile: null,
-      },
-    });
-
+  it('should show remember me checkbox and forgot password link', async () => {
     const historyRef = React.createRef<any>();
     const rootContainer = render(
-      <TestBrowser historyRef={historyRef} location={{ pathname: '/user/register' }} />,
+      <TestBrowser
+        historyRef={historyRef}
+        location={{ pathname: '/user/login' }}
+      />,
     );
 
-    await rootContainer.findByTestId('register-page-title');
+    await rootContainer.findByTestId('login-form-card');
 
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入用户名'), {
-      target: { value: 'fresh-user' },
-    });
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入密码'), {
-      target: { value: 'ant.design' },
-    });
-    fireEvent.click(rootContainer.getByRole('button', { name: '下一步' }));
+    const checkbox = rootContainer.baseElement.querySelector(
+      '.ant-checkbox-wrapper',
+    );
+    expect(checkbox).not.toBeNull();
 
-    await waitFor(() => {
-      expect(rootContainer.getByPlaceholderText('请输入姓名')).toBeTruthy();
-    });
-
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入姓名'), {
-      target: { value: '张三' },
-    });
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入学校'), {
-      target: { value: '测试大学' },
-    });
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入专业'), {
-      target: { value: '计算机' },
-    });
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入学历'), {
-      target: { value: '本科' },
-    });
-    fireEvent.change(rootContainer.getByPlaceholderText('请输入年级'), {
-      target: { value: '大三' },
-    });
-    fireEvent.change(rootContainer.getByTestId('target_job_title'), {
-      target: { value: 'Java' },
-    });
-    fireEvent.click(rootContainer.getByRole('button', { name: '下一步' }));
-
-    await waitFor(() => {
-      expect(rootContainer.getByRole('button', { name: '完成注册' })).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.click(rootContainer.getByRole('button', { name: '完成注册' }));
-    });
-
-    await waitFor(() => {
-      expect(mockedRegister).toHaveBeenCalledWith({
-        username: 'fresh-user',
-        password: 'ant.design',
-      });
-      expect(mockedSubmitOnboardingProfile).toHaveBeenCalled();
-      expect(historyRef.current?.location?.pathname).toBe('/home-v2');
-    });
+    expect(rootContainer.getByTestId('forgot-password-link')).toBeTruthy();
 
     rootContainer.unmount();
   });

@@ -308,6 +308,27 @@ export const createPersonalGrowthReportTemplate = (
   ]);
 };
 
+export const createPersonalGrowthSectionTemplate = (
+  key: PersonalGrowthSectionKey,
+) => {
+  if (key === 'action_plan') {
+    return [
+      '### 短期行动（0-3个月）',
+      '- ',
+      '',
+      '### 中期行动（3-9个月）',
+      '- ',
+      '',
+      '### 长期行动（9-24个月）',
+      '- ',
+    ]
+      .join('\n')
+      .trim();
+  }
+
+  return PERSONAL_GROWTH_SECTION_META[key].placeholder;
+};
+
 const parseUtcLikeDate = (value?: string) => {
   if (!value) return undefined;
   const normalized = /(?:z|[+-]\d{2}:\d{2})$/i.test(value.trim())

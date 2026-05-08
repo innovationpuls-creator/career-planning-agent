@@ -269,7 +269,8 @@ docker compose exec -e PYTHONPATH=/app backend python scripts/generate_missing_l
 ```
 
 > 说明：
-> - 这个脚本调用 LLM 生成「Java」「前端工程师」等岗位专用的学习资源，替代通用模板
+> - 这个脚本调用 LLM 生成「前端工程师」「软件工程师」等岗位专用的学习资源，替代通用模板
+> - 当前标准岗位：`前端工程师`、`实施工程师`、`技术支持工程师`、`测试工程师`、`软件工程师`（定义于 `backend/app/services/snail_learning_resource_library.py` 的 `SUPPORTED_JOB_TITLES`）
 > - 不加参数生成**全部**岗位 × 全部维度
 > - 脚本会对每个维度只调用一次 LLM，一次性输出三个阶段的推荐，从源头避免短/中/长期内容重复
 > - 不配 LLM 也能用，通用模板已经够基础功能运行

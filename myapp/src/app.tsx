@@ -2,19 +2,39 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history } from '@umijs/max';
-import { Button, Result, Spin } from 'antd';
+import { Button, ConfigProvider, Result, Spin } from 'antd';
 import React from 'react';
-import { AvatarDropdown, AvatarName, SelectLang } from '@/components';
+import AppHeader from '@/components/AppHeader';
+import { PageRouteTransition } from '@/components/ui';
 import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
 import { serializeRequestParams } from '@/utils/requestParams';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
+import {
+  claudeColors,
+  claudeFonts,
+  claudeRadius,
+} from './styles/claude-tokens';
 import '@ant-design/v5-patch-for-react-19';
 
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 const userDefaultPath = '/home-v2';
 const publicPaths = [loginPath, '/user/register', '/user/register-result'];
+
+function wrapLayoutFalseRoutes(routes: any[] = []) {
+  routes.forEach((route) => {
+    if (route.layout === false && route.element) {
+      const element = route.element;
+      route.element = <PageRouteTransition>{element}</PageRouteTransition>;
+    }
+    wrapLayoutFalseRoutes(route.children ?? route.routes);
+  });
+}
+
+export function patchClientRoutes({ routes }: { routes: any[] }) {
+  wrapLayoutFalseRoutes(routes);
+}
 
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
@@ -63,16 +83,14 @@ export const layout: RunTimeLayoutConfig = ({
   const shouldShowWatermark = location.pathname.startsWith('/admin');
   const isLoggedIn = !!initialState?.currentUser;
   const isAdmin = initialState?.currentUser?.access === 'admin';
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   return {
-    actionsRender: () => [<SelectLang key="SelectLang" />],
-    avatarProps: {
-      src: initialState?.currentUser?.avatar,
-      title: <AvatarName />,
-      render: (_, avatarChildren) => {
-        return <AvatarDropdown menu>{avatarChildren}</AvatarDropdown>;
-      },
-    },
+    ...initialState?.settings,
+    headerRender: (props) => <AppHeader {...props} />,
+    pageHeaderRender: false,
+    fixSiderbar: !isAdminRoute,
+    siderMenuType: isAdminRoute ? 'group' : 'sub',
     waterMarkProps: shouldShowWatermark
       ? {
           content: initialState?.currentUser?.name,
@@ -120,14 +138,32 @@ export const layout: RunTimeLayoutConfig = ({
     ),
     bgLayoutImgList: [],
     links: [],
-    menuHeaderRender: undefined,
     childrenRender: (children) => {
       if (initialState?.loading) {
         return <Spin fullscreen tip="正在加载页面..." />;
       }
       return (
-        <>
-          {children}
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: claudeColors.terracotta,
+              colorPrimaryHover: claudeColors.primaryHover,
+              colorPrimaryActive: claudeColors.primaryActive,
+              colorPrimaryBg: claudeColors.primaryBg,
+              colorText: claudeColors.nearBlack,
+              colorTextSecondary: claudeColors.oliveGray,
+              colorTextTertiary: claudeColors.stoneGray,
+              colorBorder: claudeColors.borderCream,
+              colorBgLayout: claudeColors.parchment,
+              colorBgContainer: claudeColors.ivory,
+              colorSuccess: claudeColors.success,
+              colorError: claudeColors.error,
+              borderRadius: claudeRadius.md,
+              fontFamily: claudeFonts.body,
+            },
+          }}
+        >
+          <PageRouteTransition>{children}</PageRouteTransition>
           {isDev && (
             <SettingDrawer
               disableUrlParams
@@ -141,13 +177,12 @@ export const layout: RunTimeLayoutConfig = ({
               }}
             />
           )}
-        </>
+        </ConfigProvider>
       );
     },
     menu: {
       defaultOpenAll: false,
     },
-    ...initialState?.settings,
   };
 };
 

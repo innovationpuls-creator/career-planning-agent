@@ -1,14 +1,16 @@
+import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getCareerDevelopmentPlanWorkspace,
   getHomeV2,
   getPersonalGrowthReportWorkspace,
   getStudentCompetencyLatestAnalysis,
+  regeneratePersonalGrowthReport,
   updatePersonalGrowthReportWorkspace,
 } from '@/services/ant-design-pro/api';
 import {
   clearPersonalGrowthDraft,
-  createPersonalGrowthReportTemplate,
+  createPersonalGrowthSectionTemplate,
   htmlToMarkdown,
   markdownToHtml,
   normalizeReportMarkdown,
@@ -32,7 +34,7 @@ const emptyLatestAnalysis: API.StudentCompetencyLatestAnalysisPayload = {
   action_advices: [],
 };
 
-const NULL_SECTION_HTML_MAP: Record<PersonalGrowthSectionKey, string> = {
+const emptyHtmlMap: Record<PersonalGrowthSectionKey, string> = {
   self_cognition: '',
   career_direction_analysis: '',
   match_assessment: '',
@@ -43,42 +45,50 @@ const NULL_SECTION_HTML_MAP: Record<PersonalGrowthSectionKey, string> = {
 const getRequestErrorMessage = (error: any, fallback: string) =>
   error?.response?.data?.detail || error?.message || fallback;
 
-type UseReportWorkspaceOptions = {
-  favoriteId?: number;
+const isNotFoundError = (error: any) =>
+  error?.response?.status === 404 || String(error?.message || '').includes('404');
+
+const normalizeSections = (
+  sections?: API.PersonalGrowthReportSection[],
+): PersonalGrowthSection[] => {
+  const byKey = new Map((sections || []).map((section) => [section.key, section]));
+  return PERSONAL_GROWTH_SECTION_ORDER.map((key) => {
+    const section = byKey.get(key);
+    const content = section?.content || '';
+    return {
+      key,
+      title: section?.title || PERSONAL_GROWTH_SECTION_META[key].title,
+      content,
+      completed: Boolean(content.trim()),
+    };
+  });
 };
 
-function buildSectionHtmlMap(
+const sectionsToHtmlMap = (
   sections?: API.PersonalGrowthReportSection[],
-): Record<PersonalGrowthSectionKey, string> {
-  const map = { ...NULL_SECTION_HTML_MAP };
-  if (!sections?.length) return map;
-  for (const s of sections) {
-    const key = s.key as PersonalGrowthSectionKey;
-    if (key in map) {
-      map[key] = markdownToHtml(s.content || '');
-    }
-  }
+): Record<PersonalGrowthSectionKey, string> => {
+  const map = { ...emptyHtmlMap };
+  normalizeSections(sections).forEach((section) => {
+    map[section.key] = markdownToHtml(section.content || '');
+  });
   return map;
-}
+};
 
-function sectionHtmlMapToMarkdown(
-  htmlMap: Record<PersonalGrowthSectionKey, string>,
-): string {
-  const blocks: string[] = ['# 个人职业成长报告'];
+const htmlMapToMarkdown = (htmlMap: Record<PersonalGrowthSectionKey, string>) => {
+  const blocks = ['# 个人职业成长报告'];
   PERSONAL_GROWTH_SECTION_ORDER.forEach((key) => {
-    const html = htmlMap[key]?.trim();
-    if (!html) return;
-    const md = htmlToMarkdown(html);
-    if (!md) return;
-    blocks.push(`## ${PERSONAL_GROWTH_SECTION_META[key].title}\n${md}`);
+    const markdown = htmlToMarkdown(htmlMap[key] || '').trim();
+    if (markdown) {
+      blocks.push(`## ${PERSONAL_GROWTH_SECTION_META[key].title}\n${markdown}`);
+    }
   });
   return blocks.join('\n\n').trim();
-}
+};
 
-function sectionHtmlMapToBackendSections(
+const htmlMapToBackendSections = (
   htmlMap: Record<PersonalGrowthSectionKey, string>,
-): API.PersonalGrowthReportSection[] {
-  return PERSONAL_GROWTH_SECTION_ORDER.map((key) => {
+): API.PersonalGrowthReportSection[] =>
+  PERSONAL_GROWTH_SECTION_ORDER.map((key) => {
     const content = htmlToMarkdown(htmlMap[key] || '');
     return {
       key,
@@ -87,7 +97,10 @@ function sectionHtmlMapToBackendSections(
       completed: Boolean(content.trim()),
     };
   });
-}
+
+type UseReportWorkspaceOptions = {
+  favoriteId?: number;
+};
 
 export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
   const [pageLoading, setPageLoading] = useState(false);
@@ -98,12 +111,11 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
     useState<API.PlanWorkspacePayload>();
   const [reportWorkspace, setReportWorkspace] =
     useState<API.PersonalGrowthReportPayload>();
-  const [sectionHtmlMap, setSectionHtmlMap] = useState<
-    Record<PersonalGrowthSectionKey, string>
-  >(NULL_SECTION_HTML_MAP);
+  const [sectionHtmlMap, setSectionHtmlMap] =
+    useState<Record<PersonalGrowthSectionKey, string>>(emptyHtmlMap);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [pageError, setPageError] = useState<string>();
+  const [regenerating, setRegenerating] = useState(false);
   const [actionError, setActionError] = useState<string>();
 
   const savedMarkdown = useMemo(
@@ -111,13 +123,12 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
     [reportWorkspace],
   );
 
-  const sections = useMemo<PersonalGrowthSection[]>(() => {
-    const sectionsData = reportWorkspace?.sections;
-    if (!sectionsData?.length) return [];
-    return sectionsData as PersonalGrowthSection[];
-  }, [reportWorkspace?.sections]);
+  const sections = useMemo(
+    () => normalizeSections(reportWorkspace?.sections),
+    [reportWorkspace?.sections],
+  );
 
-  const loadWorkspace = useCallback(async (targetFavoriteId: number) => {
+  const loadReportWorkspace = useCallback(async (targetFavoriteId: number) => {
     try {
       const response = await getPersonalGrowthReportWorkspace(
         targetFavoriteId,
@@ -125,8 +136,7 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
       );
       setReportWorkspace(response?.data);
     } catch (error: any) {
-      const statusCode = error?.response?.status;
-      if (statusCode === 404 || String(error?.message || '').includes('404')) {
+      if (isNotFoundError(error)) {
         setReportWorkspace(undefined);
         return;
       }
@@ -142,8 +152,7 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
       );
       setGoalWorkspace(response?.data);
     } catch (error: any) {
-      const statusCode = error?.response?.status;
-      if (statusCode === 404 || String(error?.message || '').includes('404')) {
+      if (isNotFoundError(error)) {
         setGoalWorkspace(undefined);
         return;
       }
@@ -152,22 +161,26 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
   }, []);
 
   const refreshPageData = useCallback(
-    async (targetFavoriteId?: number) => {
+    async (targetFavoriteId = favoriteId) => {
       setPageLoading(true);
       setActionError(undefined);
       try {
-        const [homeResponse, analysisResponse] = await Promise.all([
-          getHomeV2({ skipErrorHandler: true }),
-          getStudentCompetencyLatestAnalysis({ skipErrorHandler: true }),
-          targetFavoriteId
-            ? Promise.all([
-                loadGoalWorkspace(targetFavoriteId),
-                loadWorkspace(targetFavoriteId),
-              ])
-            : Promise.resolve(),
-        ]);
-        setHomePayload(homeResponse?.data);
-        setLatestAnalysis(analysisResponse?.data || emptyLatestAnalysis);
+        const requests: Promise<unknown>[] = [
+          getHomeV2({ skipErrorHandler: true }).then((response) =>
+            setHomePayload(response?.data),
+          ),
+          getStudentCompetencyLatestAnalysis({ skipErrorHandler: true }).then(
+            (response) => setLatestAnalysis(response?.data || emptyLatestAnalysis),
+          ),
+        ];
+        if (targetFavoriteId) {
+          requests.push(loadGoalWorkspace(targetFavoriteId));
+          requests.push(loadReportWorkspace(targetFavoriteId));
+        } else {
+          setGoalWorkspace(undefined);
+          setReportWorkspace(undefined);
+        }
+        await Promise.all(requests);
       } catch (error: any) {
         setActionError(
           getRequestErrorMessage(error, '个人职业成长报告数据加载失败。'),
@@ -176,52 +189,48 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
         setPageLoading(false);
       }
     },
-    [loadWorkspace, loadGoalWorkspace],
+    [favoriteId, loadGoalWorkspace, loadReportWorkspace],
   );
 
   useEffect(() => {
-    if (!favoriteId) {
-      setGoalWorkspace(undefined);
-      setReportWorkspace(undefined);
-      setSectionHtmlMap(NULL_SECTION_HTML_MAP);
-      setDirty(false);
-      void refreshPageData(undefined);
-      return;
-    }
     void refreshPageData(favoriteId);
   }, [favoriteId, refreshPageData]);
 
   useEffect(() => {
-    if (!favoriteId) return;
+    if (!favoriteId) {
+      setSectionHtmlMap(emptyHtmlMap);
+      setDirty(false);
+      return;
+    }
+
     const draft = readPersonalGrowthDraft(
       favoriteId,
       reportWorkspace?.workspace_id,
     );
     if (draft?.markdown) {
-      const parsed = parsePersonalGrowthMarkdown(draft.markdown);
-      const draftMap = { ...NULL_SECTION_HTML_MAP };
-      parsed.sections.forEach((s) => {
-        draftMap[s.key] = markdownToHtml(s.content);
+      const draftMap = { ...emptyHtmlMap };
+      parsePersonalGrowthMarkdown(draft.markdown).sections.forEach((section) => {
+        draftMap[section.key] = markdownToHtml(section.content);
       });
       setSectionHtmlMap(draftMap);
       setDirty(true);
       return;
     }
-    const nextMap = buildSectionHtmlMap(reportWorkspace?.sections);
-    setSectionHtmlMap(nextMap);
+
+    setSectionHtmlMap(sectionsToHtmlMap(reportWorkspace?.sections));
     setDirty(false);
   }, [
     favoriteId,
-    reportWorkspace?.workspace_id,
     reportWorkspace?.edited_markdown,
     reportWorkspace?.generated_markdown,
+    reportWorkspace?.sections,
+    reportWorkspace?.workspace_id,
   ]);
 
   useEffect(() => {
     if (!favoriteId) return;
-    const combinedMarkdown = sectionHtmlMapToMarkdown(sectionHtmlMap);
-    const normalizedSaved = savedMarkdown.trim();
-    if (!combinedMarkdown || combinedMarkdown === normalizedSaved) {
+    const draftMarkdown = htmlMapToMarkdown(sectionHtmlMap);
+    if (!draftMarkdown || draftMarkdown === savedMarkdown.trim()) {
       clearPersonalGrowthDraft(favoriteId, reportWorkspace?.workspace_id);
       setDirty(false);
       return;
@@ -229,26 +238,18 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
     savePersonalGrowthDraft({
       favoriteId,
       workspaceId: reportWorkspace?.workspace_id,
-      markdown: combinedMarkdown,
+      markdown: draftMarkdown,
       updatedAt: new Date().toISOString(),
     });
     setDirty(true);
-  }, [
-    sectionHtmlMap,
-    favoriteId,
-    reportWorkspace?.workspace_id,
-    savedMarkdown,
-  ]);
+  }, [favoriteId, reportWorkspace?.workspace_id, savedMarkdown, sectionHtmlMap]);
 
   const saveReport = useCallback(
-    async (htmlMap: Record<PersonalGrowthSectionKey, string>) => {
-      if (!favoriteId) return;
-      const backendSections = sectionHtmlMapToBackendSections(htmlMap);
-      const filledCount = backendSections.filter((s) =>
-        s.content.trim(),
-      ).length;
-      if (filledCount === 0) {
-        throw new Error('请保留 5 个二级标题后再保存。');
+    async (htmlMap = sectionHtmlMap) => {
+      if (!favoriteId) return undefined;
+      const nextSections = htmlMapToBackendSections(htmlMap);
+      if (!nextSections.some((section) => section.content.trim())) {
+        throw new Error('请保留报告章节内容后再保存。');
       }
 
       setSaving(true);
@@ -256,7 +257,7 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
       try {
         const response = await updatePersonalGrowthReportWorkspace(
           favoriteId,
-          { sections: backendSections },
+          { sections: nextSections },
           { skipErrorHandler: true },
         );
         setReportWorkspace(response?.data);
@@ -275,8 +276,51 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
         setSaving(false);
       }
     },
-    [favoriteId, reportWorkspace?.workspace_id],
+    [favoriteId, reportWorkspace?.workspace_id, sectionHtmlMap],
   );
+
+  const restoreTemplate = useCallback((sectionKey?: PersonalGrowthSectionKey) => {
+    if (!sectionKey) {
+      setSectionHtmlMap((current) => {
+        const nextMap = { ...current };
+        PERSONAL_GROWTH_SECTION_ORDER.forEach((key) => {
+          nextMap[key] = markdownToHtml(createPersonalGrowthSectionTemplate(key));
+        });
+        return nextMap;
+      });
+      message.info('已恢复报告结构模板。');
+      return;
+    }
+
+    setSectionHtmlMap((current) => ({
+      ...current,
+      [sectionKey]: markdownToHtml(createPersonalGrowthSectionTemplate(sectionKey)),
+    }));
+    message.info('已恢复报告结构模板。');
+  }, []);
+
+  const regenerateReport = useCallback(async () => {
+    if (!favoriteId) return undefined;
+    setRegenerating(true);
+    setActionError(undefined);
+    try {
+      clearPersonalGrowthDraft(favoriteId, reportWorkspace?.workspace_id);
+      const response = await regeneratePersonalGrowthReport(
+        favoriteId,
+        { overwrite_current: true },
+        { skipErrorHandler: true },
+      );
+      setReportWorkspace(response?.data);
+      return response?.data;
+    } catch (error: any) {
+      setActionError(
+        getRequestErrorMessage(error, '重新生成个人职业成长报告失败。'),
+      );
+      throw error;
+    } finally {
+      setRegenerating(false);
+    }
+  }, [favoriteId, reportWorkspace?.workspace_id]);
 
   return {
     pageLoading,
@@ -284,18 +328,19 @@ export function useReportWorkspace({ favoriteId }: UseReportWorkspaceOptions) {
     latestAnalysis,
     goalWorkspace,
     reportWorkspace,
+    setReportWorkspace,
     sectionHtmlMap,
     setSectionHtmlMap,
+    sections,
     dirty,
     saving,
-    pageError,
+    regenerating,
     actionError,
     setActionError,
-    setPageError,
     savedMarkdown,
-    sections,
-    saveReport,
     refreshPageData,
-    setReportWorkspace,
+    saveReport,
+    restoreTemplate,
+    regenerateReport,
   };
 }

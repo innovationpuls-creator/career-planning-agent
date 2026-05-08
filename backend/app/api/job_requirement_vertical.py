@@ -12,15 +12,10 @@ from app.services.job_requirement_vertical import (
     get_vertical_job_profile,
     get_vertical_job_profile_company_detail,
 )
+from app.utils.query import clean_multi_values
 
 
 router = APIRouter(prefix="/api/job-requirement-profile", tags=["job-requirement-profile"])
-
-
-def _clean_multi_values(values: list[str] | None) -> list[str]:
-    if not values:
-        return []
-    return [value.strip() for value in values if value and value.strip()]
 
 
 @router.get("/vertical", response_model=VerticalJobProfileResponse)
@@ -33,7 +28,7 @@ def get_vertical_job_requirement_profile(
     payload = get_vertical_job_profile(
         db=db,
         job_title=job_title,
-        industries=_clean_multi_values(industry),
+        industries=clean_multi_values(industry),
     )
     return VerticalJobProfileResponse(data=payload)
 

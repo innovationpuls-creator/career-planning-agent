@@ -1,13 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.utils.datetime_utils import utc_now
 
 
 class CareerDevelopmentPersonalGrowthReportTask(Base):

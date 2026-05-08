@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -30,11 +30,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.job_posting import JobPosting
+from app.models.job_requirement_profile import JobRequirementProfile
 from app.schemas.job_requirement_vertical import (
     OptionItem,
     SalaryTierGroup,
     SalaryTierItem,
     TieredVerticalComparisonPayload,
+    VerticalDimensionComparisonItem,
+    VerticalIndustryDimensionComparison,
+    VerticalTierDimensionComparison,
     VerticalJobProfileCompany,
     VerticalJobProfileCompanyDetailOverview,
     VerticalJobProfileCompanyDetailPayload,
@@ -44,12 +48,28 @@ from app.schemas.job_requirement_vertical import (
     VerticalJobProfilePayload,
     VerticalJobProfilePostingDetailItem,
 )
+from app.services.job_requirement_profile import DEFAULT_KEYWORD, DIMENSION_FIELDS
+from app.services.job_requirement_profile_read import parse_dimension_value
 
 
 MONTHS_PER_WORKING_DAY = 21.75
 MAX_COMPANIES_PER_INDUSTRY = 10
 SALARY_RANGE_PATTERN = re.compile(r"(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)")
 SALARY_MONTHS_PATTERN = re.compile(r"(\d+)\s*薪")
+DIMENSION_TITLES = {
+    "professional_skills": "专业技能",
+    "professional_background": "专业背景",
+    "education_requirement": "学历要求",
+    "teamwork": "团队协作能力",
+    "stress_adaptability": "抗压/适应能力",
+    "problem_solving": "分析解决问题能力",
+    "communication": "沟通表达能力",
+    "work_experience": "工作经验",
+    "documentation_awareness": "文档规范意识",
+    "responsibility": "责任心/工作态度",
+    "learning_ability": "学习能力",
+    "other_special": "补充信息",
+}
 
 
 @dataclass(frozen=True)
@@ -168,11 +188,77 @@ def build_tiered_vertical_comparison(payload: VerticalJobProfilePayload) -> Tier
     )
 
 
+def build_dimension_comparison(
+    profiles: list[JobRequirementProfile],
+    tiered_comparison: TieredVerticalComparisonPayload | None,
+) -> list[VerticalTierDimensionComparison]:
+    if tiered_comparison is None:
+        return []
+
+    result: list[VerticalTierDimensionComparison] = []
+    for tier in tiered_comparison.tiers:
+        industry_names = _collect_distinct_values(item.industry for item in tier.items)
+        industry_payloads: list[VerticalIndustryDimensionComparison] = []
+
+        for industry in industry_names:
+            company_names = {
+                item.company_name
+                for item in tier.items
+                if item.industry == industry and item.company_name
+            }
+            scoped_profiles = [
+                profile
+                for profile in profiles
+                if profile.industry == industry and profile.company_name in company_names
+            ]
+            dimensions: list[VerticalDimensionComparisonItem] = []
+
+            for field in DIMENSION_FIELDS:
+                keyword_counter: Counter[str] = Counter()
+                non_default_count = 0
+                for profile in scoped_profiles:
+                    values = parse_dimension_value(getattr(profile, field))
+                    keywords = [value for value in values if value != DEFAULT_KEYWORD]
+                    if not keywords:
+                        continue
+                    non_default_count += 1
+                    keyword_counter.update(keywords)
+
+                profile_count = len(scoped_profiles)
+                dimensions.append(
+                    VerticalDimensionComparisonItem(
+                        key=field,
+                        title=DIMENSION_TITLES[field],
+                        profile_count=profile_count,
+                        non_default_count=non_default_count,
+                        coverage_ratio=_round_ratio(non_default_count, profile_count),
+                        keywords=[keyword for keyword, _count in keyword_counter.most_common(4)],
+                    )
+                )
+
+            industry_payloads.append(
+                VerticalIndustryDimensionComparison(
+                    industry=industry,
+                    dimensions=dimensions,
+                )
+            )
+
+        result.append(
+            VerticalTierDimensionComparison(
+                level=tier.level,
+                industries=industry_payloads,
+            )
+        )
+
+    return result
+
+
 def build_vertical_job_profile_payload(
     rows: list[JobPosting],
     job_title: str,
     selected_industries: list[str],
     available_industries: list[str],
+    profile_rows: list[JobRequirementProfile] | None = None,
 ) -> VerticalJobProfilePayload:
     grouped_rows: dict[str, list[JobPosting]] = defaultdict(list)
     for row in rows:
@@ -225,6 +311,10 @@ def build_vertical_job_profile_payload(
         ),
     )
     payload.tiered_comparison = build_tiered_vertical_comparison(payload)
+    payload.dimension_comparison = build_dimension_comparison(
+        profile_rows or [],
+        payload.tiered_comparison,
+    )
     return payload
 
 
@@ -245,12 +335,19 @@ def get_vertical_job_profile(
             JobPosting.industry.in_(selected_industries),
         )
     ).all()
+    profile_rows = db.scalars(
+        select(JobRequirementProfile).where(
+            JobRequirementProfile.job_title == cleaned_job_title,
+            JobRequirementProfile.industry.in_(selected_industries),
+        )
+    ).all()
 
     return build_vertical_job_profile_payload(
         rows=rows,
         job_title=cleaned_job_title,
         selected_industries=selected_industries,
         available_industries=available_industries,
+        profile_rows=list(profile_rows),
     )
 
 
@@ -332,3 +429,9 @@ def _collect_distinct_values(values) -> list[str]:
         seen.add(text)
         normalized.append(text)
     return normalized
+
+
+def _round_ratio(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return round(numerator / denominator, 4)

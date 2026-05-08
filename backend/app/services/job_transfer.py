@@ -280,9 +280,6 @@ class JobTransferService:
         )
         return payload
 
-    def get_transfer_payload(self, career_id: int) -> JobTransferPayload | None:
-        return asyncio.run(self.get_transfer_payload_async(career_id))
-
     def _build_payload(
         self,
         source: CareerRequirementProfile,

@@ -53,6 +53,7 @@ cd myapp && npm install framer-motion
 **当前状态**：蓝色 primary `#1655CC`，冷灰背景 `#F5F6F8`
 
 **变更**：
+
 - `colorPrimary` → `#c96442`（Terracotta）
 - `colorPrimaryHover` → `#d97757`
 - `colorPrimaryActive` → `#b05535`
@@ -75,6 +76,7 @@ cd myapp && npm install framer-motion
 **当前**：~989 行，大量 `!important` 覆盖
 
 **改为**：~400 行，策略如下：
+
 - 保留 `:root` CSS 变量定义（更新为 Claude 色值）
 - ProLayout/Menu/ProTable 覆盖保留但改为暖色调值
 - 移除蓝色系的所有 `!important` 覆盖
@@ -130,14 +132,19 @@ cd myapp && npm install framer-motion
 ### 2.6 升级 `myapp/src/components/ui/StatCard.tsx` → `ClaudeStatCard.tsx`
 
 **当前 API**：
+
 ```ts
 interface StatCardProps {
-  icon: ReactNode; title: string; value: string | number;
-  trend?: { value: number; isUp: boolean }; suffix?: string;
+  icon: ReactNode;
+  title: string;
+  value: string | number;
+  trend?: { value: number; isUp: boolean };
+  suffix?: string;
 }
 ```
 
 **变更**：
+
 - 数值改用 serif 字体（48px STSongti SC/Georgia, weight 500）
 - 趋势标签改用 warm-sand pill badge
 - 背景 Ivory，边框 Border Cream
@@ -181,12 +188,14 @@ interface StatCardProps {
 ### 功能保全清单
 
 **登录页**（`docs/UI功能详细整理.md` §1）：
+
 - [ ] 用户名 + 密码登录
 - [ ] 记住登录
 - [ ] 忘记密码
 - [ ] 跳转到注册页
 
 **注册页**（`docs/UI功能详细整理.md` §2）：
+
 - [ ] Step 1：用户名、密码（最少 8 位）
 - [ ] Step 2：姓名、学校、专业、学历、年级、目标岗位（下拉选择，数据来自 API）
 - [ ] Step 3：上传简历图片（jpg/jpeg/png/webp）
@@ -194,18 +203,19 @@ interface StatCardProps {
 
 ### API 端点
 
-| 操作 | 端点 | 方法 |
-|------|------|------|
-| 登录 | `/api/login/account` | POST |
-| 注册 | `/api/register` | POST |
-| 获取用户信息 | `/api/currentUser` | GET |
-| 获取目标岗位选项 | `/api/job-postings/job-titles` | GET |
+| 操作             | 端点                           | 方法 |
+| ---------------- | ------------------------------ | ---- |
+| 登录             | `/api/login/account`           | POST |
+| 注册             | `/api/register`                | POST |
+| 获取用户信息     | `/api/currentUser`             | GET  |
+| 获取目标岗位选项 | `/api/job-postings/job-titles` | GET  |
 
 ### 3.1 改造 `myapp/src/pages/user/login/index.tsx`
 
 **当前**：427 行，antd ProForm + `.auth-root` 分屏
 
 **改造**：
+
 - 保留 `.auth-root` 分屏结构
 - 左半屏：Parchment 背景 + serif 标题 + Olive Gray 副标题 + terracotta 装饰 SVG
 - 右半屏：Ivory 背景 + ClaudeInput 用户名/密码 + ClaudeButton terracotta "登录"
@@ -218,6 +228,7 @@ interface StatCardProps {
 **当前**：401 行，三步 Steps 组件
 
 **改造**：
+
 - 同登录分屏布局，左半屏品牌区一致
 - 步骤指示器：用自定义 serif 数字替代 antd Steps
 - 步骤切换：framer-motion `AnimatePresence` + slide 过渡
@@ -243,6 +254,7 @@ interface StatCardProps {
 ### 功能保全清单
 
 （`docs/UI功能详细整理.md` §3）：
+
 - [ ] 展示当前目标岗位、阶段（初级/进阶/高阶）、匹配百分比
 - [ ] 展示下一步操作建议及 CTA 按钮
 - [ ] 展示规划进度百分比、薪资参考、已匹配岗位数量
@@ -253,13 +265,13 @@ interface StatCardProps {
 
 ### API 端点
 
-| 操作 | 端点 | 方法 |
-|------|------|------|
-| 获取首页数据 | `/api/home-v2` | GET |
-| 获取当前用户 | `/api/currentUser` | GET |
-| 提交/编辑个人资料 | `/api/user-profile/onboarding` | POST (multipart) |
-| 获取收藏列表 | `/api/career-development-report/favorites` | GET |
-| 获取最新能力分析 | `/api/student-competency-profile/latest-analysis` | GET |
+| 操作              | 端点                                              | 方法             |
+| ----------------- | ------------------------------------------------- | ---------------- |
+| 获取首页数据      | `/api/home-v2`                                    | GET              |
+| 获取当前用户      | `/api/currentUser`                                | GET              |
+| 提交/编辑个人资料 | `/api/user-profile/onboarding`                    | POST (multipart) |
+| 获取收藏列表      | `/api/career-development-report/favorites`        | GET              |
+| 获取最新能力分析  | `/api/student-competency-profile/latest-analysis` | GET              |
 
 ### 4.1 新建 `myapp/src/pages/home-v2/hooks/useHomeData.ts`
 
@@ -281,7 +293,7 @@ interface StatCardProps {
 - 5 步横向时间线，每步一个 ClaudeCard
 - 已完成/当前/未完成 三种状态样式
 - 步骤定义：`['完善资料', '简历解析', '职业匹配', '蜗牛学习路径', '成长报告']`
-- 跳转路由：`['/home-v2', '/student-competency-profile', '/student-competency-profile', '/snail-learning-path', '/personal-growth-report']`
+- 跳转路由：`['/home-v2', '/student-competency-profile', '/career-match', '/snail-learning-path', '/personal-growth-report']`
 - FadeInWhenVisible stagger 动画
 
 ### 4.4 新建 `myapp/src/pages/home-v2/components/GrowthRoadmap.tsx`
@@ -325,50 +337,52 @@ interface StatCardProps {
 
 ---
 
-## Phase 5: 简历解构页
+## Phase 5: 简历解构页 + 独立职业匹配页
 
-**目标**：拆分 6,086 行总计为 8 个子组件 + 3 个 hook，全面重设计。
+**目标**：拆分 6,086 行总计为 9 个子组件 + 3 个 hook，全面重设计。职业匹配模块保留为独立 `/career-match` 页面，不再要求回接到 `/student-competency-profile`。
 
 ### 功能保全清单
 
 （`docs/UI功能详细整理.md` §4）：
 
 **模块 1：简历解析**
+
 - [ ] 上传简历文件（PDF/DOC/DOCX/TXT），支持拖拽
 - [ ] AI 流式解析（SSE），实时进度
 - [ ] 解析中支持追加文字或文件多轮对话
-- [ ] Tab「简历评分」：逐维度评分
-- [ ] Tab「提升建议」：差距分析和行动建议
+- [ ] Tab「能力雷达」：逐维度评分
+- [ ] Tab「差距分析」：差距分析和行动建议
 - [ ] Tab「关键字提取」：12 维度关键词标签编辑（增删）
 - [ ] 重置解析
 - [ ] 解析状态本地缓存，刷新可恢复
 
-**模块 2：职业匹配**
+**模块 2：职业匹配（独立页 `/career-match`）**
+
 - [ ] 展示当前分析对象和匹配来源
 - [ ] 选择推荐目标（行业岗位/职业方向），查看匹配百分比
-- [ ] Tab「推荐职业」：12 维度逐维度对比
-- [ ] Tab「和目标的差距」：优先级差距维度高亮
-- [ ] Tab「最匹配的工作」：匹配公司及证据卡片
+- [ ] Tab「能力对比」：12 维度逐维度对比
+- [ ] Tab「提升建议」：优先级差距维度高亮
+- [ ] Tab「最匹配工作」：匹配公司及证据卡片
 - [ ] 收藏/取消收藏
 - [ ] 生成计划（跳转蜗牛学习路径）
 
 ### API 端点
 
-| 操作 | 端点 | 方法 |
-|------|------|------|
-| 获取 Dify 运行时配置 | `/api/student-competency-profile/runtime` | GET |
-| 获取最新 12 维度分析 | `/api/student-competency-profile/latest-analysis` | GET |
-| 删除/重置分析 | `/api/student-competency-profile/latest-analysis` | DELETE |
-| 流式简历解析 | `/api/student-competency-profile/chat/stream` | POST (SSE) |
-| 加载对话画像 | `/api/student-competency-profile/conversations/{id}` | GET |
-| 同步编辑结果 | `/api/student-competency-profile/result-sync` | POST |
-| 轮询状态事件 | `/api/student-competency-profile/status-events` | GET |
-| 初始化职业匹配 | `/api/career-development-report/job-exploration-match/init` | GET |
-| 生成匹配报告 | `/api/career-development-report/job-exploration-match/report` | POST |
-| 获取收藏列表 | `/api/career-development-report/favorites` | GET |
-| 添加收藏 | `/api/career-development-report/favorites` | POST |
-| 取消收藏 | `/api/career-development-report/favorites/{id}` | DELETE |
-| 获取岗位名称选项 | `/api/job-postings/job-titles` | GET |
+| 操作                 | 端点                                                          | 方法       |
+| -------------------- | ------------------------------------------------------------- | ---------- |
+| 获取 Dify 运行时配置 | `/api/student-competency-profile/runtime`                     | GET        |
+| 获取最新 12 维度分析 | `/api/student-competency-profile/latest-analysis`             | GET        |
+| 删除/重置分析        | `/api/student-competency-profile/latest-analysis`             | DELETE     |
+| 流式简历解析         | `/api/student-competency-profile/chat/stream`                 | POST (SSE) |
+| 加载对话画像         | `/api/student-competency-profile/conversations/{id}`          | GET        |
+| 同步编辑结果         | `/api/student-competency-profile/result-sync`                 | POST       |
+| 轮询状态事件         | `/api/student-competency-profile/status-events`               | GET        |
+| 初始化职业匹配       | `/api/career-development-report/job-exploration-match/init`   | GET        |
+| 生成匹配报告         | `/api/career-development-report/job-exploration-match/report` | POST       |
+| 获取收藏列表         | `/api/career-development-report/favorites`                    | GET        |
+| 添加收藏             | `/api/career-development-report/favorites`                    | POST       |
+| 取消收藏             | `/api/career-development-report/favorites/{id}`               | DELETE     |
+| 获取岗位名称选项     | `/api/job-postings/job-titles`                                | GET        |
 
 ### 5.1 新建 `myapp/src/pages/student-competency-profile/hooks/useResumeStream.ts`
 
@@ -428,11 +442,11 @@ interface StatCardProps {
 
 - 差距分析 + 提升建议
 - 优先级维度高亮（terracotta 左边框）
-- 使用 react-markdown 渲染建议内容
+- 纯文本渲染建议内容，react-markdown 待后续 LLM 输出 markdown 格式后启用
 
 ### 5.9 新建 `myapp/src/pages/student-competency-profile/components/MatchWorkspace.tsx`
 
-- Tab 切换：推荐职业 / 和目标的差距 / 最匹配的工作
+- Tab 切换：能力对比 / 提升建议 / 最匹配工作
 - Tab 用 antd Tabs 深度覆盖（terracotta 底部指示条）
 - 匹配百分比：大号 serif terracotta 数字 + 进度条
 - 调用 `GET /api/career-development-report/job-exploration-match/init` 获取匹配数据
@@ -445,26 +459,35 @@ interface StatCardProps {
 - 收藏/取消收藏按钮（ClaudeButton ghost）
 - 调用收藏 API
 
-### 5.11 新建 `myapp/src/pages/student-competency-profile/components/MatchActionBar.tsx`
+### 5.11 新建 `myapp/src/pages/student-competency-profile/components/ComparisonPanel.tsx`
+
+- 12 维度用户画像 vs 岗位需求逐维度对比（双雷达叠加或表格）
+- Props：`comparisonDimensions`, `userProfile`
+- 配合 MatchWorkspace 的「能力对比」Tab 使用
+
+### 5.12 新建 `myapp/src/pages/student-competency-profile/components/MatchActionBar.tsx`
 
 - "收藏" warm-sand 按钮 + "生成计划" terracotta 按钮
 - 生成计划跳转 `/snail-learning-path`
 
-### 5.12 重写 `myapp/src/pages/student-competency-profile/index.tsx`
+### 5.13 重写 `myapp/src/pages/student-competency-profile/index.tsx`
 
-- ~150 行，状态管理 + 子组件编排
-- 状态：解析中/解析完成/匹配模式
+- ~230 行，状态管理 + 子组件编排
+- 状态：空态/解析中/解析完成
 - 本地缓存解析状态（localStorage），刷新恢复
+- 不内嵌职业匹配 UI；职业匹配由 `/career-match` 独立编排 `useMatchResults` + `MatchWorkspace`
 
 ### 验收标准
 
 - 简历上传 + SSE 流式解析正常
-- 12 维度评分/关键词/差距分析三个 Tab 正常
-- 关键词编辑后同步到后端
-- 职业匹配三个 Tab 正常
-- 收藏/取消收藏正常
-- 生成计划跳转正常
-- 解析状态刷新后可恢复
+- 12 维度能力雷达/差距分析/关键字提取三个 Tab 正常
+- 关键词编辑（Edit/Save/Cancel 按钮）后同步到后端
+- `/career-match` 职业匹配三个 Tab（能力对比/提升建议/最匹配工作）正常
+- `/career-match` 收藏/取消收藏正常
+- `/career-match` 生成计划跳转正常
+- localStorage 快照持久化正常，刷新后可恢复
+- 多轮对话不破坏已有 profile 数据
+- 重置后重新上传不残留旧消息
 
 ---
 
@@ -475,6 +498,7 @@ interface StatCardProps {
 ### 功能保全清单
 
 （`docs/UI功能详细整理.md` §5）：
+
 - [ ] 展示当前阶段、匹配度、内容完成度、练习完成度、当前模块
 - [ ] 展示短期/中期/长期 3 阶段时间线，可点击切换
 - [ ] 提交学习进度
@@ -486,15 +510,15 @@ interface StatCardProps {
 
 ### API 端点
 
-| 操作 | 端点 | 方法 |
-|------|------|------|
-| 初始化工作区 | `/api/snail-learning-path/workspaces/{favorite_id}` | POST |
-| 初始化工作区（兼容） | `/api/career-development-report/snail-learning-path/workspaces/{favorite_id}` | POST |
-| 创建工作区 | `/api/snail-learning-path/workspaces` | POST |
-| 创建复盘 | `/api/snail-learning-path/workspaces/{id}/reviews` | POST (multipart) |
-| 获取复盘列表 | `/api/snail-learning-path/workspaces/{id}/reviews` | GET |
-| 获取匹配初始数据 | `/api/career-development-report/job-exploration-match/init` | GET |
-| 获取收藏列表 | `/api/career-development-report/favorites` | GET |
+| 操作                 | 端点                                                                          | 方法             |
+| -------------------- | ----------------------------------------------------------------------------- | ---------------- |
+| 初始化工作区         | `/api/snail-learning-path/workspaces/{favorite_id}`                           | POST             |
+| 初始化工作区（兼容） | `/api/career-development-report/snail-learning-path/workspaces/{favorite_id}` | POST             |
+| 创建工作区           | `/api/snail-learning-path/workspaces`                                         | POST             |
+| 创建复盘             | `/api/snail-learning-path/workspaces/{id}/reviews`                            | POST (multipart) |
+| 获取复盘列表         | `/api/snail-learning-path/workspaces/{id}/reviews`                            | GET              |
+| 获取匹配初始数据     | `/api/career-development-report/job-exploration-match/init`                   | GET              |
+| 获取收藏列表         | `/api/career-development-report/favorites`                                    | GET              |
 
 > 前端使用 `requestWith404Fallback` 先尝试 `/api/career-development-report/snail-learning-path/...`，失败后回退到 `/api/snail-learning-path/...`
 
@@ -524,7 +548,7 @@ interface StatCardProps {
 
 ### 6.5 新建 `.../learning-path/components/PhaseTimeline.tsx`
 
-- 横向 3 段：短期（1-3月）/ 中期（3-6月）/ 长期（6-12月）
+- 横向 3 段：短期（1-3 月）/ 中期（3-6 月）/ 长期（6-12 月）
 - 当前阶段 terracotta 实心圆 + 实线，其余 Border Cream 虚线
 - framer-motion `AnimatePresence` crossfade 切换
 
@@ -581,6 +605,7 @@ interface StatCardProps {
 ### 功能保全清单
 
 （`docs/UI功能详细整理.md` §6）：
+
 - [ ] 生成报告（AI 生成，支持取消）
 - [ ] 重新生成报告
 - [ ] 查看报告前置条件
@@ -593,18 +618,18 @@ interface StatCardProps {
 
 ### API 端点
 
-| 操作 | 端点 | 方法 |
-|------|------|------|
-| 加载报告工作区 | `.../personal-growth-report/workspaces/{favorite_id}` | GET |
-| 保存编辑后的报告 | `.../personal-growth-report/workspaces/{favorite_id}` | PUT |
-| 重新生成报告 | `.../personal-growth-report/workspaces/{favorite_id}/regenerate` | POST |
-| 自动检测并生成 | `.../personal-growth-report/bootstrap/regenerate` | POST |
-| 导出报告 | `.../personal-growth-report/workspaces/{favorite_id}/export` | POST (binary) |
-| 创建异步任务 | `.../personal-growth-report/tasks` | POST |
-| 获取任务状态 | `.../personal-growth-report/tasks/{task_id}` | GET |
-| 流式任务进度 | `.../personal-growth-report/tasks/{task_id}/stream` | GET (SSE) |
-| 取消任务 | `.../personal-growth-report/tasks/{task_id}/cancel` | POST |
-| 获取收藏列表 | `/api/career-development-report/favorites` | GET |
+| 操作             | 端点                                                             | 方法          |
+| ---------------- | ---------------------------------------------------------------- | ------------- |
+| 加载报告工作区   | `.../personal-growth-report/workspaces/{favorite_id}`            | GET           |
+| 保存编辑后的报告 | `.../personal-growth-report/workspaces/{favorite_id}`            | PUT           |
+| 重新生成报告     | `.../personal-growth-report/workspaces/{favorite_id}/regenerate` | POST          |
+| 自动检测并生成   | `.../personal-growth-report/bootstrap/regenerate`                | POST          |
+| 导出报告         | `.../personal-growth-report/workspaces/{favorite_id}/export`     | POST (binary) |
+| 创建异步任务     | `.../personal-growth-report/tasks`                               | POST          |
+| 获取任务状态     | `.../personal-growth-report/tasks/{task_id}`                     | GET           |
+| 流式任务进度     | `.../personal-growth-report/tasks/{task_id}/stream`              | GET (SSE)     |
+| 取消任务         | `.../personal-growth-report/tasks/{task_id}/cancel`              | POST          |
+| 获取收藏列表     | `/api/career-development-report/favorites`                       | GET           |
 
 > 以上路径前缀均为 `/api/career-development-report`
 
@@ -699,6 +724,7 @@ interface StatCardProps {
 ### 功能保全清单
 
 **岗位能力图谱**（`docs/UI功能详细整理.md` §7）：
+
 - [ ] 三层交互式知识图谱（根节点 → 维度组 → 12 维度）
 - [ ] 点击节点聚焦，高亮相关节点和边
 - [ ] 悬停查看节点详情
@@ -706,19 +732,20 @@ interface StatCardProps {
 - [ ] 图谱阅读指南（可折叠）
 
 **同岗行业对比**（`docs/UI功能详细整理.md` §8）：
+
 - [ ] 选择岗位名称（单选）
 - [ ] 选择行业（多选，根据岗位动态加载）
 - [ ] 查询并展示分层对比结果（初级/中级/高级，含薪资范围和岗位详情）
 
 ### API 端点
 
-| 操作 | 端点 | 方法 |
-|------|------|------|
-| 获取知识图谱 | `/api/job-requirement-profile/graph` | GET |
-| 获取垂直对比数据 | `/api/job-requirement-profile/vertical` | GET |
-| 获取公司详情 | `/api/job-requirement-profile/vertical/company-detail` | GET |
-| 获取岗位名称 | `/api/job-postings/job-titles` | GET |
-| 获取行业选项 | `/api/job-postings/industries` | GET |
+| 操作             | 端点                                                   | 方法 |
+| ---------------- | ------------------------------------------------------ | ---- |
+| 获取知识图谱     | `/api/job-requirement-profile/graph`                   | GET  |
+| 获取垂直对比数据 | `/api/job-requirement-profile/vertical`                | GET  |
+| 获取公司详情     | `/api/job-requirement-profile/vertical/company-detail` | GET  |
+| 获取岗位名称     | `/api/job-postings/job-titles`                         | GET  |
+| 获取行业选项     | `/api/job-postings/industries`                         | GET  |
 
 ### 8.1 新建 `myapp/src/pages/job-requirement-profile/overview/hooks/useGraphData.ts`
 
@@ -839,6 +866,7 @@ interface StatCardProps {
 ### 通用动画组件
 
 在 Phase 2 中创建的 `FadeInWhenVisible` 将被以下页面使用：
+
 - Home-v2（PipelineSteps stagger、各 section reveal）
 - 学习路径（ModuleList stagger、ResourceCards stagger）
 - 同岗对比（TierComparison stagger）
@@ -847,6 +875,7 @@ interface StatCardProps {
 ### 页面过渡动画
 
 在 `myapp/src/layouts/BasicLayout.tsx` 或 `app.tsx` 中：
+
 - 用 framer-motion `AnimatePresence` 包裹页面内容区域
 - 路由切换时触发 exit/enter 动画
 - 退出：fade out + translateY(-10px)，0.3s
@@ -855,6 +884,7 @@ interface StatCardProps {
 ### 减少动画偏好
 
 所有动画组件检测 `prefers-reduced-motion`：
+
 - 为 `reduce` 时：仅保留 opacity 过渡，禁用位移/缩放/旋转
 - 在 `FadeInWhenVisible` 中统一处理
 

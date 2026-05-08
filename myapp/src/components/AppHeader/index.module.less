@@ -1,0 +1,323 @@
+// ── Header container ─────────────────────────────────────
+.appHeader {
+  height: var(--header-height);
+  padding: 0 var(--header-padding-h);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
+  box-shadow: var(--header-shadow);
+  border-radius: 0 0 22px 22px;
+  backdrop-filter: blur(16px);
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+  overflow: hidden;
+}
+
+// ── Brand area (left) ────────────────────────────────────
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 1;
+  max-width: 320px;
+  min-width: 0;
+  height: 100%;
+}
+
+.logo {
+  height: 44px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.brandTitle {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--header-text-primary);
+  font-family: var(--font-heading);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.brandSubtitle {
+  font-size: 12px;
+  color: var(--header-text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+// ── Hamburger (mobile) ──────────────────────────────────
+.hamburger {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--header-text-nav);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--header-nav-hover-color);
+    background: var(--header-nav-hover-bg);
+  }
+}
+
+.drawerTitle {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--header-text-primary);
+}
+
+.mobileNavList {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobileNavItem {
+  height: 52px;
+  line-height: 52px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--header-text-nav);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: background 0.2s ease;
+
+  &:hover {
+    color: var(--header-nav-hover-color);
+    background: var(--header-nav-hover-bg);
+  }
+}
+
+.mobileNavItemActive {
+  color: var(--header-primary);
+  font-weight: 650;
+  background: var(--header-nav-active-bg);
+}
+
+// ── Nav list (center) ────────────────────────────────────
+.navList {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.navItem {
+  position: relative;
+  height: 44px;
+  line-height: 44px;
+  padding: 0 12px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--header-text-nav);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  overflow: hidden;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: all 0.22s ease;
+
+  &:hover {
+    color: var(--header-nav-hover-color);
+    background: var(--header-nav-hover-bg);
+  }
+}
+
+.navItemActive {
+  color: var(--header-primary);
+  font-weight: 650;
+  background: var(--header-nav-active-bg);
+  box-shadow: var(--header-nav-active-shadow);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 32px;
+    height: 2px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: var(--header-indicator-gradient);
+  }
+}
+
+// ── Utility bar (right) ──────────────────────────────────
+.utilityBar {
+  height: 44px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--header-utility-bg);
+  border: 1px solid var(--header-utility-border);
+  box-shadow: var(--header-utility-shadow);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.utilityButton {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--header-text-nav);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--header-utility-btn-hover-color);
+    background: var(--header-utility-btn-hover-bg);
+  }
+}
+
+.utilityDivider {
+  width: 1px;
+  height: 20px;
+  background: var(--header-utility-divider);
+  margin: 0 4px;
+}
+
+.userEntry {
+  height: 34px;
+  padding: 0 10px 0 4px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: var(--header-utility-btn-hover-bg);
+  }
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--header-avatar-gradient);
+}
+
+.userName {
+  font-size: 12px;
+  color: var(--header-text-nav);
+}
+
+.dropdownArrow {
+  font-size: 10px;
+  color: var(--header-text-muted);
+}
+
+// ── Responsive ───────────────────────────────────────────
+
+// Large desktop (1440px): compress padding and nav items
+@media (max-width: 1440px) {
+  .appHeader {
+    padding: 0 24px;
+  }
+
+  .navItem {
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .brand {
+    max-width: 280px;
+  }
+}
+
+// Desktop (1280px): hide subtitle, reduce nav gap
+@media (max-width: 1280px) {
+  .brandSubtitle {
+    display: none;
+  }
+
+  .navItem {
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .navList {
+    gap: 2px;
+  }
+
+  .userName {
+    display: none;
+  }
+}
+
+// Tablet (768px): mobile layout
+@media (max-width: 767px) {
+  .appHeader {
+    height: var(--header-height-mobile);
+    padding: 0 16px;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brandSubtitle {
+    display: none;
+  }
+
+  .navList {
+    display: none;
+  }
+}
