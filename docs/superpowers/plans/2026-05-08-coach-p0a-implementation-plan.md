@@ -120,6 +120,8 @@ POST /api/coach/chat/stream
 - Header: `Accept: application/x-ndjson`
 - Content-Type: `application/json`
 
+**Pydantic 字段命名**：后端用 `client_message_id` + `alias="clientMessageId"` + `populate_by_name=True`，同时接受 camelCase 和 snake_case，前端直接传 `clientMessageId`。
+
 ### 响应
 
 ```
@@ -205,11 +207,15 @@ async def stream_coach_chat(
 **内容**：
 
 ```python
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class CoachChatRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     message: str = Field(..., min_length=1, max_length=4000)
-    client_message_id: str = Field(..., min_length=1, max_length=64)
+    client_message_id: str = Field(
+        ..., min_length=1, max_length=64, alias="clientMessageId"
+    )
 ```
 
 **验收方式**：Pydantic 自动校验，单元测试验证边界条件
@@ -264,7 +270,11 @@ async def chat_completion_stream(
 **实现要点**：
 1. POST `/chat/completions` 带 `"stream": true`
 2. 使用 `httpx.AsyncClient.stream("POST", ...)` 发起请求
-3. 解析 SSE 行：`data: {...}` → JSON → `choices[0].delta.content`
+3. 按行迭代 `response.aiter_lines()`，解析 SSE 行：
+   - 跳过空行
+   - 跳过不以 `data: ` 开头的行
+   - `data: [DONE]` → `break`（流结束信号）
+   - `data: {...}` → JSON → `choices[0].delta.content`
 4. `yield` 每个 content 片段
 5. 异常时 raise `LLMClientError`（由调用方 `coach_stream.py` 捕获并转为 error 事件）
 6. **不在此方法内处理重试** — P0a 中 stream 失败直接报错，不做透明重试
@@ -296,9 +306,14 @@ app.include_router(coach_router)
 
 **关键元素**：
 - 消息列表（用户消息 + AI 消息）
-- 底部输入框 + 发送/停止按钮
+- 底部输入框 + Send 按钮 + Stop 按钮
 - 错误提示条
 - 空状态引导
+
+**P0a 明确不做**：
+- 文件上传按钮（FileUploadButton）
+- 待上传文件列表（PendingUploads）
+- 任何 upload 相关 UI
 
 **使用 `createStyles` from `antd-style`**，引用 `claudeTokens` 和 `motionTokens`。
 
@@ -392,8 +407,11 @@ interface StreamingTextProps {
   icon: 'robot',
   access: 'canUser',
   component: './coach',
+  hideInMenu: true,  // 从各页面的"问教练"按钮进入，不显示在侧边栏
 },
 ```
+
+**注意**：`hideInMenu: true` 表示 coach 页面不显示在左侧菜单。用户通过各功能页面的"问教练"入口进入。后续 Phase 如需独立入口，改为 `false` 即可。
 
 **验收方式**：左侧菜单出现 "AI 教练" 入口，点击可跳转
 
