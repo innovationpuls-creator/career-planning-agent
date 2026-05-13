@@ -10,7 +10,7 @@ const useStyles = createStyles(({ css }) => ({
   container: css`
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -26,6 +26,7 @@ const useStyles = createStyles(({ css }) => ({
     font-size: 14px;
     text-align: center;
     padding: 32px;
+    opacity: 0.7;
   `,
 }));
 
@@ -43,7 +44,6 @@ export function CoachChatBody({
   const containerRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUpRef = useRef(false);
 
-  // Track whether user has scrolled up
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
