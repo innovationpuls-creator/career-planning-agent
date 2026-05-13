@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { Tag } from 'antd';
-import { claudeColors, claudeRadius, claudeShadows } from '@/styles/claude-tokens';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
 import { fadeInRight, TRANSITION } from '../motion';
 import type { CoachMessage } from '../types';
@@ -17,8 +17,10 @@ const useStyles = createStyles(({ css }) => ({
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: ${claudeColors.ivory};
-    border: 1px solid ${claudeColors.borderCream};
+    background: rgba(250, 249, 245, 0.40);
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid rgba(200, 185, 160, 0.35);
     color: ${claudeColors.oliveGray};
     display: flex;
     align-items: center;
@@ -27,17 +29,17 @@ const useStyles = createStyles(({ css }) => ({
     flex-shrink: 0;
   `,
   bubble: css`
-    max-width: 75%;
-    padding: 12px 18px;
-    border-radius: ${claudeRadius.xl}px ${claudeRadius.xl}px
-      ${claudeRadius.md}px ${claudeRadius.xl}px;
-    background: ${claudeColors.ivory};
-    border: 1px solid ${claudeColors.borderCream};
+    max-width: 70%;
+    padding: 10px 14px;
+    border-radius: 18px 18px 6px 18px;
+    background: ${claudeGlass.bubbleUser};
+    backdrop-filter: ${claudeGlass.blurSubtle};
+    -webkit-backdrop-filter: ${claudeGlass.blurSubtle};
+    border: 1px solid ${claudeGlass.borderTerracotta};
     color: ${claudeColors.nearBlack};
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
     word-break: break-word;
-    box-shadow: ${claudeShadows.flat};
   `,
   fileChip: css`
     display: inline-flex;
@@ -45,9 +47,10 @@ const useStyles = createStyles(({ css }) => ({
     gap: 4px;
     margin-top: 6px;
     padding: 4px 10px;
-    border-radius: ${claudeRadius.md}px;
-    background: ${claudeColors.parchment};
-    border: 1px solid ${claudeColors.borderCream};
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.30);
+    backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid rgba(255, 255, 255, 0.30);
     font-size: 12px;
     color: ${claudeColors.stoneGray};
   `,
@@ -82,13 +85,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div style={{ marginTop: 6 }}>
             {message.attachments.map((att) => (
               <span key={att.fileId} className={styles.fileChip}>
-                📄 {att.name}
+                {att.name}
               </span>
             ))}
           </div>
         )}
       </div>
-      <div className={styles.avatar}>👤</div>
+      <div className={styles.avatar}>U</div>
     </motion.div>
   );
 }

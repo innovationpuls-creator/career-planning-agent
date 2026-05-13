@@ -1,49 +1,55 @@
-import { Alert, Button } from 'antd';
 import React from 'react';
+import { createStyles } from 'antd-style';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+
+const useStyles = createStyles(({ css }) => ({
+  row: css`
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+  `,
+  bubble: css`
+    padding: 6px 14px;
+    border-radius: 10px;
+    background: ${claudeGlass.ghost};
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid ${claudeGlass.borderGhost};
+    font-size: 12px;
+    color: ${claudeColors.stoneGray};
+    text-align: center;
+    max-width: 80%;
+  `,
+  error: css`
+    background: rgba(181, 51, 51, 0.10);
+    border-color: rgba(181, 51, 51, 0.25);
+    color: ${claudeColors.error};
+  `,
+  success: css`
+    background: rgba(74, 124, 63, 0.08);
+    border-color: rgba(74, 124, 63, 0.20);
+    color: ${claudeColors.success};
+  `,
+}));
 
 interface SystemMessageProps {
-  kind: 'info' | 'error' | 'abort' | 'retry-hint';
+  kind?: 'info' | 'error' | 'success';
   content: string;
-  retryable?: boolean;
-  onRetry?: () => void;
 }
 
-const TYPE_MAP: Record<
-  string,
-  'info' | 'warning' | 'error' | 'success'
-> = {
-  info: 'info',
-  error: 'error',
-  abort: 'warning',
-  'retry-hint': 'warning',
-};
+export function SystemMessage({ kind = 'info', content }: SystemMessageProps) {
+  const { styles } = useStyles();
 
-export function SystemMessage({
-  kind,
-  content,
-  retryable,
-  onRetry,
-}: SystemMessageProps) {
+  const kindClass =
+    kind === 'error'
+      ? styles.error
+      : kind === 'success'
+        ? styles.success
+        : undefined;
+
   return (
-    <div style={{ textAlign: 'center', margin: '8px 0' }}>
-      <Alert
-        message={content}
-        type={TYPE_MAP[kind] || 'info'}
-        showIcon
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          fontSize: 12,
-          padding: '4px 12px',
-        }}
-        action={
-          retryable && onRetry ? (
-            <Button size="small" onClick={onRetry}>
-              重试
-            </Button>
-          ) : undefined
-        }
-      />
+    <div className={styles.row}>
+      <div className={`${styles.bubble} ${kindClass || ''}`}>{content}</div>
     </div>
   );
 }
