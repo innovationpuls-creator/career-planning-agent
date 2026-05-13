@@ -38,4 +38,36 @@ describe('MarkdownTable', () => {
     expect(wrapper).toBeTruthy();
     expect(wrapper.querySelector('table')).toBeTruthy();
   });
+
+  test('renders tbody td elements for data cells', () => {
+    render(
+      <MarkdownTable>
+        <thead><tr><th>Header</th></tr></thead>
+        <tbody><tr><td>Data</td></tr></tbody>
+      </MarkdownTable>,
+    );
+    const th = screen.getByText('Header');
+    expect(th.tagName).toBe('TH');
+    const td = screen.getByText('Data');
+    expect(td.tagName).toBe('TD');
+  });
+
+  test('renders multi-row tables correctly', () => {
+    render(
+      <MarkdownTable>
+        <thead>
+          <tr><th>A</th><th>B</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>2</td></tr>
+          <tr><td>3</td><td>4</td></tr>
+        </tbody>
+      </MarkdownTable>,
+    );
+    const rows = document.querySelectorAll('tr');
+    // thead tr + tbody tr × 2
+    expect(rows.length).toBe(3);
+    expect(screen.getByText('3')).toBeTruthy();
+    expect(screen.getByText('4')).toBeTruthy();
+  });
 });

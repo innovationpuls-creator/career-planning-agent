@@ -15,7 +15,7 @@ const useStyles = createStyles(({ css }) => ({
     border: 1px solid rgba(200, 185, 160, 0.30);
     border-radius: 10px;
     overflow: hidden;
-    font-size: 13px;
+    font-size: 14px;
 
     th {
       background: linear-gradient(
@@ -27,8 +27,8 @@ const useStyles = createStyles(({ css }) => ({
       text-align: left;
       font-weight: 600;
       border-bottom: 1px solid rgba(200, 185, 160, 0.25);
-      color: ${claudeColors.oliveGray};
-      font-size: 12px;
+      color: ${claudeColors.charcoalWarm};
+      font-size: 13px;
     }
 
     td {

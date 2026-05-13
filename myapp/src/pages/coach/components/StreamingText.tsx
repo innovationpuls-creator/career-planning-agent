@@ -13,7 +13,7 @@ const useStyles = createStyles(({ css }) => ({
     color: ${claudeTokens.colors.charcoalWarm};
     line-height: 1.75;
     font-size: 15px;
-    font-family: ${claudeTokens.fonts.body};
+    font-family: "Twemoji Mozilla", ${claudeTokens.fonts.body};
     overflow-wrap: break-word;
 
     p {
