@@ -33,6 +33,8 @@ myapp/.umi-test/
 myapp/.umi-undefined/
 myapp/coverage/
 myapp/artifacts
+myapp/docs/
+myapp/myapp/
 
 # Test artifacts
 myapp/test-results/
