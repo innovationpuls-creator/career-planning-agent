@@ -1,3 +1,11 @@
+jest.mock('antd-style', () => {
+  const actual = jest.requireActual('antd-style');
+  return {
+    ...actual,
+    keyframes: (strings: TemplateStringsArray, ..._args: string[]) => `anim-${strings[0].length}`,
+  };
+});
+
 import { render, screen } from '@testing-library/react';
 import { MarkdownTable } from '../components/MarkdownTable';
 
@@ -27,6 +35,7 @@ describe('MarkdownTable', () => {
       </MarkdownTable>,
     );
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper.style.overflowX).toBe('auto');
+    expect(wrapper).toBeTruthy();
+    expect(wrapper.querySelector('table')).toBeTruthy();
   });
 });

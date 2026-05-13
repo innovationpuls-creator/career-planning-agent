@@ -1,3 +1,11 @@
+jest.mock('antd-style', () => {
+  const actual = jest.requireActual('antd-style');
+  return {
+    ...actual,
+    keyframes: (strings: TemplateStringsArray, ..._args: string[]) => `anim-${strings[0].length}`,
+  };
+});
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { CoachChatInput } from '../components/CoachChatInput';
 
