@@ -85,4 +85,66 @@ describe('StreamingText', () => {
     );
     expect(container).toBeTruthy();
   });
+
+  // ── Editorial typography structural tests ──
+
+  test('renders italic emphasis from markdown _underscores_', () => {
+    const content = 'This is _emphasized_ text.';
+    render(<StreamingText content={content} status="completed" />);
+    const em = screen.getByText('emphasized');
+    expect(em.tagName).toBe('EM');
+  });
+
+  test('renders strong as <strong> from markdown **double-asterisks**', () => {
+    const content = '**标签：** 这是标签内容';
+    render(<StreamingText content={content} status="completed" />);
+    const strong = screen.getByText('标签：');
+    expect(strong.tagName).toBe('STRONG');
+  });
+
+  test('renders blockquote with editorial pullquote markup', () => {
+    const content = '> This is a pullquote';
+    render(<StreamingText content={content} status="completed" />);
+    const bq = screen.getByText('This is a pullquote');
+    expect(bq.tagName).toBe('P');
+    expect(bq.closest('blockquote')).toBeTruthy();
+  });
+
+  test('renders h1, h2, h3 with serif heading structure', () => {
+    const content = '# Heading 1\n## Heading 2\n### Heading 3';
+    render(<StreamingText content={content} status="completed" />);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Heading 1');
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Heading 2');
+    expect(screen.getByRole('heading', { level: 3 }).textContent).toBe('Heading 3');
+  });
+
+  test('renders unordered and ordered lists', () => {
+    const content = '- Item A\n- Item B\n\n1. Step 1\n2. Step 2';
+    render(<StreamingText content={content} status="completed" />);
+    expect(screen.getByText('Item A')).toBeTruthy();
+    expect(screen.getByText('Step 1')).toBeTruthy();
+    const lists = document.querySelectorAll('ul, ol');
+    expect(lists.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('renders inline code and fenced code block distinctly', () => {
+    const content = 'Use `inline code` here.\n\n```\nblock code\n```';
+    render(<StreamingText content={content} status="completed" />);
+    const inline = screen.getByText('inline code');
+    expect(inline.tagName).toBe('CODE');
+    // inline code should not be inside <pre>
+    expect(inline.closest('pre')).toBeFalsy();
+    // block code should be inside <pre>
+    const block = screen.getByText('block code');
+    expect(block.closest('pre')).toBeTruthy();
+  });
+
+  test('wraps all content in a container div', () => {
+    const { container } = render(
+      <StreamingText content="Hello" status="completed" />,
+    );
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toBeTruthy();
+    expect(wrapper.tagName).toBe('DIV');
+  });
 });
