@@ -1,16 +1,14 @@
 import React from 'react';
 import { createStyles } from 'antd-style';
-import { claudeAlpha, claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors, claudeRadius } from '@/styles/claude-tokens';
 
 const useStyles = createStyles(({ css }) => ({
   bar: css`
     margin: 0 12px 12px;
     padding: 6px 14px;
     border-radius: 0 0 ${claudeRadius.md}px ${claudeRadius.md}px;
-    background: ${claudeAlpha('#f5f0e8', 0.55)};
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid ${claudeAlpha('#c8b9a0', 0.3)};
+    background: rgba(250, 249, 245, 0.30);
+    border: 1px solid rgba(200, 185, 160, 0.20);
     border-top: 0;
     display: flex;
     align-items: center;

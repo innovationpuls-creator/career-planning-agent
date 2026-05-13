@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStyles } from 'antd-style';
-import { claudeAlpha, claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors, claudeRadius } from '@/styles/claude-tokens';
 import type { AgentRunStep } from '../types';
 import { formatStepTitle } from './stepLabels';
 
@@ -9,10 +9,8 @@ const useStyles = createStyles(({ css }) => ({
     margin: 0 12px;
     padding: 10px 14px;
     border-radius: ${claudeRadius.md}px ${claudeRadius.md}px 0 0;
-    background: ${claudeAlpha('#f5f0e8', 0.72)};
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid ${claudeAlpha('#c8b9a0', 0.35)};
+    background: transparent;
+    border: 1px solid rgba(200, 185, 160, 0.35);
     border-bottom: 0;
     font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
     font-size: 12px;

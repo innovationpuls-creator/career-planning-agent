@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createStyles } from 'antd-style';
-import { claudeAlpha, claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import type { AgentRunStep, MessageStatus, RunMetrics } from '../types';
 import { CollapsedBar } from './CollapsedBar';
 import { ExpandedLog } from './ExpandedLog';
@@ -10,10 +10,12 @@ const COLLAPSE_DELAY_MS = 2000;
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
-    border: 1px solid ${claudeColors.borderWarm};
-    border-radius: ${claudeRadius.md}px;
-    background: ${claudeAlpha(claudeColors.ivory, 0.92)};
-    margin-bottom: 12px;
+    border: 1px solid ${claudeGlass.borderCLI};
+    border-radius: 12px;
+    background: ${claudeGlass.cli};
+    backdrop-filter: ${claudeGlass.blurSubtle};
+    -webkit-backdrop-filter: ${claudeGlass.blurSubtle};
+    margin-bottom: 8px;
     overflow: hidden;
   `,
 }));

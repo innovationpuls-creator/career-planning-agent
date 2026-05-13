@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStyles } from 'antd-style';
-import { claudeAlpha, claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors, claudeRadius } from '@/styles/claude-tokens';
 import { formatRunSummary } from './stepLabels';
 
 const useStyles = createStyles(({ css }) => ({
@@ -8,10 +8,8 @@ const useStyles = createStyles(({ css }) => ({
     margin: 0 12px 12px;
     padding: 8px 14px;
     border-radius: ${claudeRadius.md}px;
-    background: ${claudeAlpha('#f5f0e8', 0.85)};
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid ${claudeAlpha('#c8b9a0', 0.4)};
+    background: transparent;
+    border: 1px solid rgba(200, 185, 160, 0.40);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -23,7 +21,7 @@ const useStyles = createStyles(({ css }) => ({
     text-align: left;
 
     &:hover {
-      background: ${claudeAlpha('#f5f0e8', 0.95)};
+      background: rgba(245, 240, 232, 0.15);
     }
   `,
   chevron: css`
