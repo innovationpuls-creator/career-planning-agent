@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { createStyles } from 'antd-style';
-import { claudeTokens } from '@/styles/claude-tokens';
+import { claudeColors, claudeTokens } from '@/styles/claude-tokens';
 import type { MessageStatus } from '../types';
 import { useStreamingAnimation } from '../hooks/useStreamingAnimation';
 import { MarkdownTable } from './MarkdownTable';
@@ -97,6 +97,20 @@ const useStyles = createStyles(({ css }) => ({
       &:hover {
         text-decoration: underline;
       }
+    }
+  `,
+  cursor: css`
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: ${claudeColors.terracotta};
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
   `,
 }));

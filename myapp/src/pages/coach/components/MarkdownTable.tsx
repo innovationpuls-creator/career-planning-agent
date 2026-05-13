@@ -4,50 +4,50 @@ import { claudeColors } from '@/styles/claude-tokens';
 
 const useStyles = createStyles(({ css }) => ({
   wrapper: css`
-    width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin: 16px 0;
+    margin: 8px 0;
   `,
   table: css`
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    border-radius: 8px;
+    border: 1px solid rgba(200, 185, 160, 0.30);
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    font-size: 14px;
-
-    thead tr {
-      background: linear-gradient(180deg, #f8f4ed, #f0ebe0);
-    }
+    font-size: 13px;
 
     th {
-      padding: 8px 14px;
+      background: linear-gradient(
+        180deg,
+        rgba(248, 244, 237, 0.70),
+        rgba(240, 235, 224, 0.70)
+      );
+      padding: 8px 12px;
       text-align: left;
       font-weight: 600;
+      border-bottom: 1px solid rgba(200, 185, 160, 0.25);
       color: ${claudeColors.oliveGray};
-      border-bottom: 1px solid #ddd2c0;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-size: 12px;
     }
 
     td {
-      padding: 10px 14px;
-      border-bottom: 1px solid #f0ebe0;
+      padding: 7px 12px;
+      border-bottom: 1px solid rgba(200, 185, 160, 0.15);
+      color: ${claudeColors.nearBlack};
     }
 
-    tbody tr:nth-child(odd) {
-      background: #fff;
-    }
-
-    tbody tr:nth-child(even) {
-      background: #fdfbf7;
-    }
-
-    tbody tr:last-child td {
+    tr:last-child td {
       border-bottom: none;
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(240, 235, 224, 0.30);
+    }
+
+    tr:last-child td {
+      font-weight: 600;
+      color: ${claudeColors.terracotta};
     }
   `,
 }));
@@ -62,7 +62,7 @@ export const MarkdownTable = React.memo(function MarkdownTable({
   const { styles } = useStyles();
 
   return (
-    <div className={styles.wrapper} style={{ overflowX: 'auto' }}>
+    <div className={styles.wrapper}>
       <table className={styles.table}>{children}</table>
     </div>
   );
