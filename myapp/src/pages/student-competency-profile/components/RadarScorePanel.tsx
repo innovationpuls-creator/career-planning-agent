@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  claudeAlpha,
   claudeColors,
   claudeFonts,
   claudeRadius,
@@ -31,8 +32,12 @@ const DIMENSION_SHORT_LABELS: Record<string, string> = Object.fromEntries(
 
 const useStyles = createStyles(({ css }) => ({
   panel: css`
-    background: ${claudeColors.ivory};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 24px;
     min-height: 340px;
   `,
@@ -71,8 +76,8 @@ const useStyles = createStyles(({ css }) => ({
     flex-direction: column;
     gap: 6px;
     padding: 12px;
-    background: ${claudeColors.parchment};
-    border-radius: ${claudeRadius.lg}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     transition: background 0.2s ease;
     &:hover {
       background: ${claudeColors.borderCream};

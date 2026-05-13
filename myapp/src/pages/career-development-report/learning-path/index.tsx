@@ -1,9 +1,17 @@
-import { FadeInWhenVisible } from '@/components/ui/FadeInWhenVisible';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { Alert, Button, Result, Skeleton, Space } from 'antd';
 import { createStyles } from 'antd-style';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { FadeInWhenVisible } from '@/components/ui/FadeInWhenVisible';
+import { AskCoachButton, GlassShell } from '@/components/ui';
+import { claudeAlpha, claudeRadius } from '@/styles/claude-tokens';
 import { ModuleList } from './components/ModuleList';
 import { PathHero } from './components/PathHero';
 import { PhaseTimeline } from './components/PhaseTimeline';
@@ -13,8 +21,11 @@ import { ReviewPanel } from './components/ReviewPanel';
 import { useModuleProgress } from './hooks/useModuleProgress';
 import { useReviews } from './hooks/useReviews';
 import { useWorkspace } from './hooks/useWorkspace';
+import type {
+  LearningPathPhaseKey,
+  LearningResourceCard,
+} from './learningPathUtils';
 import {
-  PHASE_LABELS,
   buildWorkspaceStorageKey,
   getCheckedResourceUrlsForPhase,
   getCompletedModuleIds,
@@ -25,12 +36,9 @@ import {
   getResourceCompletionId,
   loadActivePhaseKey,
   loadFavoriteId,
+  PHASE_LABELS,
   saveActivePhaseKey,
   saveFavoriteId,
-} from './learningPathUtils';
-import type {
-  LearningPathPhaseKey,
-  LearningResourceCard,
 } from './learningPathUtils';
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -42,24 +50,6 @@ const useStyles = createStyles(({ css, token }) => ({
     margin: 0 auto;
     padding: 24px 24px 160px;
     background: transparent;
-    &::before {
-      content: '';
-      position: absolute;
-      z-index: -1;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 100vw;
-      transform: translateX(-50%);
-      background:
-        radial-gradient(circle at 12% 0, color-mix(in srgb, ${token.colorPrimaryBg} 72%, transparent) 0, transparent 320px),
-        linear-gradient(
-          180deg,
-          color-mix(in srgb, ${token.colorPrimaryBg} 60%, ${token.colorBgLayout} 40%) 0,
-          color-mix(in srgb, ${token.colorBgLayout} 72%, ${token.colorBgContainer} 28%) 420px,
-          ${token.colorBgLayout} 100%
-        );
-    }
     @media (max-width: 768px) {
       padding: 14px 12px 128px;
     }
@@ -71,10 +61,12 @@ const useStyles = createStyles(({ css, token }) => ({
     gap: 16px;
     margin-bottom: 16px;
     padding: 14px 18px;
-    border: 1px solid color-mix(in srgb, ${token.colorBorderSecondary} 66%, ${token.colorPrimaryBg} 34%);
-    border-radius: 18px;
-    background: color-mix(in srgb, ${token.colorBgContainer} 88%, ${token.colorPrimaryBg} 12%);
-    box-shadow: 0 10px 30px color-mix(in srgb, ${token.colorPrimary} 6%, transparent);
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     @media (max-width: 860px) {
       grid-template-columns: 1fr;
     }
@@ -109,11 +101,13 @@ const useStyles = createStyles(({ css, token }) => ({
   leftPanel: css`
     position: sticky;
     top: 88px;
-    background: ${token.colorBgContainer};
-    border-radius: 18px;
-    border: 1px solid ${token.colorBorderSecondary};
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 16px;
-    box-shadow: 0 4px 16px color-mix(in srgb, ${token.colorPrimary} 5%, transparent);
     @media (max-width: 900px) {
       position: static;
     }
@@ -188,16 +182,15 @@ const LearningPathPage: React.FC = () => {
     favoriteId ?? 0,
   );
   const [activePhaseKey, setActivePhaseKey] = useState<LearningPathPhaseKey>();
-  const [activeReviewType, setActiveReviewType] = useState<'weekly' | 'monthly'>(
-    'weekly',
-  );
+  const [activeReviewType, setActiveReviewType] = useState<
+    'weekly' | 'monthly'
+  >('weekly');
   const phaseMotionStateRef = useRef<'idle' | 'leaving' | 'entering'>('idle');
   const phaseTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const reviewSectionRef = useRef<HTMLDivElement>(null);
   const phases = workspace?.growth_plan_phases || [];
-  const report = workspace?.favorite?.report_snapshot as
-    | API.CareerDevelopmentMatchReport
-    | null;
+  const report = workspace?.favorite
+    ?.report_snapshot as API.CareerDevelopmentMatchReport | null;
 
   const storageKey = useMemo(
     () => buildWorkspaceStorageKey(workspace, report),
@@ -224,7 +217,8 @@ const LearningPathPage: React.FC = () => {
     [phases, resourceCompletedSet],
   );
   const currentPhaseKey = useMemo(
-    () => getCurrentPhaseKey(phases, completedModuleIds) ?? phases[0]?.phase_key,
+    () =>
+      getCurrentPhaseKey(phases, completedModuleIds) ?? phases[0]?.phase_key,
     [phases, completedModuleIds],
   );
 
@@ -314,13 +308,16 @@ const LearningPathPage: React.FC = () => {
     setResourceDrawerOpen(true);
   }, []);
 
-  const handleReviewShortcut = useCallback((reviewType: 'weekly' | 'monthly') => {
-    setActiveReviewType(reviewType);
-    reviewSectionRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, []);
+  const handleReviewShortcut = useCallback(
+    (reviewType: 'weekly' | 'monthly') => {
+      setActiveReviewType(reviewType);
+      reviewSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    },
+    [],
+  );
 
   const handleEditPlan = useCallback(() => {
     if (!favoriteId) return;
@@ -383,10 +380,14 @@ const LearningPathPage: React.FC = () => {
   if (error || showGuidance) {
     const messages: string[] = [];
     if (!favoriteId) {
-      messages.push('请先在"职业匹配"中选择并收藏目标岗位，再进入蜗牛学习路径。');
+      messages.push(
+        '请先在"职业匹配"中选择并收藏目标岗位，再进入蜗牛学习路径。',
+      );
     }
     if (!preparation.hasFavorite) {
-      messages.push('当前目标岗位不存在或不属于当前账号，请先在"职业匹配"中重新收藏目标岗位。');
+      messages.push(
+        '当前目标岗位不存在或不属于当前账号，请先在"职业匹配"中重新收藏目标岗位。',
+      );
     }
     if (!preparation.hasProfile) {
       messages.push('请先前往"首页"补充我的资料，再生成蜗牛学习路径。');
@@ -448,7 +449,9 @@ const LearningPathPage: React.FC = () => {
             100,
         )
       : 0;
-  const moduleTitle = selectedModule ? getModuleDisplayTitle(selectedModule) : '';
+  const moduleTitle = selectedModule
+    ? getModuleDisplayTitle(selectedModule)
+    : '';
   const resourceCompletionId =
     activeResource && activePhase && selectedModule
       ? getResourceCompletionId(
@@ -463,19 +466,32 @@ const LearningPathPage: React.FC = () => {
     : false;
 
   return (
-    <PageContainer>
-      <div className={styles.page}>
+    <PageContainer title={false} pageHeaderRender={false} style={{ margin: -24 }}>
+      <GlassShell>
+        <div className={styles.page}>
         <FadeInWhenVisible>
           <div className={styles.workspaceHeader}>
             <div className={styles.workspaceTitleLine}>
               <span className={styles.workspaceTitle}>蜗牛学习路径</span>
               <span className={styles.workspaceSubtitle}>
-                {workspace?.favorite?.target_title ?? reportSnapshot?.target_title}
+                {workspace?.favorite?.target_title ??
+                  reportSnapshot?.target_title}
               </span>
             </div>
             <Space wrap>
+              <AskCoachButton
+                step="learning"
+                context={{
+                  sourcePage: 'snail-learning-path',
+                  favoriteId,
+                  workspaceId: workspace?.workspace_id,
+                }}
+              />
               <Button onClick={refresh}>刷新</Button>
-              <Button type="primary" onClick={() => handleReviewShortcut('weekly')}>
+              <Button
+                type="primary"
+                onClick={() => handleReviewShortcut('weekly')}
+              >
                 周检查
               </Button>
               <Button onClick={() => handleReviewShortcut('monthly')}>
@@ -489,7 +505,7 @@ const LearningPathPage: React.FC = () => {
         </FadeInWhenVisible>
 
         <FadeInWhenVisible delay={0.1}>
-          <ProCard style={{ marginBottom: 16 }}>
+          <ProCard ghost style={{ marginBottom: 16 }}>
             <PathHero
               currentPhaseLabel={currentPhaseLabel}
               timeHorizon={activePhase?.time_horizon ?? ''}
@@ -528,7 +544,7 @@ const LearningPathPage: React.FC = () => {
 
           <div className={styles.rightPanel}>
             <FadeInWhenVisible delay={0.2}>
-              <ProCard>
+              <ProCard ghost>
                 <div className={styles.sectionHeader}>
                   <h3 className={styles.sectionTitle}>学习资源</h3>
                 </div>
@@ -541,7 +557,11 @@ const LearningPathPage: React.FC = () => {
                   onResourceDetail={handleResourceDetail}
                   onResourceOpen={(resource) => {
                     if (resource.url) {
-                      window.open(resource.url, '_blank', 'noopener,noreferrer');
+                      window.open(
+                        resource.url,
+                        '_blank',
+                        'noopener,noreferrer',
+                      );
                     }
                   }}
                 />
@@ -549,8 +569,11 @@ const LearningPathPage: React.FC = () => {
             </FadeInWhenVisible>
 
             <FadeInWhenVisible delay={0.25}>
-              <ProCard>
-                <div ref={reviewSectionRef} data-testid="learning-review-section">
+              <ProCard ghost>
+                <div
+                  ref={reviewSectionRef}
+                  data-testid="learning-review-section"
+                >
                   <div className={styles.sectionHeader}>
                     <h3 className={styles.sectionTitle}>学习复盘</h3>
                   </div>
@@ -592,10 +615,14 @@ const LearningPathPage: React.FC = () => {
           }}
           onCheckToggle={() => {
             if (activeResourceIndex == null || !activeResource) return;
-            handleResourceCheckToggle(activeResourceIndex, !activeResourceChecked);
+            handleResourceCheckToggle(
+              activeResourceIndex,
+              !activeResourceChecked,
+            );
           }}
         />
-      </div>
+        </div>
+      </GlassShell>
     </PageContainer>
   );
 };

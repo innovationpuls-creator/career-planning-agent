@@ -7,6 +7,8 @@ import {
   claudeColors,
   claudeFonts,
   claudeRadius,
+  claudeShadows,
+  claudeAlpha,
 } from '@/styles/claude-tokens';
 
 interface HeroSectionProps {
@@ -22,15 +24,18 @@ interface HeroSectionProps {
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
-    background: linear-gradient(135deg, ${claudeColors.parchment} 0%, ${claudeColors.ivory} 100%);
-    border: 1px solid ${claudeColors.borderCream};
-    border-radius: ${claudeRadius.xxl}px;
-    padding: 56px 48px;
-    margin-bottom: 30px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    border-radius: ${claudeRadius.lg}px;
+    padding: 64px 56px;
     position: relative;
     overflow: hidden;
     min-height: 340px;
-    box-shadow: 0 18px 42px rgba(40, 38, 35, 0.06);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.08),
+      inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
   `,
   inner: css`
     display: flex;
@@ -42,6 +47,7 @@ const useStyles = createStyles(({ css }) => ({
     @media (max-width: 900px) {
       flex-direction: column;
       gap: 32px;
+      padding: 32px 24px;
     }
   `,
   left: css`
@@ -52,28 +58,30 @@ const useStyles = createStyles(({ css }) => ({
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   `,
   badgeLabel: css`
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: ${claudeColors.oliveGray};
     letter-spacing: 0.03em;
   `,
   title: css`
     font-family: ${claudeFonts.heading};
     font-size: clamp(36px, 5vw, 48px);
-    font-weight: 700;
+    font-weight: 500;
     color: ${claudeColors.nearBlack};
     line-height: 1.15;
-    margin: 0 0 16px;
+    margin: 0 0 24px;
+    letter-spacing: -0.01em;
   `,
   subtitle: css`
-    font-size: 15px;
+    font-family: ${claudeFonts.body};
+    font-size: 16px;
     color: ${claudeColors.oliveGray};
     margin: 0;
-    line-height: 1.7;
-    max-width: 420px;
+    line-height: 1.6;
+    max-width: 480px;
   `,
   right: css`
     flex-shrink: 0;
@@ -84,8 +92,8 @@ const useStyles = createStyles(({ css }) => ({
   `,
   matchValue: css`
     font-family: ${claudeFonts.heading};
-    font-size: 72px;
-    font-weight: 700;
+    font-size: 80px;
+    font-weight: 500;
     color: ${claudeColors.terracotta};
     line-height: 1;
     letter-spacing: -0.03em;
@@ -94,12 +102,13 @@ const useStyles = createStyles(({ css }) => ({
     font-size: 14px;
     color: ${claudeColors.stoneGray};
     margin-top: 4px;
+    font-weight: 500;
   `,
   statsRow: css`
     display: flex;
     align-items: center;
-    gap: 24px;
-    margin-top: 24px;
+    gap: 32px;
+    margin-top: 32px;
     flex-wrap: wrap;
   `,
   statItem: css`
@@ -108,22 +117,22 @@ const useStyles = createStyles(({ css }) => ({
     gap: 4px;
   `,
   statLabel: css`
-    font-size: 12px;
+    font-size: 13px;
     color: ${claudeColors.stoneGray};
   `,
   statValue: css`
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 600;
     color: ${claudeColors.nearBlack};
   `,
   hint: css`
     font-size: 14px;
     color: ${claudeColors.stoneGray};
-    margin: 8px 0 0;
+    margin: 12px 0 0;
     line-height: 1.6;
   `,
   ctaRow: css`
-    margin-top: 28px;
+    margin-top: 32px;
   `,
 }));
 

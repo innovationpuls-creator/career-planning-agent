@@ -25,9 +25,12 @@ const useStyles = createStyles(({ css }) => ({
     }
   `,
   card: css`
-    background: ${claudeColors.ivory};
-    border: 1px solid ${claudeColors.borderCream};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 18px;
     transition: all 0.2s ease;
 

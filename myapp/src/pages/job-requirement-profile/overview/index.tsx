@@ -2,7 +2,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { Alert, Empty, Space, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
-import { ClaudeCard } from '@/components/ui';
+import { ClaudeCard, GlassShell } from '@/components/ui';
 import { claudeColors, claudeFonts } from '@/styles/claude-tokens';
 import { GraphCanvas } from './components/GraphCanvas';
 import { GraphGuide } from './components/GraphGuide';
@@ -20,7 +20,7 @@ const useStyles = createStyles(({ css }) => ({
   shell: css`
     min-height: calc(100vh - 112px);
     padding: 24px;
-    background: ${claudeColors.parchment};
+    background: transparent;
   `,
   header: css`
     display: flex;
@@ -68,11 +68,12 @@ const JobRequirementOverviewPage: React.FC = () => {
     payload?.nodes.filter((node) => node.type === 'Dimension').length || 12;
 
   return (
-    <PageContainer
-      className={styles.pageContainer}
-      title={false}
-      breadcrumbRender={false}
-    >
+    <GlassShell>
+      <PageContainer
+        className={styles.pageContainer}
+        title={false}
+        breadcrumbRender={false}
+      >
       <main className={styles.shell}>
         <div className={styles.header}>
           <div>
@@ -100,7 +101,7 @@ const JobRequirementOverviewPage: React.FC = () => {
             description={error}
           />
         ) : graphData || loading ? (
-          <ClaudeCard elevation="flat">
+          <ClaudeCard elevation="glass">
             <div className={styles.graphWrap}>
               <GraphCanvas
                 graphData={graphData}
@@ -118,7 +119,8 @@ const JobRequirementOverviewPage: React.FC = () => {
           <GraphGuide dimensionCount={dimensionCount} />
         </div>
       </main>
-    </PageContainer>
+      </PageContainer>
+    </GlassShell>
   );
 };
 

@@ -4,6 +4,7 @@ import {
   claudeColors,
   claudeFonts,
   claudeRadius,
+  claudeAlpha,
 } from '@/styles/claude-tokens';
 
 export interface GrowthStage {
@@ -19,7 +20,6 @@ interface GrowthRoadmapProps {
 
 const useStyles = createStyles(({ css }) => ({
   section: css`
-    margin-bottom: 26px;
   `,
   heading: css`
     font-family: ${claudeFonts.heading};
@@ -37,10 +37,16 @@ const useStyles = createStyles(({ css }) => ({
   `,
   card: css`
     padding: 32px;
-    background: ${claudeColors.nearBlack};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha(claudeColors.nearBlack, 0.7)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.1)};
+    border-radius: ${claudeRadius.lg}px;
     position: relative;
     overflow: hidden;
+    box-shadow: 
+      0 16px 40px rgba(0, 0, 0, 0.3),
+      inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.1)};
   `,
   road: css`
     display: flex;
@@ -71,9 +77,9 @@ const useStyles = createStyles(({ css }) => ({
     justify-content: center;
     font-size: 18px;
     font-weight: 800;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.5);
+    border: 2px solid ${claudeAlpha('#ffffff', 0.15)};
+    background: ${claudeAlpha('#ffffff', 0.06)};
+    color: ${claudeAlpha('#ffffff', 0.5)};
     transition: all 0.25s ease;
   `,
   circleActive: css`
@@ -83,9 +89,9 @@ const useStyles = createStyles(({ css }) => ({
     box-shadow: 0 0 0 8px ${claudeColors.terracotta}22, 0 8px 20px ${claudeColors.terracotta}33;
   `,
   circleDone: css`
-    border-color: rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.7);
+    border-color: ${claudeAlpha('#ffffff', 0.25)};
+    background: ${claudeAlpha('#ffffff', 0.08)};
+    color: ${claudeAlpha('#ffffff', 0.7)};
   `,
   text: css`
     display: flex;
@@ -96,14 +102,14 @@ const useStyles = createStyles(({ css }) => ({
     font-family: ${claudeFonts.heading};
     font-size: 18px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
+    color: ${claudeAlpha('#ffffff', 0.5)};
     line-height: 1;
   `,
   stageNameActive: css`
     color: #fff;
   `,
   stageNameDone: css`
-    color: rgba(255, 255, 255, 0.7);
+    color: ${claudeAlpha('#ffffff', 0.7)};
   `,
   salary: css`
     font-size: 14px;
@@ -113,7 +119,7 @@ const useStyles = createStyles(({ css }) => ({
     font-weight: 600;
   `,
   salaryMuted: css`
-    color: rgba(255, 255, 255, 0.3);
+    color: ${claudeAlpha('#ffffff', 0.3)};
     font-weight: 400;
   `,
   connector: css`
@@ -121,7 +127,7 @@ const useStyles = createStyles(({ css }) => ({
     min-width: 60px;
     height: 2px;
     margin: 0 12px;
-    background: rgba(255, 255, 255, 0.1);
+    background: ${claudeAlpha('#ffffff', 0.1)};
     position: relative;
   `,
   connectorDone: css`

@@ -2,6 +2,7 @@
 
 Project: 大学生职业规划智能体  
 Stack: FastAPI backend + Ant Design Pro / Umi Max frontend.
+use uv to run python
 
 This file is for routing and constraints only. Do not duplicate full specs here.
 

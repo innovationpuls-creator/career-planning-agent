@@ -23,8 +23,8 @@
 
 - 不做 Outbox 事件总线、Dead Letter Queue（P2）
 - 不做 mutation_gated 工具接入（P2 首个工具 `verify_and_record_progress`）
-- 不做 competency_history 时间线（P2，由 mutation_gated 工具写入）
-- 不做 feedback_records 表（P3）
+- 不做 competency_history 时间线写入逻辑（P2，由 mutation_gated 工具首次写入时触发）
+- 不做 feedback_records 写入逻辑（P4 补充 `record_feedback()` 服务，P1 仅创建表结构）
 - 不做 Qdrant 向量记忆召回（P2/P5）
 - 不做记忆回滚（P4）
 - 不做 Collective Wisdom 表 cw_entities/relations/observations（P5）
@@ -88,7 +88,7 @@ coach_sessions 表           coach_messages 表
 
 ## 4. 数据库迁移
 
-### 4.1 新增 5 张 SQLite 表
+### 4.1 新增 7 张 SQLite 表
 
 按项目现有模式：在 `backend/app/models/coach.py` 中定义 SQLAlchemy ORM 模型，在 `init_db()` 的 model 元组中引用以触发 `Base.metadata.create_all`。
 
@@ -179,27 +179,70 @@ CREATE TABLE decision_journal (
 CREATE INDEX idx_journal_student ON decision_journal(student_id);
 ```
 
+#### 表 F：`competency_history`
+
+```sql
+CREATE TABLE competency_history (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL,
+    skill_id TEXT NOT NULL,
+    mastery_status TEXT NOT NULL,
+    memory_status TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    evidence TEXT,
+    source TEXT NOT NULL,
+    recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_comp_history_student ON competency_history(student_id, skill_id);
+CREATE INDEX idx_comp_history_time ON competency_history(recorded_at);
+```
+
+用途：按时间线记录每项技能的每次变更，支持技能成长轨迹可视化。每次 mutation_gated 工具提交的技能变更（confirm/provisional）均追加一条记录。
+
+#### 表 G：`feedback_records`
+
+```sql
+CREATE TABLE feedback_records (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL,
+    trace_id TEXT,
+    session_id TEXT,
+    target_type TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    sentiment TEXT NOT NULL,
+    feedback_text TEXT,
+    source TEXT NOT NULL,
+    compensation_status TEXT NOT NULL DEFAULT 'none',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_feedback_student ON feedback_records(student_id);
+CREATE INDEX idx_feedback_target ON feedback_records(student_id, target_type, target_id, created_at);
+```
+
+用途：独立存储用户反馈，不嵌入 ConversationSummary JSON。P4 基于此表计算 Agent 准确率。
+
 ### 4.2 回滚迁移
 
-从 `init_db()` 的 model 元组中移除 5 个 model 引用，删除 `models/coach.py`，手动 `DROP TABLE` 回退。
+从 `init_db()` 的 model 元组中移除 7 个 model 引用，删除 `models/coach.py`，手动 `DROP TABLE` 回退。
 
 ---
 
 ## 5. 新增文件
 
-### 后端（9 文件）
+### 后端（10 文件）
 
 | # | 文件 | 职责 |
 |---|------|------|
-| 1 | `backend/app/models/coach.py` | 5 个 SQLAlchemy ORM 模型 |
-| 2 | `backend/app/services/memory/__init__.py` | 空包初始化 |
-| 3 | `backend/app/services/memory/models.py` | Pydantic 模型 + 枚举 |
-| 4 | `backend/app/services/memory/manager.py` | MemoryManager 类 |
-| 5 | `backend/app/services/memory/adjudicator.py` | `adjudicate()` 纯函数 |
-| 6 | `backend/app/api/coach_sessions.py` | 3 个 REST 端点 |
-| 7 | `backend/tests/services/memory/test_adjudicator.py` | Adjudicator 单元测试 |
-| 8 | `backend/tests/services/memory/test_memory_manager.py` | MemoryManager 集成测试 |
-| 9 | `backend/tests/api/test_coach_sessions.py` | 会话 CRUD 集成测试 |
+| 1 | `backend/app/api/coach_deps.py` | **P1 新增** — `verify_student_session()` FastAPI 公共 Depends：校验 `session.student_id == current_user.id`，所有 `/api/coach/*` 端点共享 |
+| 2 | `backend/app/models/coach.py` | 7 个 SQLAlchemy ORM 模型 |
+| 3 | `backend/app/services/memory/__init__.py` | 空包初始化 |
+| 4 | `backend/app/services/memory/models.py` | Pydantic 模型 + 枚举 |
+| 5 | `backend/app/services/memory/manager.py` | MemoryManager 类 |
+| 6 | `backend/app/services/memory/adjudicator.py` | `adjudicate()` 纯函数 |
+| 7 | `backend/app/api/coach_sessions.py` | 3 个 REST 端点（依赖 `verify_student_session`） |
+| 8 | `backend/tests/services/memory/test_adjudicator.py` | Adjudicator 单元测试 |
+| 9 | `backend/tests/services/memory/test_memory_manager.py` | MemoryManager 集成测试 |
+| 10 | `backend/tests/api/test_coach_sessions.py` | 会话 CRUD 集成测试 |
 
 ### 前端（3 文件）
 
@@ -232,7 +275,7 @@ function useSessionRecovery(sessionId?: string): UseSessionRecoveryResult
 
 | # | 文件 | 改动 |
 |---|------|------|
-| 1 | `backend/app/main.py` | `init_db()` 引用 5 个新 model；注册 `coach_sessions_router` |
+| 1 | `backend/app/main.py` | `init_db()` 引用 7 个新 model；注册 `coach_sessions_router` |
 | 2 | `backend/app/services/coach_coordinator.py` | 新增 `_load_memory`/`_save_memory`/`_save_transcript` 步骤；引用 MemoryManager |
 | 3 | `backend/app/services/context_builder.py` | `build()` 接收可选 `conversation_summary` 参数；`_format_hard_memory()` 将 summary 格式化为 Markdown 注入 system prompt |
 | 4 | `backend/app/api/coach.py` | 初始化 MemoryManager 实例并传入 CoachCoordinator |
@@ -330,6 +373,42 @@ Authorization: Bearer <token>
 ### 7.3 学生隔离
 
 所有 session 端点校验 `session.student_id == current_user.id`。查询时加 `WHERE student_id = ?` 过滤。
+
+#### verify_student_session 共享依赖
+
+```python
+# backend/app/api/coach_deps.py
+
+async def verify_student_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncConnection = Depends(get_db),
+):
+    """FastAPI 公共 Depends：所有 /api/coach/* 端点共享"""
+    row = await db.fetchone(
+        "SELECT student_id FROM coach_sessions WHERE id = ?",
+        (session_id,)
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    if row["student_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="无权访问此会话")
+    return row
+```
+
+所有后续新增的 `/api/coach/*` 端点（session CRUD、upload、memory management 等）统一使用该依赖，不重复编写校验逻辑。
+
+```python
+# coach_sessions.py 使用示例
+@router.get("/coach/sessions/{session_id}")
+async def get_session(
+    session_id: str,
+    session=Depends(verify_student_session),
+    db=Depends(get_db),
+):
+    """会话详情 — 已在 verify_student_session 中完成了 student_id 校验"""
+    ...
+```
 
 ### 7.4 P0c NDJSON 事件不变
 

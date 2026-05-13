@@ -7,7 +7,6 @@ import type { ComparisonQuery } from '../hooks/useComparisonData';
 
 const useStyles = createStyles(({ css }) => ({
   card: css`
-    background: ${claudeColors.ivory};
   `,
   grid: css`
     display: grid;
@@ -60,7 +59,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const { styles } = useStyles();
 
   return (
-    <ClaudeCard elevation="elevated" className={styles.card}>
+    <ClaudeCard elevation="glass" className={styles.card}>
       <div className={styles.grid}>
         <div className={styles.field}>
           <span className={styles.label}>岗位名称</span>

@@ -1,8 +1,10 @@
 import {
+  AskCoachButton,
   ClaudeButton,
   FadeInWhenVisible,
   PageError,
   PageLoading,
+  GlassShell,
 } from "@/components/ui";
 import { Space, Tabs } from "antd";
 import React, { useCallback, useRef } from "react";
@@ -200,7 +202,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
   if (competency.error) return <PageError message={competency.error} />;
 
   return (
-    <div className={styles.shell}>
+    <GlassShell>
       <div className={styles.page}>
         {!hasResult && !stream.isStreaming && (
           <FadeInWhenVisible>
@@ -236,15 +238,21 @@ const StudentCompetencyProfilePage: React.FC = () => {
                 marginBottom: 12,
               }}
             >
-              <ClaudeButton
-                variant="ghost"
-                onClick={async () => {
-                  const shouldResetStream = await competency.reset();
-                  if (shouldResetStream) stream.reset();
-                }}
-              >
-                重新解析
-              </ClaudeButton>
+              <Space>
+                <AskCoachButton
+                  step="resume"
+                  context={{ sourcePage: "student-competency-profile" }}
+                />
+                <ClaudeButton
+                  variant="ghost"
+                  onClick={async () => {
+                    const shouldResetStream = await competency.reset();
+                    if (shouldResetStream) stream.reset();
+                  }}
+                >
+                  重新解析
+                </ClaudeButton>
+              </Space>
             </div>
             <Tabs
               className={styles.tabs}
@@ -332,7 +340,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
           </FadeInWhenVisible>
         )}
       </div>
-    </div>
+    </GlassShell>
   );
 };
 

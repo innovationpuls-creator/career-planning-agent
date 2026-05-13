@@ -23,7 +23,7 @@ const useStyles = createStyles(({ css }) => ({
   card: css`
     padding: 36px 32px;
     text-align: center;
-    border-radius: ${claudeRadius.xl}px;
+    border-radius: ${claudeRadius.lg}px;
     background: linear-gradient(135deg, ${claudeColors.parchment} 0%, ${claudeColors.ivory} 100%);
   `,
   label: css`
@@ -67,7 +67,7 @@ export function CtaSection({
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
     >
-      <ClaudeCard elevation="elevated" className={styles.card}>
+      <ClaudeCard elevation="glass" className={styles.card}>
         <p className={styles.label}>{nextActionLabel}</p>
         <h3 className={styles.title}>{nextActionDescription}</h3>
         <ClaudeButton

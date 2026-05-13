@@ -4,6 +4,7 @@ import { createStyles } from 'antd-style';
 import React, { useCallback } from 'react';
 import { ClaudeInput, ClaudeTag } from '@/components/ui';
 import {
+  claudeAlpha,
   claudeColors,
   claudeFonts,
   claudeRadius,
@@ -34,8 +35,12 @@ const FIELD_MAP = new Map(
 
 const useStyles = createStyles(({ css }) => ({
   container: css`
-    background: ${claudeColors.ivory};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 24px;
     width: 100%;
   `,
@@ -51,11 +56,11 @@ const useStyles = createStyles(({ css }) => ({
     border: none !important;
 
     :global(.ant-collapse-item) {
-      border: 1px solid ${claudeColors.borderCream} !important;
-      border-radius: ${claudeRadius.lg}px !important;
+      border: 1px solid ${claudeAlpha('#ffffff', 0.6)} !important;
+      border-radius: ${claudeRadius.md}px !important;
       margin-bottom: 8px !important;
       overflow: hidden;
-      background: ${claudeColors.parchment};
+      background: ${claudeAlpha('#ffffff', 0.4)};
     }
 
     :global(.ant-collapse-header) {
@@ -66,8 +71,8 @@ const useStyles = createStyles(({ css }) => ({
     }
 
     :global(.ant-collapse-content) {
-      border-top: 1px solid ${claudeColors.borderCream} !important;
-      background: ${claudeColors.ivory};
+      border-top: 1px solid ${claudeAlpha('#ffffff', 0.6)} !important;
+      background: transparent;
     }
 
     :global(.ant-collapse-content-box) {

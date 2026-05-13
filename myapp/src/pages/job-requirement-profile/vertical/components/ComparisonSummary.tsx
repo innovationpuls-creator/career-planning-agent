@@ -70,6 +70,7 @@ export const ComparisonSummary: React.FC<{
         title="对比行业数"
         value={data?.meta.total_industries || 0}
         unit="个"
+        variant="glass"
       />
       <ClaudeStatCard
         icon={<RadarChartOutlined />}
@@ -77,12 +78,14 @@ export const ComparisonSummary: React.FC<{
         title="维度覆盖数"
         value={coveredDimensions}
         unit="/ 12"
+        variant="glass"
       />
       <ClaudeStatCard
         icon={<BarChartOutlined />}
         iconColor={claudeColors.warning}
         title="最大差异维度"
         value={maxGapDimension || '—'}
+        variant="glass"
       />
     </div>
   );

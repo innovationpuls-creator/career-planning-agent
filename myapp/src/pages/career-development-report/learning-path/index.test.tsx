@@ -2,8 +2,8 @@ import {
   fireEvent,
   render,
   screen,
-  within,
   waitFor,
+  within,
 } from '@testing-library/react';
 import React from 'react';
 import LearningPathPage from './index';
@@ -30,7 +30,10 @@ jest.mock('@umijs/max', () => ({
 }));
 
 jest.mock('antd-style', () => ({
-  createStyles: () => () => ({ cx: (...args: any[]) => args.filter(Boolean).join(' '), styles: {} }),
+  createStyles: () => () => ({
+    cx: (...args: any[]) => args.filter(Boolean).join(' '),
+    styles: {},
+  }),
 }));
 
 jest.mock('@/services/ant-design-pro/api', () => ({
@@ -134,9 +137,7 @@ jest.mock('./components/ResourceDetail', () => ({
           <span>完成后你能做到</span>
           <span>{resource?.doneWhen}</span>
         </div>
-        <div data-testid="detail-status">
-          {checked ? '已完成' : '未完成'}
-        </div>
+        <div data-testid="detail-status">{checked ? '已完成' : '未完成'}</div>
         <input
           type="checkbox"
           aria-label="已打卡"
@@ -146,7 +147,9 @@ jest.mock('./components/ResourceDetail', () => ({
         <a href={resource?.url} target="_blank" rel="noopener">
           去学习 →
         </a>
-        <button type="button" onClick={onClose}>关闭</button>
+        <button type="button" onClick={onClose}>
+          关闭
+        </button>
       </div>
     ) : null,
 }));
@@ -169,9 +172,7 @@ jest.mock('./components/PathHero', () => ({
       <span data-testid="hero-phase">{currentPhaseLabel}</span>
       <span data-testid="hero-match">{matchPercent}%</span>
       <span data-testid="hero-content-completion">{contentCompletion}</span>
-      <span data-testid="hero-practice-completion">
-        {practiceCompletion}
-      </span>
+      <span data-testid="hero-practice-completion">{practiceCompletion}</span>
       {currentModuleName && (
         <span data-testid="hero-module">{currentModuleName}</span>
       )}
@@ -519,9 +520,7 @@ describe('LearningPathPage', () => {
     await fireEvent.click(detailTrigger);
 
     const drawer = await screen.findByTestId('resource-detail-drawer');
-    expect(
-      within(drawer).getByText('为什么学这条资源？'),
-    ).toBeTruthy();
+    expect(within(drawer).getByText('为什么学这条资源？')).toBeTruthy();
     expect(
       within(drawer).getByText('This is the most direct foundation.'),
     ).toBeTruthy();
@@ -695,28 +694,26 @@ describe('LearningPathPage', () => {
     });
     // Capture the workspaceRef so the mock uses the multi-phase workspace
     const workspaceRef = multiPhaseWorkspace;
-    useModuleProgress.mockImplementation(
-      (_phases: any, phaseKey: string) => ({
-        modules: buildMockModules(workspaceRef).map((m) => ({
-          ...m,
-          ...(phaseKey === 'mid_term'
-            ? {
-                ...workspaceRef.growth_plan_phases[1].learning_modules[0],
-                status: { total: 1, completed: 0, done: false },
-              }
-            : {}),
-        })),
-        currentModule:
-          workspaceRef.growth_plan_phases[phaseKey === 'mid_term' ? 1 : 0]
-            .learning_modules[0],
-        selectedModuleId: phaseKey === 'mid_term' ? 'm2' : 'm1',
-        setSelectedModuleId: jest.fn(),
-        resourceCompletedSet: new Set(),
-        toggleResourceComplete: jest.fn(),
-        toggleModuleComplete: jest.fn(),
-        submitProgress: jest.fn(),
-      }),
-    );
+    useModuleProgress.mockImplementation((_phases: any, phaseKey: string) => ({
+      modules: buildMockModules(workspaceRef).map((m) => ({
+        ...m,
+        ...(phaseKey === 'mid_term'
+          ? {
+              ...workspaceRef.growth_plan_phases[1].learning_modules[0],
+              status: { total: 1, completed: 0, done: false },
+            }
+          : {}),
+      })),
+      currentModule:
+        workspaceRef.growth_plan_phases[phaseKey === 'mid_term' ? 1 : 0]
+          .learning_modules[0],
+      selectedModuleId: phaseKey === 'mid_term' ? 'm2' : 'm1',
+      setSelectedModuleId: jest.fn(),
+      resourceCompletedSet: new Set(),
+      toggleResourceComplete: jest.fn(),
+      toggleModuleComplete: jest.fn(),
+      submitProgress: jest.fn(),
+    }));
 
     render(React.createElement(LearningPathPage));
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import socket
 import subprocess
 import sys
@@ -32,12 +33,35 @@ from app.api.job_requirement_graph import router as job_requirement_graph_router
 from app.api.job_requirement_vertical import router as job_requirement_vertical_router
 from app.api.job_transfer import router as job_transfer_router
 from app.api.jobs import router as jobs_router
+from app.api.coach import router as coach_router
+from app.api.coach_cw import router as coach_cw_router
+from app.api.coach_memory import router as coach_memory_router
+from app.api.coach_observability import router as coach_observability_router
+from app.api.coach_sessions import router as coach_sessions_router
+from app.api.coach_upload import router as coach_upload_router
+from app.api.goal_setting import router as goal_setting_router
 from app.api.snail_learning_path import router as snail_learning_path_router
 from app.api.student_competency_profile import router as student_competency_profile_router
 from app.core.config import DATA_DIR, settings
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
 from app.models.career_group_embedding import CareerGroupEmbedding
+from app.models.coach import (
+    CoachMessage,
+    CoachSession,
+    CompetencyHistory,
+    ConversationSummary,
+    CwEntity,
+    CwObservation,
+    CwRelation,
+    DecisionJournal,
+    FeedbackRecord,
+    MemoryMutation,
+    OutboxEvent,
+    PromptVersion,
+    RoutingLog,
+    TrainingDataset,
+)
 from app.models.career_development_favorite_report import CareerDevelopmentFavoriteReport
 from app.models.career_development_goal_planning_task import CareerDevelopmentGoalPlanningTask
 from app.models.career_development_personal_growth_report_task import (
@@ -109,7 +133,24 @@ def _ensure_job_requirement_profile_schema() -> None:
                 "SET canonical_job_title = job_title "
                 "WHERE canonical_job_title IS NULL OR canonical_job_title = ''"
             )
-        )
+            )
+
+
+def _ensure_coach_message_schema() -> None:
+    inspector = inspect(engine)
+    if "coach_messages" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("coach_messages")}
+    with engine.begin() as connection:
+        if "attachments_json" not in columns:
+            connection.execute(
+                text("ALTER TABLE coach_messages ADD COLUMN attachments_json TEXT")
+            )
+        if "run_trace_json" not in columns:
+            connection.execute(
+                text("ALTER TABLE coach_messages ADD COLUMN run_trace_json TEXT")
+            )
 
 
 def _ensure_transfer_v2_schema() -> None:
@@ -252,6 +293,29 @@ def _ensure_qdrant_running() -> None:
 _qdrant_process: subprocess.Popen[bytes] | None = None
 
 
+def _ensure_student_contexts_collection() -> None:
+    """Create the student_contexts Qdrant collection for recall_memory tool."""
+    try:
+        from app.services.student_context_store import ensure_collection
+        ensure_collection(settings.qdrant_path)
+    except Exception:
+        logger.exception("Failed to ensure student_contexts Qdrant collection")
+
+
+async def _run_worker(worker: Any) -> None:
+    """Run BackgroundWorker polling loop."""
+    import asyncio
+    try:
+        while True:
+            try:
+                await asyncio.to_thread(worker.process_batch, batch_size=20)
+            except Exception:
+                logger.exception("BackgroundWorker batch error")
+            await asyncio.sleep(5)
+    except asyncio.CancelledError:
+        logger.info("BackgroundWorker cancelled")
+
+
 def _is_neo4j_running() -> bool:
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -293,6 +357,7 @@ def init_db() -> None:
     # so skip the macOS-specific auto-start logic (brew services, binary Popen).
     if not settings.docker_env:
         _ensure_qdrant_running()
+        _ensure_student_contexts_collection()
         _ensure_neo4j_running()
     _ = (
         User,
@@ -313,6 +378,20 @@ def init_db() -> None:
         StudentProfile,
         StudentProfileAttachment,
         StudentCompetencyUserLatestProfile,
+        CoachSession,
+        CoachMessage,
+        CompetencyHistory,
+        ConversationSummary,
+        DecisionJournal,
+        FeedbackRecord,
+        MemoryMutation,
+        OutboxEvent,
+        RoutingLog,
+        CwEntity,
+        CwRelation,
+        CwObservation,
+        PromptVersion,
+        TrainingDataset,
     )
     _ensure_transfer_v2_schema()
     _ensure_student_competency_profile_schema()
@@ -320,9 +399,16 @@ def init_db() -> None:
     _ensure_student_profile_schema()
     _ensure_career_development_plan_workspace_schema()
     _ensure_job_requirement_profile_schema()
+    _ensure_coach_message_schema()
     with SessionLocal() as db:
         ensure_admin_user(db)
         ensure_learning_resource_library_seeded(db)
+        # P5: seed collective wisdom data on first run (idempotent)
+        try:
+            from app.services.memory.collective_wisdom import seed_cw_data
+            seed_cw_data(db)
+        except Exception:
+            logger.warning("CW seed data loading skipped", exc_info=True)
     try:
         graph_service = Neo4jJobRequirementGraphService(
             uri=settings.neo4j_uri,
@@ -339,10 +425,38 @@ def init_db() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     global _neo4j_started_by_backend
     init_db()
+
+    # P2b: start BackgroundWorker for outbox event delivery
+    try:
+        from app.db.session import SessionLocal
+        from app.services.outbox.worker import BackgroundWorker
+
+        worker_db = SessionLocal()
+        worker = BackgroundWorker(db=worker_db, worker_id=f"worker_{os.getpid()}")
+        import asyncio as _asyncio
+        worker_task = _asyncio.create_task(_run_worker(worker))
+        app.state.outbox_worker = worker_task
+        logger.info("BackgroundWorker started")
+    except Exception:
+        logger.exception("Failed to start BackgroundWorker")
+
     yield
+
+    # Stop BackgroundWorker
+    try:
+        worker_task = getattr(app.state, "outbox_worker", None)
+        if worker_task:
+            worker_task.cancel()
+            try:
+                await worker_task
+            except _asyncio.CancelledError:
+                pass
+    except Exception:
+        logger.exception("Failed to stop BackgroundWorker")
+
     if not settings.docker_env:
         global _qdrant_process
         if _qdrant_process is not None:
@@ -390,6 +504,13 @@ app.include_router(job_requirement_comparisons_router)
 app.include_router(job_requirement_graph_router)
 app.include_router(job_requirement_vertical_router)
 app.include_router(job_transfer_router)
+app.include_router(coach_router)
+app.include_router(coach_cw_router)
+app.include_router(coach_memory_router)
+app.include_router(coach_observability_router)
+app.include_router(coach_sessions_router)
+app.include_router(coach_upload_router)
+app.include_router(goal_setting_router)
 app.include_router(student_competency_profile_router)
 app.include_router(snail_learning_path_router)
 

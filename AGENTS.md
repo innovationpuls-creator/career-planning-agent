@@ -2,6 +2,7 @@
 
 Project: 大学生职业规划智能体  
 Stack: FastAPI backend + Ant Design Pro / Umi Max frontend.
+use uv to run python
 
 This file is for routing and constraints only. Do not duplicate full specs here.
 
@@ -26,6 +27,9 @@ Read the relevant doc before implementation.
 |---|---|
 | Page features and routes | `docs/UI功能详细整理.md` |
 | Page → backend API mapping | `docs/UI功能后端接口对照.md` |
+| System architecture | `docs/architecture.md` |
+| Database schema / models | `docs/database-schema.md` |
+| Testing strategy | `docs/testing.md` |
 | Visual design language | `docs/Design.md` |
 | Runtime Ant Design tokens | `myapp/config/defaultSettings.ts` |
 | Claude tokens | `myapp/src/styles/claude-tokens.ts` |

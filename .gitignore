@@ -1,48 +1,30 @@
+# OS
 .DS_Store
 Thumbs.db
+
+# IDE
 .idea/
 .vscode/
+
+# AI tools (local)
 .claude
 .codex
-.pytest_cache
-.ruff_cache
-everything-claude-code
-start.bat
+
+# Environment
 .env
-artifacts
-docs
-.playwright-mcp/
-myapp/test-results/
-myapp/playwright-report*/
-myapp/tests/
-myapp/src/**/*.test.ts
-myapp/src/**/*.test.tsx
-myapp/src/.umi-test/
-myapp/src/.umi-production/testBrowser.tsx
-myapp/src/.umi/testBrowser.tsx
-myapp/src/.umi-undefined/testBrowser.tsx
-backend/.pytest_cache/
-backend/.pytest-tmp/
-
-.superpowers/
-test-results/
-
-# Root-only local data
-/行业数据/
-
-# Python backend
 backend/.env
+
+# Python
 backend/.venv/
 backend/.pytest_cache/
 backend/.pytest-tmp/
 backend/.python-version
-backend/data/
-backend/qdrant-bin/
-backend/data/qdrant/
 backend/**/__pycache__/
 backend/**/*.pyc
+.pytest_cache
+.ruff_cache
 
-# Frontend build artifacts
+# Frontend
 myapp/node_modules/
 myapp/dist/
 myapp/.umi/
@@ -52,11 +34,36 @@ myapp/.umi-undefined/
 myapp/coverage/
 myapp/artifacts
 
-# Common logs and temp files
-*.log
-npm-debug.log*
-yarn-error.log*
+# Test artifacts
+myapp/test-results/
+myapp/playwright-report*/
+test-results/
+
+# Database
 app.db
 app.db-shm
 app.db-wal
+
+# Qdrant
+backend/data/
+backend/qdrant-bin/
+backend/data/qdrant/
 qdrant/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Dev tooling (one-off scripts and models)
+/CODE_SPEC_ALIGNMENT.md
+/models/
+/scripts/
+.superpowers/
+.playwright-mcp/
+everything-claude-code
+start.bat
+artifacts
+
+# Root-only local data
+/行业数据/

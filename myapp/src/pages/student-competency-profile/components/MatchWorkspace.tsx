@@ -58,8 +58,12 @@ const useStyles = createStyles(({ css }) => ({
     min-width: 0;
   `,
   infoCard: css`
-    background: ${claudeColors.ivory};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 20px;
   `,
   infoLabel: css`
@@ -83,8 +87,12 @@ const useStyles = createStyles(({ css }) => ({
     color: ${claudeColors.stoneGray};
   `,
   listCard: css`
-    background: ${claudeColors.ivory};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 20px;
   `,
   listTitle: css`
@@ -100,10 +108,10 @@ const useStyles = createStyles(({ css }) => ({
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    border-radius: ${claudeRadius.lg}px;
+    border-radius: ${claudeRadius.md}px;
     cursor: pointer;
-    border: 1px solid ${claudeColors.borderCream};
-    background: ${claudeColors.parchment};
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    background: ${claudeAlpha('#ffffff', 0.3)};
     transition: all 0.2s ease;
     margin-bottom: 8px;
 
@@ -174,8 +182,12 @@ const useStyles = createStyles(({ css }) => ({
     flex-wrap: wrap;
   `,
   emptyCard: css`
-    background: ${claudeColors.ivory};
-    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 48px 24px;
     text-align: center;
   `,

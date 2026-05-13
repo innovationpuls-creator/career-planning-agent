@@ -118,6 +118,14 @@ export default [
     hideInMenu: true,
   },
   {
+    path: '/coach',
+    name: 'AI 教练',
+    icon: 'robot',
+    access: 'canUser',
+    component: './coach',
+    hideInMenu: true,
+  },
+  {
     path: '/job-competency-graph',
     name: '岗位能力图谱',
     icon: 'profile',

@@ -63,7 +63,9 @@ const useStyles = createStyles(({ css }) => ({
     padding: 14px;
     border: 1px solid ${claudeColors.borderCream};
     border-radius: ${claudeRadius.md}px;
-    background: ${claudeColors.ivory};
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
     text-align: left;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -179,7 +181,7 @@ export const TierComparison: React.FC<{
 
   if (loading) {
     return (
-      <ClaudeCard elevation="elevated">
+      <ClaudeCard elevation="glass">
         <Skeleton active paragraph={{ rows: 8 }} />
       </ClaudeCard>
     );
@@ -187,14 +189,14 @@ export const TierComparison: React.FC<{
 
   if (!data?.tiered_comparison) {
     return (
-      <ClaudeCard elevation="elevated">
+      <ClaudeCard elevation="glass">
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="请选择条件后查询" />
       </ClaudeCard>
     );
   }
 
   return (
-    <ClaudeCard elevation="elevated" className={styles.card}>
+    <ClaudeCard elevation="glass" className={styles.card}>
       <Tabs
         items={tiers.map((tier) => {
           const dimensionTier = data.dimension_comparison?.find(

@@ -13,7 +13,7 @@ export default defineConfig({
     ['junit', { outputFile: 'playwright-report/results.xml' }],
   ],
   use: {
-    baseURL: 'http://localhost:8002',
+    baseURL: 'http://localhost:8000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

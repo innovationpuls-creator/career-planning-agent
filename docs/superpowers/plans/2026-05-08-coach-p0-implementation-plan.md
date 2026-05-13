@@ -51,7 +51,7 @@
 
 | # | 文件 | 改动 |
 |---|------|------|
-| 1 | `backend/app/services/llm.py` | 新增 `chat_completion_stream()` — httpx stream POST，解析 SSE（跳过空行/非 data: 行，遇 `data: [DONE]` break），yield content 片段 |
+| 1 | `backend/app/services/llm.py` | 新增 `chat_completion_stream()` — httpx stream POST，解析 SSE（跳过空行/非 data: 行，遇 `data: [DONE]` break），yield content 片段。**Prompt Caching**：Stream 调用时设 `extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"}`；Context Builder 静态段（agent persona + 通用后缀）末尾追加 `\n{"cache_control": {"type": "ephemeral"}}\n` |
 | 2 | `backend/app/main.py` | 注册 coach router |
 | 3 | `myapp/config/routes.ts` | 新增 `/coach` 路由（`hideInMenu: true`） |
 

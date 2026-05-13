@@ -16,6 +16,7 @@ import {
   claudeColors,
   claudeFonts,
   claudeRadius,
+  claudeAlpha,
 } from '@/styles/claude-tokens';
 
 interface PipelineStepsProps {
@@ -39,7 +40,6 @@ function getStepIcon(key: string) {
 
 const useStyles = createStyles(({ css }) => ({
   section: css`
-    margin-bottom: 26px;
   `,
   card: css`
     padding: 28px 32px;
@@ -80,13 +80,19 @@ const useStyles = createStyles(({ css }) => ({
     min-height: 160px;
     padding: 16px 14px;
     border-radius: ${claudeRadius.lg}px;
-    border: 1px solid ${claudeColors.borderCream};
-    background: ${claudeColors.ivory};
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.3)};
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(40, 38, 35, 0.06);
+      background: ${claudeAlpha('#ffffff', 0.6)};
+      box-shadow: 
+        0 12px 24px rgba(40, 38, 35, 0.08),
+        inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.5)};
     }
   `,
   stepDone: css`
@@ -134,7 +140,7 @@ export function PipelineSteps({
 
   return (
     <section className={styles.section}>
-      <ClaudeCard elevation="elevated" className={styles.card}>
+      <ClaudeCard elevation="glass" className={styles.card}>
         <div className={styles.header}>
           <div>
             <h2 className={styles.heading}>职业规划进度</h2>

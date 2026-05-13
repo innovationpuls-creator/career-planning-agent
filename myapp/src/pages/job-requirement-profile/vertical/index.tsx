@@ -3,6 +3,7 @@ import { Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { claudeColors, claudeFonts } from '@/styles/claude-tokens';
+import { GlassShell } from '@/components/ui';
 import { ComparisonSummary } from './components/ComparisonSummary';
 import { FilterBar } from './components/FilterBar';
 import { TierComparison } from './components/TierComparison';
@@ -18,7 +19,7 @@ const useStyles = createStyles(({ css }) => ({
   shell: css`
     min-height: calc(100vh - 112px);
     padding: 24px;
-    background: ${claudeColors.parchment};
+    background: transparent;
   `,
   header: css`
     margin-bottom: 18px;
@@ -44,11 +45,12 @@ const VerticalJobProfilePage: React.FC = () => {
   const comparison = useComparisonData();
 
   return (
-    <PageContainer
-      className={styles.pageContainer}
-      title={false}
-      breadcrumbRender={false}
-    >
+    <GlassShell>
+      <PageContainer
+        className={styles.pageContainer}
+        title={false}
+        breadcrumbRender={false}
+      >
       <main className={styles.shell}>
         <div className={styles.header}>
           <Typography.Title level={2} className={styles.title}>
@@ -77,7 +79,8 @@ const VerticalJobProfilePage: React.FC = () => {
           />
         </div>
       </main>
-    </PageContainer>
+      </PageContainer>
+    </GlassShell>
   );
 };
 

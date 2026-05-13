@@ -5,6 +5,7 @@ import {
   claudeColors,
   claudeFonts,
   claudeRadius,
+  claudeAlpha,
 } from '@/styles/claude-tokens';
 
 export interface ClaudeStatCardProps {
@@ -17,6 +18,7 @@ export interface ClaudeStatCardProps {
   trend?: 'positive' | 'negative' | 'neutral';
   trendValue?: string;
   className?: string;
+  variant?: 'default' | 'glass';
 }
 
 const useStyles = createStyles(({ css }) => ({
@@ -24,11 +26,20 @@ const useStyles = createStyles(({ css }) => ({
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 20px;
+    padding: 32px;
     background: ${claudeColors.ivory};
     border: 1px solid ${claudeColors.borderCream};
     border-radius: ${claudeRadius.md}px;
     min-width: 0;
+  `,
+  glass: css`
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.05),
+      inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
   `,
   header: css`
     display: flex;
@@ -85,7 +96,7 @@ const useStyles = createStyles(({ css }) => ({
     font-size: 12px;
     font-weight: 500;
     padding: 2px 8px;
-    border-radius: ${claudeRadius.xxl}px;
+    border-radius: ${claudeRadius.md}px;
     background: ${claudeColors.primaryBg};
     margin: 0;
   `,
@@ -110,6 +121,7 @@ export function ClaudeStatCard({
   trend,
   trendValue,
   className,
+  variant = 'default',
 }: ClaudeStatCardProps) {
   const { styles, cx } = useStyles();
 
@@ -121,7 +133,10 @@ export function ClaudeStatCard({
         : styles.trendNeutral;
 
   return (
-    <div data-testid="claude-stat-card" className={cx(styles.card, className)}>
+    <div
+      data-testid="claude-stat-card"
+      className={cx(styles.card, variant === 'glass' && styles.glass, className)}
+    >
       <div className={styles.header}>
         {icon && (
           <span className={styles.iconWrap} style={{ color: iconColor }}>

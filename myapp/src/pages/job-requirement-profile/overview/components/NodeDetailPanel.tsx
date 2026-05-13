@@ -34,8 +34,10 @@ const useStyles = createStyles(({ css }) => ({
     }
   `,
   card: css`
-    background: ${claudeAlpha(claudeColors.ivory, 0.97)};
-    backdrop-filter: blur(10px);
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
   `,
   title: css`
     margin: 0;

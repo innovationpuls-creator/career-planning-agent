@@ -3,6 +3,7 @@ import { Alert, Card, Empty, message, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import * as React from 'react';
 import { useMemo, useState } from 'react';
+import { AskCoachButton, GlassShell } from '@/components/ui';
 import { useCareerGoalPlanningData } from '../shared/useCareerGoalPlanningData';
 import ChapterContent from './components/ChapterContent';
 import ChapterEditor from './components/ChapterEditor';
@@ -52,14 +53,14 @@ const useStyles = createStyles(({ css, token }) => ({
     display: flex;
     align-items: center;
     justify-content: center;
-    background: ${token.colorBgLayout};
+    background: transparent;
   `,
   main: css`
     display: flex;
     align-items: flex-start;
     gap: ${token.marginLG}px;
     padding: ${token.paddingLG}px;
-    background: ${token.colorBgLayout};
+    background: transparent;
 
     @media (max-width: 900px) {
       display: grid;
@@ -184,11 +185,12 @@ const PersonalGrowthReportPage: React.FC = () => {
   const currentError = pageError || actionError || workspaceError;
 
   return (
-    <PageContainer
-      className={styles.page}
-      title={false}
-      breadcrumbRender={false}
-    >
+    <GlassShell>
+      <PageContainer
+        className={styles.page}
+        title={false}
+        breadcrumbRender={false}
+      >
       <div className={styles.motionSafe}>
         {currentError ? (
           <Alert
@@ -206,6 +208,16 @@ const PersonalGrowthReportPage: React.FC = () => {
         ) : (
           <>
             <PrerequisiteCheck items={prerequisiteItems} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 0 4px' }}>
+              <AskCoachButton
+                step="report"
+                context={{
+                  sourcePage: 'personal-growth-report',
+                  favoriteId,
+                  workspaceId: reportWorkspace?.workspace_id,
+                }}
+              />
+            </div>
             <ReportHero
               favoriteId={favoriteId}
               title={`${activeFavorite?.canonical_job_title || '个人'}职业成长报告`}
@@ -285,7 +297,8 @@ const PersonalGrowthReportPage: React.FC = () => {
           </>
         )}
       </div>
-    </PageContainer>
+      </PageContainer>
+    </GlassShell>
   );
 };
 

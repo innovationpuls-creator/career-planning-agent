@@ -3,6 +3,11 @@ import { Card, Checkbox, Empty, Space, Tag, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { FadeInWhenVisible } from '@/components/ui/FadeInWhenVisible';
+import {
+  claudeAlpha,
+  claudeColors,
+  claudeRadius,
+} from '@/styles/claude-tokens';
 import { getResourceCompletionId } from '../learningPathUtils';
 import type {
   LearningPathPhaseKey,
@@ -23,13 +28,17 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 8px 0;
   `,
   resourceCard: css`
-    border-radius: ${token.borderRadiusLG}px;
+    background: ${claudeAlpha('#ffffff', 0.4)} !important;
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)} !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)} !important;
+    border-radius: ${claudeRadius.md}px !important;
     cursor: pointer;
-    transition:
-      box-shadow ${token.motionDurationFast},
-      transform ${token.motionDurationFast};
+    transition: all 0.2s ease;
     &:hover {
-      box-shadow: 0 2px 8px ${token.colorBgMask};
+      border-color: ${claudeColors.terracotta} !important;
+      box-shadow: 0 4px 12px ${claudeAlpha(claudeColors.terracotta, 0.08)} !important;
       transform: translateY(-2px);
     }
   `,

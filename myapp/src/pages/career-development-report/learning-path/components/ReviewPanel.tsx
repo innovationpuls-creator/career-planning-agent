@@ -17,6 +17,10 @@ import {
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useState } from 'react';
+import {
+  claudeAlpha,
+  claudeRadius,
+} from '@/styles/claude-tokens';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -26,8 +30,12 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 8px 0;
   `,
   reviewBox: css`
-    background: ${token.colorBgLayout};
-    border-radius: ${token.borderRadiusLG}px;
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
     padding: 16px;
   `,
   reviewMetaBlock: css`
@@ -204,7 +212,11 @@ export function ReviewPanel({
         <Alert
           type={checkedResourceUrls.length ? 'info' : 'warning'}
           showIcon
-          message={isWeekly ? '填写本周学习总结并生成周检查' : '填写本月学习总结并生成月评'}
+          message={
+            isWeekly
+              ? '填写本周学习总结并生成周检查'
+              : '填写本月学习总结并生成月评'
+          }
           description={
             checkedResourceUrls.length
               ? '本次分析会使用当前阶段已打勾的网站、你的总结以及上传材料。'
@@ -263,7 +275,9 @@ export function ReviewPanel({
           ) : (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={isWeekly ? '当前阶段还没有周检查结果' : '当前阶段还没有月评结果'}
+              description={
+                isWeekly ? '当前阶段还没有周检查结果' : '当前阶段还没有月评结果'
+              }
             />
           )}
         </Card>
@@ -271,14 +285,24 @@ export function ReviewPanel({
           {loading ? (
             <Spin />
           ) : !historyList.length ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无历史记录" />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="暂无历史记录"
+            />
           ) : isWeekly ? (
             <List
               dataSource={historyList}
               renderItem={(item) => (
                 <List.Item>
-                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                    <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
+                  <Space
+                    direction="vertical"
+                    size={4}
+                    style={{ width: '100%' }}
+                  >
+                    <Space
+                      wrap
+                      style={{ justifyContent: 'space-between', width: '100%' }}
+                    >
                       <Text strong>
                         {new Date(item.created_at).toLocaleString('zh-CN')}
                       </Text>

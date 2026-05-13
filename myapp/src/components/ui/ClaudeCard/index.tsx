@@ -5,9 +5,10 @@ import {
   claudeFonts,
   claudeRadius,
   claudeShadows,
+  claudeAlpha,
 } from '@/styles/claude-tokens';
 
-export type ClaudeCardElevation = 'flat' | 'elevated' | 'ring';
+export type ClaudeCardElevation = 'flat' | 'elevated' | 'ring' | 'glass';
 
 export interface ClaudeCardProps {
   elevation?: ClaudeCardElevation;
@@ -21,7 +22,7 @@ const useStyles = createStyles(({ css }) => ({
     background: ${claudeColors.ivory};
     border: 1px solid ${claudeColors.borderCream};
     border-radius: ${claudeRadius.md}px;
-    padding: 20px;
+    padding: 32px;
     min-width: 0;
   `,
   flat: css`
@@ -32,6 +33,15 @@ const useStyles = createStyles(({ css }) => ({
   `,
   ring: css`
     box-shadow: ${claudeShadows.ring};
+  `,
+  glass: css`
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.08),
+      inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
   `,
   title: css`
     font-family: ${claudeFonts.heading};
@@ -56,7 +66,9 @@ export function ClaudeCard({
       ? styles.elevated
       : elevation === 'ring'
         ? styles.ring
-        : styles.flat;
+        : elevation === 'glass'
+          ? styles.glass
+          : styles.flat;
 
   return (
     <div

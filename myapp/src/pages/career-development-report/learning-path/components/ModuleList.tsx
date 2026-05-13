@@ -148,10 +148,7 @@ export function ModuleList({
         学习模块
       </Text>
       {modules.length === 0 ? (
-        <Text
-          type="secondary"
-          style={{ marginTop: 8, display: 'block' }}
-        >
+        <Text type="secondary" style={{ marginTop: 8, display: 'block' }}>
           暂无学习模块
         </Text>
       ) : (

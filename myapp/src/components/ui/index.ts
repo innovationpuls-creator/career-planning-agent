@@ -42,3 +42,6 @@ export { ProgressRing } from './ProgressRing';
 export { default as RichTextEditor } from './RichTextEditor';
 export type { SkeletonCardProps } from './SkeletonCard';
 export { SkeletonCard } from './SkeletonCard';
+// ── Coach entry ──────────────────────────────────────────────
+export { AskCoachButton } from './AskCoachButton';
+export { GlassShell } from './GlassShell';

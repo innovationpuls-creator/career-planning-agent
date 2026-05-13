@@ -11,6 +11,20 @@ from app.models.snail_learning_resource_library import SnailLearningResourceLibr
 from app.models.snail_learning_path_review import SnailLearningPathReview
 from app.models.student_competency_profile import StudentCompetencyProfile
 from app.models.student_competency_user_latest_profile import StudentCompetencyUserLatestProfile
+from app.models.coach import (
+    CoachMessage,
+    CoachSession,
+    CompetencyHistory,
+    ConversationSummary,
+    CwEntity,
+    CwObservation,
+    CwRelation,
+    DecisionJournal,
+    FeedbackRecord,
+    MemoryMutation,
+    PromptVersion,
+    TrainingDataset,
+)
 from app.models.user import User
 
 __all__ = [
@@ -19,13 +33,25 @@ __all__ = [
     "CareerDevelopmentPlanWorkspace",
     "CareerRequirementProfile",
     "CareerTitleAlias",
+    "CoachMessage",
+    "CoachSession",
+    "CompetencyHistory",
+    "ConversationSummary",
+    "CwEntity",
+    "CwObservation",
+    "CwRelation",
+    "DecisionJournal",
+    "FeedbackRecord",
     "JobPosting",
     "JobGroupEmbedding",
     "JobRequirementProfile",
     "JobTransferAnalysisTask",
+    "MemoryMutation",
+    "PromptVersion",
     "SnailLearningResourceLibrary",
     "SnailLearningPathReview",
     "StudentCompetencyProfile",
     "StudentCompetencyUserLatestProfile",
+    "TrainingDataset",
     "User",
 ]

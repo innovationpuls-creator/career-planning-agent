@@ -20,7 +20,6 @@ const useStyles = createStyles(({ css }) => ({
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    margin-bottom: 26px;
 
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
@@ -55,6 +54,7 @@ export function QuickStats({ progress, salary, matchedJobs }: QuickStatsProps) {
           title="规划进度"
           value={progress}
           unit="%"
+          variant="glass"
         />
       </motion.div>
 
@@ -70,6 +70,7 @@ export function QuickStats({ progress, salary, matchedJobs }: QuickStatsProps) {
           iconColor={claudeColors.terracotta}
           title="薪资参考"
           value={salary}
+          variant="glass"
         />
       </motion.div>
 
@@ -85,6 +86,7 @@ export function QuickStats({ progress, salary, matchedJobs }: QuickStatsProps) {
           iconColor={claudeColors.terracotta}
           title="已匹配岗位"
           value={matchedJobs}
+          variant="glass"
         />
       </motion.div>
     </div>

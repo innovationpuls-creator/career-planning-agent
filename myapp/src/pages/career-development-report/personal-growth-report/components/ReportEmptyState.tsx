@@ -1,6 +1,7 @@
 import { Button, Spin, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import * as React from 'react';
+import { claudeAlpha } from '@/styles/claude-tokens';
 import type { PrerequisiteItem } from '../hooks/usePrerequisites';
 
 const { Text } = Typography;
@@ -51,12 +52,12 @@ const useStyles = createStyles(({ css, token }) => ({
     pointer-events: none;
     background-image: radial-gradient(
       ellipse at 20% 50%,
-      rgba(255, 255, 255, 0.04) 0%,
+      ${claudeAlpha('#ffffff', 0.04)} 0%,
       transparent 60%
     ),
     radial-gradient(
       ellipse at 80% 50%,
-      rgba(255, 255, 255, 0.03) 0%,
+      ${claudeAlpha('#ffffff', 0.03)} 0%,
       transparent 50%
     );
     background-size: 100% 100%;
@@ -88,7 +89,7 @@ const useStyles = createStyles(({ css, token }) => ({
   heroSubtitle: css`
     font-family: var(--font-body);
     font-size: 15px;
-    color: rgba(255, 255, 255, 0.6);
+    color: ${claudeAlpha('#ffffff', 0.6)};
     margin: 0;
     line-height: 1.6;
     max-width: 480px;
@@ -126,7 +127,7 @@ const useStyles = createStyles(({ css, token }) => ({
       left: calc(50% + 18px);
       width: calc(100% - 36px);
       height: 1px;
-      background: rgba(255, 255, 255, 0.15);
+      background: ${claudeAlpha('#ffffff', 0.15)};
 
       @media (max-width: 768px) {
         display: none;
@@ -153,9 +154,9 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
 
   stepDotReady: css`
-    background: rgba(255, 255, 255, 0.2);
+    background: ${claudeAlpha('#ffffff', 0.2)};
     color: #ffffff;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid ${claudeAlpha('#ffffff', 0.3)};
   `,
 
   stepDotDone: css`
@@ -166,14 +167,14 @@ const useStyles = createStyles(({ css, token }) => ({
 
   stepDotMissing: css`
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
-    border: 2px dashed rgba(255, 255, 255, 0.25);
+    color: ${claudeAlpha('#ffffff', 0.5)};
+    border: 2px dashed ${claudeAlpha('#ffffff', 0.25)};
   `,
 
   stepLabel: css`
     font-family: var(--font-body);
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
+    color: ${claudeAlpha('#ffffff', 0.55)};
     text-align: center;
     line-height: 1.4;
 
@@ -183,7 +184,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
 
   stepLabelActive: css`
-    color: rgba(255, 255, 255, 0.85);
+    color: ${claudeAlpha('#ffffff', 0.85)};
     font-weight: 500;
   `,
 
@@ -207,8 +208,8 @@ const useStyles = createStyles(({ css, token }) => ({
     color: #0F2060 !important;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.9) !important;
+      background: ${claudeAlpha('#ffffff', 0.9)} !important;
+      border-color: ${claudeAlpha('#ffffff', 0.9)} !important;
       transform: translateY(-1px);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
@@ -223,7 +224,7 @@ const useStyles = createStyles(({ css, token }) => ({
   secondaryLink: css`
     font-family: var(--font-body);
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.55);
+    color: ${claudeAlpha('#ffffff', 0.55)};
     cursor: pointer;
     background: none;
     border: none;
@@ -232,7 +233,7 @@ const useStyles = createStyles(({ css, token }) => ({
     transition: color var(--motion-fast, 0.15s) var(--ease-standard, cubic-bezier(0.4, 0, 0.2, 1));
 
     &:hover {
-      color: rgba(255, 255, 255, 0.8);
+      color: ${claudeAlpha('#ffffff', 0.8)};
     }
   `,
 
@@ -261,7 +262,7 @@ const useStyles = createStyles(({ css, token }) => ({
     width: 100%;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.12);
+    background: ${claudeAlpha('#ffffff', 0.12)};
     overflow: hidden;
   `,
 
@@ -275,17 +276,17 @@ const useStyles = createStyles(({ css, token }) => ({
   progressText: css`
     font-family: var(--font-body);
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.6);
+    color: ${claudeAlpha('#ffffff', 0.6)};
     margin: 0;
   `,
 
   cancelBtn: css`
-    color: rgba(255, 255, 255, 0.7) !important;
-    border-color: rgba(255, 255, 255, 0.25) !important;
+    color: ${claudeAlpha('#ffffff', 0.7)} !important;
+    border-color: ${claudeAlpha('#ffffff', 0.25)} !important;
 
     &:hover {
       color: #ffffff !important;
-      border-color: rgba(255, 255, 255, 0.5) !important;
+      border-color: ${claudeAlpha('#ffffff', 0.5)} !important;
     }
   `,
 
@@ -335,7 +336,7 @@ const ReportEmptyState: React.FC<ReportEmptyStateProps> = ({
             系统将基于我的资料、12维能力解析、职业匹配差距和蜗牛学习路径，生成一份可编辑的个人职业发展分析报告。
           </p>
           {activeFavorite ? (
-            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>
+            <Text style={{ color: claudeAlpha('#ffffff', 0.45), fontSize: 14 }}>
               {activeFavorite.canonical_job_title}
               {activeFavorite.industry ? ` · ${activeFavorite.industry}` : ''}
               {activeFavorite.overall_match !== undefined

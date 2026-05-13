@@ -37,13 +37,13 @@
 - 不重写 P0/P1
 - 不改现有 ChatStream（简历解构页内嵌）
 - 不改现有 66 个 REST API
-- 不新增 SQLite 表（P1 已创建 5 张，P2 复用）
+- 不新增 SQLite 表（P1 已创建 7 张，P2 复用）
 
 ---
 
 ## 3. 数据库迁移
 
-**无新增表。** P1 已创建以下 5 张表，P2 正式启用其中未使用的字段：
+**无新增表。** P1 已创建以下 7 张表，P2 正式启用其中未使用的字段：
 
 ### 3.1 已有表字段启用
 
@@ -192,6 +192,84 @@ await memory_manager.save_coordinator_metadata(student_id, metadata)
 # ✅ 允许 — 读取记忆
 summary = await memory_manager.read_conversation_summary(student_id)
 ```
+
+### 7.4 CompetencyHistory 时间线写入（P2 新增）
+
+**用途**：每次 mutation_gated 工具提交技能变更（confirmed/provisional）后，记录一条技能快照到 `competency_history`。支持技能成长轨迹可视化（前端未来可展示时间线图表）。
+
+**触发位置**：`MemoryManager.propose_memory_mutation()` 中，adjudicate 返回后、commit 成功后追加：
+
+```
+propose_memory_mutation(proposal)
+  → adjudicate()
+    → 写入 memory_mutations + decision_journal
+    → 非 rejected 则 commit_memory_mutation()
+    → 非 rejected 且 skills.* 则 record_competency_history()   ← P2 新增
+    → 返回 record
+```
+
+**实现**：
+
+```python
+# backend/app/services/memory/manager.py 中新增
+
+async def _record_competency_history(self, record: MemoryMutationRecord) -> None:
+    """技能变更时记录 competency_history 快照。"""
+    if not record.target_field.startswith("skills."):
+        return
+    parts = record.target_field.split(".")
+    if len(parts) < 2:
+        return
+    skill_id = parts[1]
+
+    summary = await self.read_conversation_summary(record.student_id)
+    skill = summary.skills.get(skill_id)
+    if not skill:
+        return
+
+    await db.execute(
+        """INSERT INTO competency_history
+           (id, student_id, skill_id, mastery_status, memory_status,
+            confidence, evidence, source)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (build_id("comp"), record.student_id, skill_id,
+         skill.mastery_status.value, skill.memory_status.value,
+         skill.confidence, record.evidence or "", record.source_agent)
+    )
+```
+
+**调用处**：在 `propose_memory_mutation()` 的 commit 后追加：
+
+```python
+async def propose_memory_mutation(self, proposal) -> MemoryMutationRecord:
+    record = await adjudicate(proposal)
+    if record.decision_type != DecisionType.REJECTED:
+        await self._commit_mutation(record)
+        await self._record_competency_history(record)
+    return record
+```
+
+**变更明细**：
+
+| 文件 | 改动 |
+|------|------|
+| `backend/app/services/memory/manager.py` | `propose_memory_mutation()` 新增 `_record_competency_history()` 调用；新增 `_record_competency_history()` 方法 |
+
+**测试用例**（追加到 `tests/services/memory/test_memory_manager.py`）：
+
+| # | 测试 | 断言 |
+|---|------|------|
+| 1 | `test_skill_mutation_records_competency_history` | auto_confirmed 后 `competency_history` 新增 1 条记录，skill_id / mastery_status / memory_status / confidence 正确 |
+| 2 | `test_non_skill_mutation_skips_competency_history` | 修改 student_profile 不写入 competency_history |
+| 3 | `test_rejected_mutation_skips_competency_history` | REJECTED 后 competency_history 无新记录 |
+| 4 | `test_competency_history_captures_memory_status` | provisional 写入时 memory_status=provisional 正确记录 |
+
+**验收标准追加**：
+
+- 技能变更后 `competency_history` 表有对应记录
+- 非技能变更不产生 competency_history 记录
+- REJECTED 变更不产生 competency_history 记录
+- 时间线记录的 `mastery_status` / `memory_status` / `confidence` 与 `conversation_summaries` 对应字段一致
 
 ---
 
@@ -349,14 +427,97 @@ async def create_rollback_mutation(
 | Session | `coach_sessions` | 对话结束后 | Coordinator（不变） |
 | Coordinator Metadata | `conversation_summaries`（scurrent_stage 等） | 对话结束后 | `save_coordinator_metadata()`（P2 新增） |
 | Hard Memory | `conversation_summaries`（skills 等） | 对话中（工具调用时） | Adjudicator commit（P2 可信路径） |
+| Skill Timeline | `competency_history` | 每次 skills.* commit 后 | `_record_competency_history()`（P2 新增） |
 | Audit | `memory_mutations` | 每次 adjudicate | Adjudicator（P2 正式启用） |
 | Audit | `decision_journal` | 每次 adjudicate | Adjudicator（P2 正式启用） |
 
 ---
 
-## 12. 测试文件
+## 12. Token Budget 管理（Spec §5.3）
 
-### 12.1 Rollback 单元测试
+### 12.1 目标
+
+在 Coordinator 的 LLM 循环中引入 Token 预算监控和上下文压缩，防止长对话超出 LLM 上下文窗口。
+
+### 12.2 新增文件
+
+| # | 文件 | 职责 |
+|---|------|------|
+| 1 | `backend/app/services/token_budget.py` | `TokenBudget` 类 + `compact_context()` 函数 |
+
+### 12.3 修改文件
+
+| # | 文件 | 改动 |
+|---|------|------|
+| 1 | `backend/app/services/coach_coordinator.py` | `run()` 方法中每轮循环开始时检查 `token_budget.usage_ratio`；超过 0.85 时触发压缩，yield `thinking` 事件提示用户 |
+
+### 12.4 TokenBudget 实现
+
+```python
+class TokenBudget:
+    def __init__(self, total: int = 100000, output_reserve: int = 8000, compact_threshold: float = 0.85):
+        self.total = total
+        self.output_reserve = output_reserve
+        self.compact_threshold = compact_threshold
+        self.effective = total - output_reserve  # 92K usable
+
+    @property
+    def usage_ratio(self) -> float:
+        return self.current_tokens / self.effective
+
+    def recalculate(self, messages: list[dict]):
+        self.current_tokens = estimate_token_count(messages)
+
+
+async def compact_context(messages: list[dict], keep_last: int = 6) -> list[dict]:
+    """保留最后 N 条消息，旧消息用 LLM 摘要替代"""
+    if len(messages) <= keep_last:
+        return messages
+    to_summarize = messages[:-keep_last]
+    recent = messages[-keep_last:]
+    summary = await llm_client.summarize(to_summarize, max_tokens=2000)
+    return [
+        {"role": "system", "content": f"[之前的对话摘要]\n{summary}"},
+        *recent,
+    ]
+```
+
+### 12.5 Coordinator 集成
+
+在 query_loop Phase 2（压缩检查）触发：
+
+```python
+# 每轮循环开始时
+if context.token_budget.usage_ratio > 0.85:
+    yield StreamEvent(event="thinking", delta="对话较长，正在整理上下文...")
+    context.messages = await compact_context(context.messages, keep_last=6)
+    context.token_budget.recalculate(context.messages)
+```
+
+### 12.6 测试文件
+
+文件：`backend/tests/services/test_token_budget.py`
+
+| # | 测试 | 断言 |
+|---|------|------|
+| 1 | `test_usage_ratio_below_threshold` | 低用量不触发压缩 |
+| 2 | `test_usage_ratio_above_threshold` | >0.85 触发 compact |
+| 3 | `test_compact_preserves_last_n_messages` | 压缩后保留最后 6 条 |
+| 4 | `test_compact_short_history_noop` | ≤ keep_last 消息不压缩 |
+| 5 | `test_recalculate_updates_token_count` | recalculate 后 usage_ratio 正确 |
+
+### 12.7 验收标准（追加到 §14）
+
+- TokenBudget 在 usage_ratio > 0.85 时自动触发压缩
+- 压缩后消息数 ≤ keep_last + 1（摘要 + 最后 N 条）
+- 压缩不影响当前对话流程（LLM 继续正常回复）
+- 压缩时前端收到 thinking 事件
+
+---
+
+## 13. 测试文件
+
+### 13.1 Rollback 单元测试
 
 文件：`backend/tests/services/memory/test_rollback.py`
 
@@ -370,7 +531,7 @@ async def create_rollback_mutation(
 | `test_rollback_does_not_delete_original` | 原 mutation 记录仍存在 |
 | `test_double_rollback_recovers_and_new_mutations` | rollback 的 rollback 生成两条新记录 |
 
-### 12.2 Proposal Handler 集成测试
+### 13.2 Proposal Handler 集成测试
 
 文件：`backend/tests/services/memory/test_proposal_handler.py`
 
@@ -383,7 +544,7 @@ async def create_rollback_mutation(
 | `test_provisional_overlay_writes_correctly` | provisional 写入 overlay dict |
 | `test_high_risk_overlay_always` | high risk 即使高置信度也写入 overlay |
 
-### 12.3 端到端测试（通过 stream 端点）
+### 13.3 端到端测试（通过 stream 端点）
 
 文件：`backend/tests/api/test_coach_memory_mutation.py`
 
@@ -394,7 +555,7 @@ async def create_rollback_mutation(
 | `test_coordinator_no_longer_persists_all_fields` | 对话后直接修改 conversation_summaries 其他字段不应生效 |
 | `test_auto_confirmed_mutation_appears_in_summary` | auto_confirmed 后对话完成 → conversation_summaries 包含变更 |
 
-### 12.4 修改已有的测试
+### 13.4 修改已有的测试
 
 | 文件 | 改动 |
 |------|------|
@@ -403,7 +564,7 @@ async def create_rollback_mutation(
 
 ---
 
-## 13. 验收标准
+## 14. 验收标准
 
 1. **可信写入生效**：LLM 调用 `process_memory_proposal` 后，`memory_mutations` + `decision_journal` 各有 1 条新记录
 2. **auto_confirmed 写入主字段**：low risk + confidence ≥ 0.95 → `conversation_summaries` 对应字段更新
@@ -417,10 +578,13 @@ async def create_rollback_mutation(
 10. **trace_id 完整链路**：所有 mutation 记录携带同一 trace_id（从 propose 到 commit 到 rollback）
 11. **rollback 正确**：rollback 后字段值恢复为回滚前的值，双向链接完整
 12. **P0a + P0b + P0c + P1 无回归**：delta/route/tool_call/tool_result/done/error 事件流正常，会话恢复功能正常，基础流式对话不白屏
+13. **Token Budget 压缩**：长对话时 usage_ratio > 0.85 自动触发上下文压缩，yield thinking 事件，压缩后 LLM 继续正常回复
+14. **上下文压缩保留关键消息**：压缩后保留最后 6 条消息 + 旧消息 LLM 摘要
+15. **CompetencyHistory 时间线**：auto_confirmed/provisional_write 的 skills.* 变更写入 competency_history；非 skill 变更和 REJECTED 不写入
 
 ---
 
-## 14. 回滚方案
+## 15. 回滚方案
 
 ### 方案 A：移除 memory_result 事件（最低影响）
 
@@ -452,9 +616,9 @@ git revert <p2-merge-commit>
 
 ---
 
-## 15. 进入 P3 的条件
+## 16. 进入 P3 的条件
 
-- [ ] 全部 12 项验收标准通过
+- [ ] 全部 14 项验收标准通过
 - [ ] Adjudicator 测试覆盖率 ≥ 90%（含 overlay_target 分支）
 - [ ] Rollback 测试覆盖率 ≥ 85%
 - [ ] P0c + P1 验收标准无回归
@@ -471,18 +635,20 @@ git revert <p2-merge-commit>
 |------|:-------:|:-------:|:----:|
 | `services/memory/rollback.py` | — | 新增 | 创建 |
 | `services/memory/proposal_handler.py` | — | 新增 | 创建 |
-| `services/memory/manager.py` | ✓ | 修改 | persist 改 internal + save_coordinator_metadata |
+| `services/memory/manager.py` | ✓ | 修改 | persist 改 internal + save_coordinator_metadata + _record_competency_history |
 | `services/memory/adjudicator.py` | ✓ | 修改 | 激活 overlay_target + trace_id |
+| `services/token_budget.py` | — | 新增 | 创建 |
 | `services/tool_registry.py` | ✓ | 修改 | mutation_gated 分类 + process_memory_proposal |
-| `services/coach_coordinator.py` | ✓ | 修改 | 移除 persist，改 save_coordinator_metadata |
+| `services/coach_coordinator.py` | ✓ | 修改 | 移除 persist，改 save_coordinator_metadata + Token Budget 集成 |
 | `services/context_builder.py` | ✓ | 修改 | 激活 overlay 渲染 |
 | `schemas/agent.py` | ✓ | 修改 | StreamEvent memory_result 字段 |
 | `api/coach.py` | ✓ | 修改 | 注册 tool + 传递 trace_id |
 | `tests/.../test_rollback.py` | — | 新增 | 7 用例 |
 | `tests/.../test_proposal_handler.py` | — | 新增 | 6 用例 |
 | `tests/api/test_coach_memory_mutation.py` | — | 新增 | 4 用例 |
+| `tests/services/test_token_budget.py` | — | 新增 | 5 用例 |
 | `tests/.../test_adjudicator.py` | ✓ | 修改 | 追加 overlay 用例 |
-| `tests/.../test_memory_manager.py` | ✓ | 修改 | 追加 coordination_metadata 用例 |
+| `tests/.../test_memory_manager.py` | ✓ | 修改 | 追加 coordination_metadata + competency_history 用例 |
 | `pages/coach/api.ts` | ✓ | 修改 | StreamEvent 类型追加 |
 | `pages/coach/hooks/useCoachChat.ts` | ✓ | 修改 | 可选 memory_result 处理 |
 

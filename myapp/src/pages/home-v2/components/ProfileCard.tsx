@@ -37,7 +37,6 @@ interface ProfileCardProps {
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
-    margin-bottom: 26px;
   `,
   inner: css`
     display: flex;
@@ -55,8 +54,8 @@ const useStyles = createStyles(({ css }) => ({
     align-items: center;
     justify-content: center;
     font-family: ${claudeFonts.heading};
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 500;
     flex-shrink: 0;
   `,
   fields: css`
@@ -67,13 +66,14 @@ const useStyles = createStyles(({ css }) => ({
     min-width: 0;
   `,
   field: css`
-    font-size: 14px;
+    font-family: ${claudeFonts.body};
+    font-size: 15px;
     color: ${claudeColors.oliveGray};
     line-height: 1.6;
 
     strong {
       color: ${claudeColors.nearBlack};
-      font-weight: 600;
+      font-weight: 500;
     }
   `,
   attachment: css`
@@ -164,7 +164,7 @@ export function ProfileCard({
   }, [fileList, form, onSaved, saveProfile]);
 
   return (
-    <ClaudeCard elevation="elevated" className={styles.shell}>
+    <ClaudeCard elevation="glass" className={styles.shell}>
       <div className={styles.inner}>
         <div className={styles.avatar}>{initial}</div>
         <div className={styles.fields}>

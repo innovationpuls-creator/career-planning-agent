@@ -1,5 +1,5 @@
 import React from 'react';
-import { FadeInWhenVisible } from '@/components/ui';
+import { AskCoachButton, FadeInWhenVisible, GlassShell } from '@/components/ui';
 import { CompanyMatchCards } from '@/pages/student-competency-profile/components/CompanyMatchCards';
 import { ComparisonPanel } from '@/pages/student-competency-profile/components/ComparisonPanel';
 import {
@@ -17,8 +17,19 @@ const CareerMatchPage: React.FC = () => {
   const match = useMatchResults();
 
   return (
-    <div className={styles.shell}>
+    <GlassShell>
       <div className={styles.page}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <AskCoachButton
+            step="match"
+            context={{
+              sourcePage: 'career-match',
+              favoriteId: match.activeRecommendationFavorite?.favorite_id,
+              reportId: match.activeRecommendation?.report_id,
+              recommendationId: match.activeRecommendationId,
+            }}
+          />
+        </div>
         <FadeInWhenVisible>
           <MatchWorkspace
             matchData={match.matchData}
@@ -61,7 +72,7 @@ const CareerMatchPage: React.FC = () => {
           />
         </FadeInWhenVisible>
       </div>
-    </div>
+    </GlassShell>
   );
 };
 
