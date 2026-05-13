@@ -94,3 +94,54 @@ class TestBuildSystemPrompt:
         for agent in ["ResumeCoach", "CareerMatchCoach", "LearningPathCoach", "ReportCoach", "CareerCoach"]:
             assert agent in AGENT_SYSTEM_PROMPTS
             assert len(AGENT_SYSTEM_PROMPTS[agent]) > 50
+
+
+class TestFormattingGuardrails:
+    """Verify that build_system_prompt() includes the formatting rules block."""
+
+    FORMATTING_MARKER = "回复格式规范"
+
+    @pytest.mark.asyncio
+    async def test_all_five_agents_get_formatting_rules(self):
+        """All 5 agents must include the formatting guardrails block."""
+        for agent in ["ResumeCoach", "CareerMatchCoach", "LearningPathCoach", "ReportCoach", "CareerCoach"]:
+            prompt = await build_system_prompt(None, agent)
+            assert self.FORMATTING_MARKER in prompt, (
+                f"{agent} missing formatting rules block"
+            )
+
+    @pytest.mark.asyncio
+    async def test_formatting_rules_appear_after_business_rules(self):
+        """Formatting rules must come after the business data rules."""
+        prompt = await build_system_prompt(None, "CareerCoach")
+        biz_pos = prompt.find("业务数据读取规则")
+        fmt_pos = prompt.find(self.FORMATTING_MARKER)
+        assert biz_pos > 0, "business data rules missing"
+        assert fmt_pos > biz_pos, (
+            "formatting rules must appear after business data rules"
+        )
+
+    @pytest.mark.asyncio
+    async def test_formatting_rules_ban_emoji(self):
+        """Formatting block must forbid emoji usage."""
+        prompt = await build_system_prompt(None, "CareerCoach")
+        fmt_start = prompt.find(self.FORMATTING_MARKER)
+        fmt_block = prompt[fmt_start:]
+        assert "emoji" in fmt_block.lower() or "Emoji" in fmt_block or "表情" in fmt_block
+
+    @pytest.mark.asyncio
+    async def test_formatting_rules_constrain_emphasis(self):
+        """Formatting block must specify italic for gentle emphasis, bold limited to labels."""
+        prompt = await build_system_prompt(None, "CareerCoach")
+        fmt_start = prompt.find(self.FORMATTING_MARKER)
+        fmt_block = prompt[fmt_start:]
+        assert "斜体" in fmt_block or "italic" in fmt_block.lower()
+
+    @pytest.mark.asyncio
+    async def test_conversation_summary_also_gets_formatting_rules(self):
+        """When summary is injected, formatting rules still appear."""
+        prompt = await build_system_prompt(
+            None, "CareerCoach",
+            conversation_summary='{"key_topics":["简历"]}',
+        )
+        assert self.FORMATTING_MARKER in prompt
