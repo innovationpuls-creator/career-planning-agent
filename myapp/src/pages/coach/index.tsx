@@ -1,8 +1,9 @@
 import { PageError, PageLoading } from '@/components/ui';
-import { createStyles, keyframes } from 'antd-style';
+import { createStyles } from 'antd-style';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from '@umijs/max';
-import { claudeColors, claudeAlpha, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors, claudeAlpha, claudeGlass } from '@/styles/claude-tokens';
+import { orbFloat1, orbFloat2 } from './motion';
 import { useCoachChat } from './hooks/useCoachChat';
 import { useSessionRecovery } from './hooks/useSessionRecovery';
 import { CoachChatBody } from './components/CoachChatBody';
@@ -16,112 +17,114 @@ import { parseCoachPageContext } from './pageContext';
 import type { CoachMessage as ApiCoachMessage, CoachSession } from './api';
 import type { CoachMessage, CoachSkill, SelectedCoachSkill } from './types';
 
-const useStyles = createStyles(({ css }) => {
-  const float = keyframes`
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 40px) scale(0.9); }
-    100% { transform: translate(0, 0) scale(1); }
-  `;
-
-  const floatReverse = keyframes`
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(-40px, 30px) scale(1.05); }
-    66% { transform: translate(20px, -30px) scale(0.95); }
-    100% { transform: translate(0, 0) scale(1); }
-  `;
-
-  return {
-    shell: css`
-      min-height: 100vh;
-      margin: -24px;
-      padding: 24px;
-      position: relative;
-      background-color: #fdfbf7;
-      overflow: hidden;
-    `,
-    fixedBackground: css`
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
-
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        opacity: 0.03;
-        z-index: 3;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      }
-    `,
-    glassOverlay: css`
-      position: absolute;
-      inset: 0;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(80px);
-      -webkit-backdrop-filter: blur(80px);
-      z-index: 1;
-    `,
-    backgroundBlob1: css`
-      position: absolute;
-      top: -10vh;
-      right: -5vw;
-      width: 60vw;
-      height: 60vh;
-      background: radial-gradient(circle, ${claudeAlpha(claudeColors.terracotta, 0.4)} 0%, transparent 70%);
-      filter: blur(80px);
-      z-index: 0;
-      animation: ${float} 25s infinite ease-in-out;
-    `,
-    backgroundBlob2: css`
-      position: absolute;
-      bottom: -15vh;
-      left: -10vw;
-      width: 55vw;
-      height: 55vh;
-      background: radial-gradient(circle, ${claudeAlpha('#4a90e2', 0.3)} 0%, transparent 70%);
-      filter: blur(80px);
-      z-index: 0;
-      animation: ${floatReverse} 30s infinite ease-in-out;
-    `,
-    backgroundBlob3: css`
-      position: absolute;
-      top: 35vh;
-      left: 15vw;
-      width: 45vw;
-      height: 45vh;
-      background: radial-gradient(circle, ${claudeAlpha(claudeColors.success, 0.25)} 0%, transparent 70%);
-      filter: blur(70px);
-      z-index: 0;
-      animation: ${float} 22s infinite ease-in-out;
-    `,
-    content: css`
-      position: relative;
-      z-index: 2;
-      height: calc(100vh - 112px);
-    `,
-    layout: css`
-      display: flex;
-      height: 100%;
-      border-radius: ${claudeRadius.lg}px;
-      overflow: hidden;
-      background: ${claudeAlpha('#ffffff', 0.45)};
-      backdrop-filter: blur(24px) saturate(160%);
-      -webkit-backdrop-filter: blur(24px) saturate(160%);
-      border: 1px solid ${claudeAlpha('#ffffff', 0.6)};
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.5)};
-    `,
-    main: css`
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      min-width: 0;
-    `,
-  };
-});
+const useStyles = createStyles(({ css }) => ({
+  shell: css`
+    min-height: 100vh;
+    margin: -24px;
+    position: relative;
+    overflow: hidden;
+  `,
+  canvas: css`
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      140deg,
+      #f0e9db 0%,
+      #e6d9c4 30%,
+      #ede4d5 60%,
+      #f3ede2 100%
+    );
+  `,
+  orb: css`
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(50px);
+    pointer-events: none;
+  `,
+  orb1: css`
+    top: -8%;
+    right: -6%;
+    width: 42%;
+    height: 60%;
+    background: radial-gradient(
+      ellipse,
+      ${claudeAlpha(claudeColors.terracotta, 0.28)} 0%,
+      transparent 72%
+    );
+    animation: ${orbFloat1} 25s infinite ease-in-out;
+  `,
+  orb2: css`
+    bottom: -10%;
+    left: 20%;
+    width: 38%;
+    height: 50%;
+    background: radial-gradient(
+      ellipse,
+      rgba(74, 144, 226, 0.16) 0%,
+      transparent 70%
+    );
+    animation: ${orbFloat2} 30s infinite ease-in-out;
+  `,
+  orb3: css`
+    top: 40%;
+    left: 45%;
+    width: 30%;
+    height: 40%;
+    background: radial-gradient(
+      ellipse,
+      ${claudeAlpha(claudeColors.success, 0.12)} 0%,
+      transparent 70%
+    );
+    filter: blur(45px);
+    animation: ${orbFloat2} 22s infinite ease-in-out reverse;
+  `,
+  noise: css`
+    position: absolute;
+    inset: 0;
+    opacity: 0.022;
+    z-index: 3;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  `,
+  content: css`
+    position: relative;
+    z-index: 2;
+    height: calc(100vh - 48px);
+    padding: 10px 12px;
+    display: flex;
+    gap: 12px;
+  `,
+  sidebar: css`
+    width: 260px;
+    flex-shrink: 0;
+    border-radius: 20px;
+    background: ${claudeGlass.dark};
+    backdrop-filter: ${claudeGlass.blurMedium};
+    -webkit-backdrop-filter: ${claudeGlass.blurMedium};
+    border: 1px solid ${claudeGlass.borderDark};
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  `,
+  main: css`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+    border-radius: 22px;
+    background: ${claudeGlass.light};
+    backdrop-filter: ${claudeGlass.blurHeavy} ${claudeGlass.saturate};
+    -webkit-backdrop-filter: ${claudeGlass.blurHeavy} ${claudeGlass.saturate};
+    border: 1px solid ${claudeGlass.borderLight};
+    box-shadow:
+      0 12px 48px rgba(0, 0, 0, 0.04),
+      ${claudeGlass.innerGlow};
+    overflow: hidden;
+  `,
+}));
 
 export default function CoachPage() {
   const { styles } = useStyles();
@@ -224,14 +227,14 @@ export default function CoachPage() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.fixedBackground}>
-        <div className={styles.backgroundBlob1} />
-        <div className={styles.backgroundBlob2} />
-        <div className={styles.backgroundBlob3} />
-        <div className={styles.glassOverlay} />
+      <div className={styles.canvas}>
+        <div className={`${styles.orb} ${styles.orb1}`} />
+        <div className={`${styles.orb} ${styles.orb2}`} />
+        <div className={`${styles.orb} ${styles.orb3}`} />
+        <div className={styles.noise} />
       </div>
       <div className={styles.content}>
-        <div className={styles.layout}>
+        <div className={styles.sidebar}>
           <CoachChatSidebar
             sessions={sessions}
             activeSessionId={chat.currentSessionId}
@@ -239,33 +242,33 @@ export default function CoachPage() {
             onSelectSession={handleSelectSession}
             onNewSession={handleNewSession}
           />
-          <div className={styles.main}>
-            <GlobalErrorBar
-              visible={chat.errorMessage !== null}
-              message={chat.errorMessage || ''}
-              onClose={chat.clearError}
-              onRetry={() => chat.retry()}
-            />
-            <CoachChatHeader
-              activeAgent={chat.activeAgent}
-              onNewSession={handleNewSession}
-            />
-            <CoachChatBody
-              messages={chat.messages}
-              isStreaming={isBusy}
-            />
-            <PendingUploads
-              uploads={chat.pendingUploads}
-              onRemove={chat.removeUpload}
-            />
-            <CoachChatInput
-              onSend={handleSend}
-              onStop={chat.abort}
-              onUpload={chat.uploadFile}
-              isBusy={isBusy}
-              skills={skills}
-            />
-          </div>
+        </div>
+        <div className={styles.main}>
+          <GlobalErrorBar
+            visible={chat.errorMessage !== null}
+            message={chat.errorMessage || ''}
+            onClose={chat.clearError}
+            onRetry={() => chat.retry()}
+          />
+          <CoachChatHeader
+            activeAgent={chat.activeAgent}
+            onNewSession={handleNewSession}
+          />
+          <CoachChatBody
+            messages={chat.messages}
+            isStreaming={isBusy}
+          />
+          <PendingUploads
+            uploads={chat.pendingUploads}
+            onRemove={chat.removeUpload}
+          />
+          <CoachChatInput
+            onSend={handleSend}
+            onStop={chat.abort}
+            onUpload={chat.uploadFile}
+            isBusy={isBusy}
+            skills={skills}
+          />
         </div>
       </div>
     </div>
