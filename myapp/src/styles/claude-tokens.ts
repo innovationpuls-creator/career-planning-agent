@@ -85,6 +85,61 @@ export const claudeFonts = {
   body: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif',
 } as const;
 
+// ── Glass surface presets ─────────────────────────────────────
+
+export const claudeGlass = {
+  // Surface fills
+  dark: 'rgba(48, 48, 46, 0.55)',
+  mid: 'rgba(48, 48, 46, 0.35)',
+  light: 'rgba(255, 255, 255, 0.22)',
+  ghost: 'rgba(255, 255, 255, 0.12)',
+  terracotta: 'rgba(201, 100, 66, 0.10)',
+  input: 'rgba(255, 255, 255, 0.20)',
+  bubbleAI: 'rgba(250, 249, 245, 0.45)',
+  bubbleUser: 'rgba(201, 100, 66, 0.08)',
+  skillPanel: 'rgba(250, 249, 245, 0.80)',
+  cli: 'rgba(245, 240, 232, 0.55)',
+  errorBg: 'rgba(181, 51, 51, 0.15)',
+  // Borders
+  borderDark: 'rgba(255, 255, 255, 0.18)',
+  borderLight: 'rgba(255, 255, 255, 0.45)',
+  borderGhost: 'rgba(255, 255, 255, 0.25)',
+  borderInput: 'rgba(255, 255, 255, 0.40)',
+  borderTerracotta: 'rgba(201, 100, 66, 0.20)',
+  borderCLI: 'rgba(200, 185, 160, 0.30)',
+  borderError: 'rgba(181, 51, 51, 0.30)',
+  // Blur levels
+  blurHeavy: 'blur(28px)',
+  blurMedium: 'blur(24px)',
+  blurLight: 'blur(16px)',
+  blurSubtle: 'blur(12px)',
+  blurMicro: 'blur(8px)',
+  // Saturation boost for light glass
+  saturate: 'saturate(140%)',
+  // Inner glow
+  innerGlow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+  // Button glow
+  btnGlow: '0 4px 16px rgba(201, 100, 66, 0.35)',
+} as const;
+
+// ── Glass surface helpers ─────────────────────────────────────
+
+export const glassSurface = (
+  fill: string,
+  blur: string,
+  border: string,
+  extra?: string,
+): string =>
+  [
+    `background: ${fill}`,
+    `backdrop-filter: ${blur}`,
+    `-webkit-backdrop-filter: ${blur}`,
+    `border: 1px solid ${border}`,
+    extra,
+  ]
+    .filter(Boolean)
+    .join(';');
+
 // ── Combined export ────────────────────────────────────────────
 
 export const claudeTokens = {
@@ -92,4 +147,5 @@ export const claudeTokens = {
   shadows: claudeShadows,
   radius: claudeRadius,
   fonts: claudeFonts,
+  glass: claudeGlass,
 } as const;
