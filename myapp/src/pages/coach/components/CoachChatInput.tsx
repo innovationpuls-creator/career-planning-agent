@@ -3,7 +3,7 @@ import { UploadOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createStyles } from 'antd-style';
-import { claudeColors, claudeAlpha } from '@/styles/claude-tokens';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
 import { scaleIn, TRANSITION } from '../motion';
 import type { CoachSkill, SelectedCoachSkill } from '../types';
@@ -16,10 +16,26 @@ const useStyles = createStyles(({ css, token }) => ({
     align-items: flex-end;
     gap: 8px;
     padding: 8px 12px;
-    border-top: 1px solid ${claudeAlpha(claudeColors.borderCream, 0.7)};
-    background: ${claudeAlpha(claudeColors.ivory, 0.5)};
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid ${claudeGlass.borderGhost};
+    background: transparent;
+    flex-shrink: 0;
+  `,
+  uploadBtn: css`
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.20);
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid ${claudeGlass.borderInput};
+    color: ${claudeColors.stoneGray};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    &:hover {
+      background: rgba(255, 255, 255, 0.30) !important;
+    }
   `,
   inputWrap: css`
     flex: 1;
@@ -38,29 +54,30 @@ const useStyles = createStyles(({ css, token }) => ({
     max-height: 280px;
     overflow-y: auto;
     overscroll-behavior: contain;
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: 8px;
-    background: ${token.colorBgElevated};
-    box-shadow: ${token.boxShadowSecondary};
+    border-radius: 14px;
+    background: ${claudeGlass.skillPanel};
+    backdrop-filter: ${claudeGlass.blurMedium};
+    -webkit-backdrop-filter: ${claudeGlass.blurMedium};
+    border: 1px solid ${claudeGlass.borderLight};
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
     padding: 6px;
   `,
   skillItem: css`
     width: 100%;
     border: 0;
     background: transparent;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 8px 10px;
     text-align: left;
     cursor: pointer;
-    color: ${token.colorText};
+    color: ${claudeColors.nearBlack};
     display: block;
-
     &:hover {
-      background: ${token.colorFillTertiary};
+      background: rgba(201, 100, 66, 0.08);
     }
   `,
   skillItemActive: css`
-    background: ${token.colorFillSecondary};
+    background: rgba(201, 100, 66, 0.08);
   `,
   skillHeader: css`
     display: flex;
@@ -73,14 +90,35 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   skillDesc: css`
     margin-top: 4px;
-    color: ${token.colorTextSecondary};
+    color: ${claudeColors.stoneGray};
     font-size: 12px;
     line-height: 1.5;
   `,
   empty: css`
     padding: 10px;
-    color: ${token.colorTextSecondary};
+    color: ${claudeColors.stoneGray};
     font-size: 12px;
+  `,
+  sendBtn: css`
+    border-radius: 14px;
+    font-weight: 500;
+    background: ${claudeColors.terracotta};
+    border-color: ${claudeColors.terracotta};
+    color: #fff;
+    box-shadow: 0 3px 14px rgba(201, 100, 66, 0.35);
+    &:hover {
+      background: ${claudeColors.primaryHover} !important;
+      border-color: ${claudeColors.primaryHover} !important;
+    }
+  `,
+  stopBtn: css`
+    border-radius: 14px;
+    background: ${claudeGlass.errorBg};
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid ${claudeGlass.borderError};
+    color: ${claudeColors.error};
+    font-weight: 500;
   `,
 }));
 
@@ -219,10 +257,10 @@ export function CoachChatInput({
         disabled={isBusy}
       />
       <Button
-        icon={<UploadOutlined />}
-        size="small"
+        className={styles.uploadBtn}
         disabled={isBusy}
         onClick={() => fileInputRef.current?.click()}
+        icon={<UploadOutlined />}
       />
       <div className={styles.inputWrap}>
         {paletteOpen && (
@@ -288,7 +326,7 @@ export function CoachChatInput({
             variants={reduced ? undefined : scaleIn}
             transition={TRANSITION.fast}
           >
-            <Button danger onClick={onStop}>
+            <Button className={styles.stopBtn} onClick={onStop}>
               停止
             </Button>
           </motion.div>
@@ -302,7 +340,7 @@ export function CoachChatInput({
             transition={TRANSITION.fast}
           >
             <Button
-              type="primary"
+              className={styles.sendBtn}
               onClick={handleSend}
               disabled={!text.trim()}
             >
