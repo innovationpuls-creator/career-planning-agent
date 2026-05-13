@@ -1,58 +1,61 @@
-import { Progress, Tag } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
 import React from 'react';
-import { claudeColors } from '@/styles/claude-tokens';
-import type { PendingUpload } from '../types';
+import { createStyles } from 'antd-style';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+
+const useStyles = createStyles(({ css }) => ({
+  shell: css`
+    display: flex;
+    gap: 8px;
+    padding: 6px 16px;
+    flex-wrap: wrap;
+  `,
+  chip: css`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    background: ${claudeGlass.ghost};
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid ${claudeGlass.borderGhost};
+    font-size: 12px;
+    color: ${claudeColors.stoneGray};
+  `,
+  removeBtn: css`
+    background: none;
+    border: none;
+    color: ${claudeColors.stoneGray};
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.6;
+    &:hover {
+      opacity: 1;
+      color: ${claudeColors.error};
+    }
+  `,
+}));
 
 interface PendingUploadsProps {
-  uploads: PendingUpload[];
+  uploads: { fileId: string; name: string }[];
   onRemove: (fileId: string) => void;
 }
 
-export function PendingUploads({
-  uploads,
-  onRemove,
-}: PendingUploadsProps) {
+export function PendingUploads({ uploads, onRemove }: PendingUploadsProps) {
+  const { styles } = useStyles();
   if (uploads.length === 0) return null;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 6,
-        flexWrap: 'wrap',
-        padding: '4px 12px',
-      }}
-    >
-      {uploads.map((upload) => (
-        <Tag
-          key={upload.fileId}
-          closable={upload.uploadState === 'ready' || upload.uploadState === 'error'}
-          onClose={
-            upload.uploadState === 'ready' || upload.uploadState === 'error'
-              ? () => onRemove(upload.fileId)
-              : undefined
-          }
-          closeIcon={<CloseOutlined />}
-          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          {upload.uploadState === 'uploading' ? (
-            <Progress
-              type="circle"
-              percent={upload.progress}
-              size={14}
-              strokeWidth={10}
-              showInfo={false}
-            />
-          ) : upload.uploadState === 'error' ? (
-            <span style={{ color: claudeColors.error }}>⚠</span>
-          ) : (
-            <span>✓</span>
-          )}
-          <span style={{ fontSize: 12, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {upload.name}
-          </span>
-        </Tag>
+    <div className={styles.shell}>
+      {uploads.map((u) => (
+        <span key={u.fileId} className={styles.chip}>
+          {u.name}
+          <button className={styles.removeBtn} onClick={() => onRemove(u.fileId)}>
+            ×
+          </button>
+        </span>
       ))}
     </div>
   );

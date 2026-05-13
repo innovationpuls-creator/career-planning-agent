@@ -1,16 +1,71 @@
-import { Button } from 'antd';
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { claudeColors } from '@/styles/claude-tokens';
+import { createStyles } from 'antd-style';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
 import { slideDown, TRANSITION } from '../motion';
+
+const useStyles = createStyles(({ css }) => ({
+  shell: css`
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    right: 16px;
+    z-index: 5;
+  `,
+  bar: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: ${claudeGlass.errorBg};
+    backdrop-filter: ${claudeGlass.blurLight};
+    -webkit-backdrop-filter: ${claudeGlass.blurLight};
+    border: 1px solid ${claudeGlass.borderError};
+    font-size: 13px;
+    color: ${claudeColors.error};
+  `,
+  msg: css`
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  btn: css`
+    padding: 3px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(181, 51, 51, 0.25);
+    background: rgba(181, 51, 51, 0.08);
+    color: ${claudeColors.error};
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover {
+      background: rgba(181, 51, 51, 0.15);
+    }
+  `,
+  closeBtn: css`
+    background: none;
+    border: none;
+    color: ${claudeColors.error};
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    opacity: 0.7;
+    &:hover {
+      opacity: 1;
+    }
+  `,
+}));
 
 interface GlobalErrorBarProps {
   visible: boolean;
   message: string;
   onClose: () => void;
-  onRetry?: () => void;
-  autoHideMs?: number;
+  onRetry: () => void;
 }
 
 export function GlobalErrorBar({
@@ -18,52 +73,29 @@ export function GlobalErrorBar({
   message,
   onClose,
   onRetry,
-  autoHideMs = 8000,
 }: GlobalErrorBarProps) {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    if (!visible || !autoHideMs) return;
-    const timer = setTimeout(() => onCloseRef.current(), autoHideMs);
-    return () => clearTimeout(timer);
-  }, [visible, autoHideMs]);
-
+  const { styles } = useStyles();
   const reduced = prefersReducedMotion();
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={reduced ? undefined : 'initial'}
-          animate={reduced ? undefined : 'animate'}
-          exit={reduced ? undefined : 'initial'}
-          variants={reduced ? undefined : slideDown}
-          transition={TRANSITION.normal}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 16px',
-            background: claudeColors.error,
-            color: claudeColors.ivory,
-            fontSize: 13,
-          }}
+          className={styles.shell}
+          initial={reduced ? { opacity: 0 } : slideDown.initial}
+          animate={slideDown.animate}
+          exit={reduced ? { opacity: 0 } : slideDown.initial}
+          transition={TRANSITION.fast}
         >
-          <span style={{ flex: 1 }}>{message}</span>
-          {onRetry && (
-            <Button size="small" ghost onClick={onRetry}>
+          <div className={styles.bar}>
+            <span className={styles.msg}>{message}</span>
+            <button className={styles.btn} onClick={onRetry}>
               重试
-            </Button>
-          )}
-          <Button size="small" ghost onClick={onClose}>
-            关闭
-          </Button>
+            </button>
+            <button className={styles.closeBtn} onClick={onClose}>
+              ×
+            </button>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
