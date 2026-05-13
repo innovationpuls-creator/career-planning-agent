@@ -118,16 +118,8 @@ export function StreamingText({ content, status }: StreamingTextProps) {
 
   const markdownComponents = useMemo(
     () => ({
-      table: ({ children }: { children: React.ReactNode }) => (
-        <MarkdownTable>{children}</MarkdownTable>
-      ),
-      a: ({
-        href,
-        children,
-      }: {
-        href?: string;
-        children: React.ReactNode;
-      }) => (
+      table: ({ children }: any) => <MarkdownTable>{children}</MarkdownTable>,
+      a: ({ href, children }: any) => (
         <a href={href} target="_blank" rel="noreferrer noopener">
           {children}
         </a>
