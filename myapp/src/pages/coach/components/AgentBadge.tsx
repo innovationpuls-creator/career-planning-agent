@@ -1,33 +1,27 @@
-import { Tag } from 'antd';
+import { createStyles } from 'antd-style';
 import React from 'react';
+import { claudeColors } from '@/styles/claude-tokens';
 
-const AGENT_LABELS: Record<string, string> = {
-  CareerCoach: '职业规划教练',
-  ResumeCoach: '简历优化教练',
-  CareerMatchCoach: '职业匹配教练',
-  LearningPathCoach: '学习路径教练',
-  ReportCoach: '成长报告教练',
-};
-
-const AGENT_COLORS: Record<string, string> = {
-  CareerCoach: 'blue',
-  ResumeCoach: 'green',
-  CareerMatchCoach: 'purple',
-  LearningPathCoach: 'orange',
-  ReportCoach: 'cyan',
-};
+const useStyles = createStyles(({ css }) => ({
+  badge: css`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 10px;
+    background: rgba(201, 100, 66, 0.12);
+    border: 1px solid rgba(201, 100, 66, 0.22);
+    font-size: 12px;
+    color: ${claudeColors.terracotta};
+    font-weight: 500;
+  `,
+}));
 
 interface AgentBadgeProps {
   agent: string;
 }
 
 export function AgentBadge({ agent }: AgentBadgeProps) {
-  const label = AGENT_LABELS[agent] || agent;
-  const color = AGENT_COLORS[agent] || 'default';
-
-  return (
-    <Tag color={color} style={{ marginBottom: 8 }}>
-      {label}
-    </Tag>
-  );
+  const { styles } = useStyles();
+  return <span className={styles.badge}>{agent}</span>;
 }

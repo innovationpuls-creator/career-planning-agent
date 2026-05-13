@@ -1,7 +1,7 @@
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
-import { claudeColors, claudeAlpha, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { AgentBadge } from './AgentBadge';
 
 const useStyles = createStyles(({ css }) => ({
@@ -10,17 +10,42 @@ const useStyles = createStyles(({ css }) => ({
     align-items: center;
     justify-content: space-between;
     padding: 8px 16px;
-    border-bottom: 1px solid ${claudeAlpha(claudeColors.borderCream, 0.7)};
-    background: ${claudeAlpha(claudeColors.ivory, 0.5)};
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: ${claudeRadius.md}px ${claudeRadius.md}px 0 0;
+    border-bottom: 1px solid ${claudeGlass.borderGhost};
+    background: ${claudeGlass.ghost};
+    backdrop-filter: ${claudeGlass.blurLight};
+    -webkit-backdrop-filter: ${claudeGlass.blurLight};
     min-height: 48px;
+    flex-shrink: 0;
   `,
   left: css`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+  `,
+  dot: css`
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: ${claudeColors.terracotta};
+    box-shadow: 0 0 12px ${claudeColors.terracotta}80;
+  `,
+  title: css`
+    font-size: 13px;
+    color: ${claudeColors.oliveGray};
+  `,
+  newBtn: css`
+    border-radius: 10px;
+    background: ${claudeGlass.ghost};
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid ${claudeGlass.borderGhost};
+    color: ${claudeColors.oliveGray};
+    font-size: 12px;
+    height: 30px;
+    &:hover {
+      background: rgba(255, 255, 255, 0.18) !important;
+      border-color: rgba(255, 255, 255, 0.35) !important;
+    }
   `,
 }));
 
@@ -38,14 +63,14 @@ export function CoachChatHeader({
   return (
     <div className={styles.header}>
       <div className={styles.left}>
-        {activeAgent && <AgentBadge agent={activeAgent} />}
-        {!activeAgent && (
-          <span style={{ fontSize: 14, color: claudeColors.oliveGray }}>
-            AI 职业规划教练
-          </span>
+        <span className={styles.dot} />
+        {activeAgent ? (
+          <AgentBadge agent={activeAgent} />
+        ) : (
+          <span className={styles.title}>AI 职业规划教练</span>
         )}
       </div>
-      <Button size="small" onClick={onNewSession}>
+      <Button className={styles.newBtn} size="small" onClick={onNewSession}>
         新对话
       </Button>
     </div>
