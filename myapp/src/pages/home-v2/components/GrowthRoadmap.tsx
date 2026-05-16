@@ -37,10 +37,10 @@ const useStyles = createStyles(({ css }) => ({
   `,
   card: css`
     padding: 32px;
-    background: ${claudeAlpha(claudeColors.nearBlack, 0.7)};
+    background: ${claudeColors.nearBlack};
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid ${claudeAlpha('#ffffff', 0.1)};
+    border: 1px solid ${claudeAlpha('#ffffff', 0.15)};
     border-radius: ${claudeRadius.lg}px;
     position: relative;
     overflow: hidden;

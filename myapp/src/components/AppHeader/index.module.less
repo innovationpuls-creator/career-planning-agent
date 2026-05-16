@@ -6,10 +6,11 @@
   align-items: center;
   justify-content: flex-start;
   background: var(--header-bg);
+  backdrop-filter: var(--header-backdrop);
+  -webkit-backdrop-filter: var(--header-backdrop);
   border-bottom: 1px solid var(--header-border);
-  box-shadow: var(--header-shadow);
+  box-shadow: var(--header-shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
   border-radius: 0 0 22px 22px;
-  backdrop-filter: blur(16px);
   font-family: var(--font-body);
   letter-spacing: 0.01em;
   overflow: hidden;
@@ -170,19 +171,9 @@
   color: var(--header-primary);
   font-weight: 650;
   background: var(--header-nav-active-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: var(--header-nav-active-shadow);
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 6px;
-    width: 32px;
-    height: 2px;
-    border-radius: 999px;
-    transform: translateX(-50%);
-    background: var(--header-indicator-gradient);
-  }
 }
 
 // ── Utility bar (right) ──────────────────────────────────
@@ -194,6 +185,8 @@
   align-items: center;
   gap: 4px;
   background: var(--header-utility-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--header-utility-border);
   box-shadow: var(--header-utility-shadow);
   flex-shrink: 0;

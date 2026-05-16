@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+import { prefersReducedMotion } from '@/styles/motion';
+import { expandIn, TRANSITION } from '../motion';
 import type { AgentRunStep, MessageStatus, RunMetrics } from '../types';
 import { CollapsedBar } from './CollapsedBar';
 import { ExpandedLog } from './ExpandedLog';
@@ -32,6 +35,7 @@ export function AgentRunTimeline({
   metrics,
 }: AgentRunTimelineProps) {
   const { styles } = useStyles();
+  const reduced = prefersReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,26 +120,43 @@ export function AgentRunTimeline({
 
   return (
     <section className={styles.shell} aria-label="智能体运行轨迹">
-      {expanded ? (
-        <>
-          <ExpandedLog steps={steps} />
-          <StatusBar
-            text={statusText}
-            time={runStatus === 'running' ? durationText : undefined}
-            status={runStatus === 'running' ? 'running' : 'done'}
-          />
-        </>
-      ) : (
-        <CollapsedBar
-          agent={agent}
-          runStatus={runStatus}
-          stepCount={stepCount}
-          toolCount={toolCount}
-          memoryCount={memoryCount}
-          duration={durationText}
-          onClick={() => setExpanded(true)}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {expanded ? (
+          <motion.div
+            key="expanded"
+            initial={reduced ? { opacity: 0 } : expandIn.initial}
+            animate={reduced ? { opacity: 1 } : expandIn.animate}
+            exit={reduced ? { opacity: 0 } : expandIn.exit}
+            transition={TRANSITION.normal}
+            style={{ transformOrigin: 'top' }}
+          >
+            <ExpandedLog steps={steps} />
+            <StatusBar
+              text={statusText}
+              time={runStatus === 'running' ? durationText : undefined}
+              status={runStatus === 'running' ? 'running' : 'done'}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="collapsed"
+            initial={reduced ? undefined : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduced ? undefined : { opacity: 0 }}
+            transition={TRANSITION.fast}
+          >
+            <CollapsedBar
+              agent={agent}
+              runStatus={runStatus}
+              stepCount={stepCount}
+              toolCount={toolCount}
+              memoryCount={memoryCount}
+              duration={durationText}
+              onClick={() => setExpanded(true)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -50,7 +50,7 @@ const useStyles = createStyles(({ css }) => ({
     height: 60%;
     background: radial-gradient(
       ellipse,
-      ${claudeAlpha(claudeColors.terracotta, 0.28)} 0%,
+      ${claudeAlpha(claudeColors.terracotta, 0.45)} 0%,
       transparent 72%
     );
     animation: ${orbFloat1} 25s infinite ease-in-out;
@@ -62,7 +62,7 @@ const useStyles = createStyles(({ css }) => ({
     height: 50%;
     background: radial-gradient(
       ellipse,
-      rgba(74, 144, 226, 0.16) 0%,
+      rgba(74, 144, 226, 0.28) 0%,
       transparent 70%
     );
     animation: ${orbFloat2} 30s infinite ease-in-out;
@@ -74,7 +74,7 @@ const useStyles = createStyles(({ css }) => ({
     height: 40%;
     background: radial-gradient(
       ellipse,
-      ${claudeAlpha(claudeColors.success, 0.12)} 0%,
+      ${claudeAlpha(claudeColors.success, 0.22)} 0%,
       transparent 70%
     );
     filter: blur(45px);
@@ -156,7 +156,7 @@ export default function CoachPage() {
     setSessionsLoading(true);
     try {
       const res = await listSessions();
-      setSessions(res.data);
+      setSessions((res.data ?? []).slice(0, 8));
     } catch {
       // Silently fail — session list is optional UX
     } finally {
@@ -218,7 +218,21 @@ export default function CoachPage() {
     chat.state === 'connecting' || chat.state === 'streaming';
 
   if (sessionLoading) {
-    return <PageLoading tip="加载对话历史..." />;
+    return (
+      <div className={styles.shell}>
+        <div className={styles.canvas}>
+          <div className={`${styles.orb} ${styles.orb1}`} />
+          <div className={`${styles.orb} ${styles.orb2}`} />
+          <div className={`${styles.orb} ${styles.orb3}`} />
+          <div className={styles.noise} />
+        </div>
+        <div className={styles.content}>
+          <div className={styles.main} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PageLoading tip="加载对话历史..." />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (sessionError) {
@@ -252,8 +266,33 @@ export default function CoachPage() {
           />
           <CoachChatHeader
             activeAgent={chat.activeAgent}
-            onNewSession={handleNewSession}
           />
+          {pageContext && (
+            <div
+              style={{
+                margin: '0 16px',
+                padding: '6px 14px',
+                borderRadius: 10,
+                background: claudeGlass.ghost,
+                backdropFilter: claudeGlass.blurMicro,
+                border: `1px solid ${claudeGlass.borderGhost}`,
+                fontSize: 12,
+                color: claudeColors.stoneGray,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span style={{
+                display: 'inline-block',
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: claudeColors.terracotta,
+              }} />
+              已关联来源页面 — 教练将基于当前上下文回答
+            </div>
+          )}
           <CoachChatBody
             messages={chat.messages}
             isStreaming={isBusy}

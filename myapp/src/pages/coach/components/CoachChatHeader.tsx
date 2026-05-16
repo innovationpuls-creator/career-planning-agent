@@ -1,7 +1,9 @@
-import { Button } from 'antd';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+import { prefersReducedMotion } from '@/styles/motion';
+import { fadeInUp, TRANSITION } from '../motion';
 import { AgentBadge } from './AgentBadge';
 
 const useStyles = createStyles(({ css }) => ({
@@ -51,28 +53,42 @@ const useStyles = createStyles(({ css }) => ({
 
 interface CoachChatHeaderProps {
   activeAgent: string | null;
-  onNewSession: () => void;
 }
 
 export function CoachChatHeader({
   activeAgent,
-  onNewSession,
 }: CoachChatHeaderProps) {
   const { styles } = useStyles();
+  const reduced = prefersReducedMotion();
 
   return (
     <div className={styles.header}>
       <div className={styles.left}>
         <span className={styles.dot} />
-        {activeAgent ? (
-          <AgentBadge agent={activeAgent} />
-        ) : (
-          <span className={styles.title}>AI 职业规划教练</span>
-        )}
+        <AnimatePresence mode="wait">
+          {activeAgent ? (
+            <motion.div
+              key="badge"
+              initial={reduced ? { opacity: 0 } : fadeInUp.initial}
+              animate={fadeInUp.animate}
+              exit={reduced ? { opacity: 0 } : { y: -8, opacity: 0 }}
+              transition={TRANSITION.fast}
+            >
+              <AgentBadge agent={activeAgent} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="title"
+              initial={reduced ? { opacity: 0 } : fadeInUp.initial}
+              animate={fadeInUp.animate}
+              exit={reduced ? { opacity: 0 } : { y: -8, opacity: 0 }}
+              transition={TRANSITION.fast}
+            >
+              <span className={styles.title}>AI 职业规划教练</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <Button className={styles.newBtn} size="small" onClick={onNewSession}>
-        新对话
-      </Button>
     </div>
   );
 }

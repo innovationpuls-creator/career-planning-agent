@@ -19,10 +19,12 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.agent import CoachAttachment, CoachChatRequest, CoachSkillsResponse
 from app.services.coach_coordinator import CoachCoordinator
-from app.services.coach_router import route_message
+from app.services.coach_router import RouteDecision, route_message
 from app.services.coach_skills import (
     build_selected_skill_prompt,
     get_enabled_coach_skill,
+    get_route_command_agent,
+    is_route_command,
     list_enabled_coach_skills,
     message_has_evidence,
     selected_skill_has_context,
@@ -216,9 +218,13 @@ async def _stream_with_coordinator(
 ) -> AsyncGenerator[bytes, None]:
     """Yield run-oriented NDJSON events for the coach agent."""
     trace_id = f"trace_{uuid4().hex[:12]}"
-    decision = await route_message(
-        body.message, pipeline_stage=body.pipeline_stage, llm_client=llm_client
-    )
+    if selected_skill_payload and is_route_command(str(selected_skill_payload.get("name", ""))):
+        route_agent = get_route_command_agent(str(selected_skill_payload["name"]))
+        decision = RouteDecision(agent=route_agent, rule="L1.5", matched=f"/{selected_skill_payload['name']}")
+    else:
+        decision = await route_message(
+            body.message, pipeline_stage=body.pipeline_stage, llm_client=llm_client
+        )
     memory_manager = MemoryManager(db)
 
     # Resolve or create session

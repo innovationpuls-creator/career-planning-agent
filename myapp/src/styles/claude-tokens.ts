@@ -89,7 +89,7 @@ export const claudeFonts = {
 
 export const claudeGlass = {
   // Surface fills
-  dark: 'rgba(48, 48, 46, 0.55)',
+  dark: '#141413',
   mid: 'rgba(48, 48, 46, 0.35)',
   light: 'rgba(255, 255, 255, 0.22)',
   ghost: 'rgba(255, 255, 255, 0.12)',

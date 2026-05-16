@@ -13,6 +13,7 @@ import {
 } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useState } from 'react';
+import { claudeColors } from '@/styles/claude-tokens';
 import { getVerticalJobProfileCompanyDetail } from '@/services/ant-design-pro/api';
 
 const STAGE_ORDER = ['low', 'middle', 'high'] as const;
@@ -78,7 +79,7 @@ const useStyles = createStyles(({ css, token }) => ({
   stepDesc: css`
     display: grid;
     gap: 4px;
-    color: ${token.colorTextSecondary};
+    color: ${claudeColors.warmSilver};
     font-size: 12px;
   `,
   stepCardWrap: css`
@@ -91,20 +92,29 @@ const useStyles = createStyles(({ css, token }) => ({
     }
 
     :global(.ant-steps-item-tail)::after {
-      background-color: ${token.colorFillSecondary};
+      background-color: ${claudeColors.darkSurface};
+    }
+
+    :global(.ant-steps-item-icon) {
+      background: ${claudeColors.darkSurface} !important;
+      border-color: ${claudeColors.charcoalWarm} !important;
+    }
+
+    :global(.ant-steps-item-icon .ant-steps-icon) {
+      color: ${claudeColors.warmSilver} !important;
     }
   `,
   stepCard: css`
     padding: 14px 16px;
     border-radius: 12px;
     border: 1px solid ${token.colorBorderSecondary};
-    background: ${token.colorBgContainer};
+    background: ${claudeColors.nearBlack};
     cursor: pointer;
     transition: all 0.2s ease;
 
     :hover {
       border-color: ${token.colorPrimary};
-      background: ${token.colorPrimaryBg};
+      background: ${claudeColors.darkSurface};
       transform: translateX(2px);
       box-shadow: 0 2px 8px rgba(22, 119, 255, 0.12);
     }
@@ -117,7 +127,7 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 14px 16px;
     border-radius: 12px;
     border: 1px solid ${token.colorPrimary};
-    background: ${token.colorPrimaryBg} !important;
+    background: ${claudeColors.darkSurface} !important;
     box-shadow: 0 2px 12px rgba(22, 119, 255, 0.18);
     cursor: default;
 
@@ -133,7 +143,7 @@ const useStyles = createStyles(({ css, token }) => ({
     height: 100%;
     border-radius: 12px;
     border: 1px solid ${token.colorBorder};
-    background: ${token.colorBgContainer};
+    background: ${claudeColors.nearBlack};
     cursor: pointer;
     transition: all 0.2s ease;
     overflow: hidden;
@@ -169,16 +179,16 @@ const useStyles = createStyles(({ css, token }) => ({
   metaItem: css`
     padding: 8px 10px;
     border-radius: 8px;
-    background: ${token.colorFillAlter};
+    background: ${claudeColors.darkSurface};
     transition: background 0.2s ease;
 
     :hover {
-      background: ${token.colorFillQuaternary};
+      background: ${claudeColors.nearBlack};
     }
   `,
   metaLabel: css`
     margin-bottom: 4px;
-    color: ${token.colorTextSecondary};
+    color: ${claudeColors.warmSilver};
     font-size: 12px;
   `,
   gapHint: css`
@@ -186,12 +196,12 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 14px 18px;
     border-radius: 12px;
     border-left: 4px solid ${token.colorPrimary};
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorText};
+    background: ${claudeColors.darkSurface};
+    color: ${claudeColors.ivory};
     transition: all 0.2s ease;
 
     :hover {
-      background: ${token.colorFillTertiary};
+      background: ${claudeColors.darkSurface};
       box-shadow: 0 2px 8px rgba(22, 119, 255, 0.1);
     }
   `,
@@ -205,6 +215,7 @@ const useStyles = createStyles(({ css, token }) => ({
     font-weight: 700;
     letter-spacing: 0.04em;
     margin: 0 0 16px;
+    color: ${claudeColors.ivory};
   `,
   drawerBody: css`
     display: grid;
@@ -216,13 +227,13 @@ const useStyles = createStyles(({ css, token }) => ({
     padding: 14px 16px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
-    background: ${token.colorBgContainer};
+    background: ${claudeColors.nearBlack};
   `,
   detailParagraph: css`
     margin-bottom: 0;
     white-space: pre-wrap;
     line-height: 1.8;
-    color: ${token.colorText};
+    color: ${claudeColors.ivory};
   `,
   overviewTag: css`
     margin-bottom: 4px;

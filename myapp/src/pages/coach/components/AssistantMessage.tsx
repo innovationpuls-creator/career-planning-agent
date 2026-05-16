@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import React from 'react';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
-import { fadeInUp, TRANSITION } from '../motion';
+import { fadeInUp, springGentle, TRANSITION } from '../motion';
 import type { CoachMessage } from '../types';
 import { AgentRunTimeline } from './AgentRunTimeline';
 import { StreamingText } from './StreamingText';
@@ -74,9 +74,13 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
           status={message.status}
           metrics={message.metrics}
         />
-        <div className={styles.answer}>
+        <motion.div
+          className={styles.answer}
+          whileHover={reduced ? undefined : { borderColor: 'rgba(200,185,160,0.45)' }}
+          transition={springGentle}
+        >
           <StreamingText content={message.content} status={message.status} />
-        </div>
+        </motion.div>
         {message.error && (
           <div className={styles.errorText}>{message.error}</div>
         )}

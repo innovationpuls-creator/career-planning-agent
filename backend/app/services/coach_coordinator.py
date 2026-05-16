@@ -17,6 +17,11 @@ from app.services.outbox.emitter import OutboxEmitter
 from app.services.token_budget import TokenBudget, compact_context_async
 from app.services.tools.executor import ToolExecutor
 from app.services.tool_registry import ToolRegistry, ToolRegistryError
+from app.services.coach_skills import (
+    get_skill_tool_name,
+    is_route_command,
+    get_route_command_default_tool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,23 +126,9 @@ class CoachCoordinator:
             except Exception:
                 logger.exception("Failed to load session history for LLM context")
 
-        # Desensitize user input before sending to LLM (C4 fix)
-        llm_user_message = user_message
-        if attachment_context:
-            llm_user_message = f"{user_message}\n\n{attachment_context}"
-        if page_context:
-            llm_user_message = (
-                f"{llm_user_message}\n\n"
-                f"## 当前页面上下文\n{json.dumps(page_context, ensure_ascii=False)}"
-            )
-        if selected_skill:
-            llm_user_message = (
-                f"{llm_user_message}\n\n"
-                f"## 用户选择的教练能力\n"
-                f"{json.dumps(selected_skill, ensure_ascii=False)}"
-            )
-        safe_user_message = desensitize(llm_user_message)
-        messages.append(ChatMessage(role="user", content=safe_user_message))
+        pre_executed_tool: str | None = None
+        pre_executed_result: dict[str, Any] | None = None
+        pre_executed_classification: str = ""
 
         # Persist user message (original text, not desensitized)
         if self._memory_manager:
@@ -202,6 +193,123 @@ class CoachCoordinator:
             metrics["steps"] += 1
             yield self._emit(check_step)
 
+        # ── Pre-execute selected skill tool (deterministic) ──────────
+        if selected_skill and selected_skill_ready:
+            skill_name = str(selected_skill.get("name") or "")
+            pre_executed_classification = str(selected_skill.get("classification") or "")
+
+            pre_executed_tool = get_skill_tool_name(skill_name)
+            if not pre_executed_tool and is_route_command(skill_name):
+                pre_executed_tool = get_route_command_default_tool(skill_name)
+
+            if pre_executed_tool:
+                tool_args_for_pre: dict[str, Any] = {"student_id": str(self._student_id)}
+                if page_context:
+                    for key in (
+                        "favoriteId", "favorite_id", "workspaceId", "workspace_id",
+                        "reportId", "report_id", "recommendationId", "recommendation_id",
+                    ):
+                        val = page_context.get(key)
+                        if val is not None:
+                            tool_args_for_pre[key] = val
+
+                tool_call_id_pre = f"pre-{skill_name}-{uuid4().hex[:8]}"
+                tool_obj_pre = self._tool_registry.get(pre_executed_tool)
+
+                pre_step = self._make_step(
+                    step_id=f"tool-{tool_call_id_pre}",
+                    kind="tool",
+                    status="running",
+                    title=f"预执行：{tool_obj_pre.display_name if tool_obj_pre else pre_executed_tool}",
+                    summary="正在获取数据...",
+                    agent=agent,
+                    tool_name=pre_executed_tool,
+                    related_tool_call_id=tool_call_id_pre,
+                )
+                self._record_step(run_trace, pre_step)
+                metrics["steps"] += 1
+                metrics["tools"] += 1
+                yield self._emit(pre_step)
+
+                pre_executed_result = await self._execute_tool(
+                    tool_name=pre_executed_tool,
+                    tool_args=tool_args_for_pre,
+                    tool_call_id=tool_call_id_pre,
+                    agent=agent,
+                    page_context=page_context,
+                )
+
+                pre_ok = pre_executed_result.get("success", True)
+                pre_completed = self._make_step(
+                    step_id=f"tool-{tool_call_id_pre}",
+                    kind="tool",
+                    status="success" if pre_ok else "error",
+                    title=f"预执行：{tool_obj_pre.display_name if tool_obj_pre else pre_executed_tool}",
+                    summary=(
+                        pre_executed_result.get("summary", "")
+                        or ("数据已加载" if pre_ok else pre_executed_result.get("error", "执行失败"))
+                    ),
+                    detail={
+                        "args": json.dumps(tool_args_for_pre, ensure_ascii=False),
+                        "result": json.dumps(pre_executed_result, ensure_ascii=False),
+                        "preExecuted": True,
+                    },
+                    agent=agent,
+                    tool_name=pre_executed_tool,
+                    related_tool_call_id=tool_call_id_pre,
+                )
+                self._record_step(run_trace, pre_completed)
+                yield self._emit(pre_completed)
+
+        # ── Build user message (moved after pre-execution) ────────────
+        llm_user_message = user_message
+        if attachment_context:
+            llm_user_message = f"{user_message}\n\n{attachment_context}"
+        if page_context:
+            llm_user_message = (
+                f"{llm_user_message}\n\n"
+                f"## 当前页面上下文\n{json.dumps(page_context, ensure_ascii=False)}"
+            )
+        if selected_skill:
+            llm_user_message = (
+                f"{llm_user_message}\n\n"
+                f"## 用户选择的教练能力\n"
+                f"{json.dumps(selected_skill, ensure_ascii=False)}"
+            )
+        safe_user_message = desensitize(llm_user_message)
+
+        # Inject pre-executed tool result so the LLM responds from real data
+        if pre_executed_result and pre_executed_tool:
+            result_json = json.dumps(pre_executed_result, ensure_ascii=False)
+            if pre_executed_classification == "readonly":
+                hint = (
+                    f"以下数据已通过 {pre_executed_tool} 工具获取。"
+                    f"请直接使用这些真实数据用中文自然回答用户问题，"
+                    f"说明你使用了相关技能获取数据。"
+                    f"不要声称需要获取数据，也不要再尝试调用此工具。"
+                )
+            elif pre_executed_result.get("accepted") is True:
+                hint = (
+                    f"已通过 {pre_executed_tool} 工具完成数据修改，修改已被系统接受。"
+                    f"请用中文通知用户修改结果，并引用具体的修改内容。"
+                )
+            elif pre_executed_result.get("accepted") is False:
+                hint = (
+                    f"已尝试通过 {pre_executed_tool} 工具修改数据，但修改被系统拒绝。"
+                    f"请用中文向用户解释拒绝原因，并给出下一步建议。"
+                )
+            else:
+                hint = (
+                    f"已通过 {pre_executed_tool} 工具执行操作。"
+                    f"请用中文根据执行结果回复用户。"
+                )
+            safe_user_message = (
+                f"{safe_user_message}\n\n"
+                f"## 系统预执行结果\n{hint}\n\n"
+                f"```json\n{result_json}\n```"
+            )
+        messages.append(ChatMessage(role="user", content=safe_user_message))
+
         # ── Token budget check ──────────────────────────────────────
         messages, compacted = await self._check_token_budget(messages)
         if compacted:
@@ -222,6 +330,12 @@ class CoachCoordinator:
             selected_skill=selected_skill,
             selected_skill_ready=selected_skill_ready,
         )
+        # Remove pre-executed tool from schemas so the LLM does not call it again
+        if pre_executed_tool:
+            tool_schemas = [
+                s for s in tool_schemas
+                if s.get("function", {}).get("name") != pre_executed_tool
+            ]
         assistant_text_parts: list[str] = []
         all_tool_calls_json: list[dict] = []
 

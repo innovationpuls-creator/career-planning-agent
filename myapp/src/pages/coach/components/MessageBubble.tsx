@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { Tag } from 'antd';
-import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+import { claudeAlpha, claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
-import { fadeInRight, TRANSITION } from '../motion';
+import { fadeInRight, hoverLift, tapScale, TRANSITION } from '../motion';
 import type { CoachMessage } from '../types';
 
 const useStyles = createStyles(({ css }) => ({
@@ -17,7 +17,7 @@ const useStyles = createStyles(({ css }) => ({
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(250, 249, 245, 0.40);
+    background: ${claudeAlpha(claudeColors.terracotta, 0.12)};
     backdrop-filter: ${claudeGlass.blurMicro};
     -webkit-backdrop-filter: ${claudeGlass.blurMicro};
     border: 1px solid rgba(200, 185, 160, 0.35);
@@ -73,6 +73,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       initial={reduced ? { opacity: 0 } : fadeInRight.initial}
       animate={fadeInRight.animate}
       transition={TRANSITION.fast}
+      whileHover={reduced ? undefined : hoverLift}
+      whileTap={reduced ? undefined : tapScale}
     >
       <div className={styles.bubble}>
         {message.selectedSkill && (

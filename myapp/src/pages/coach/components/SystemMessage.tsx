@@ -1,6 +1,9 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+import { prefersReducedMotion } from '@/styles/motion';
+import { fadeInUp, TRANSITION } from '../motion';
 
 const useStyles = createStyles(({ css }) => ({
   row: css`
@@ -21,8 +24,8 @@ const useStyles = createStyles(({ css }) => ({
     max-width: 80%;
   `,
   error: css`
-    background: rgba(181, 51, 51, 0.10);
-    border-color: rgba(181, 51, 51, 0.25);
+    background: ${claudeGlass.errorBg};
+    border-color: ${claudeGlass.borderError};
     color: ${claudeColors.error};
   `,
   success: css`
@@ -39,6 +42,7 @@ interface SystemMessageProps {
 
 export function SystemMessage({ kind = 'info', content }: SystemMessageProps) {
   const { styles } = useStyles();
+  const reduced = prefersReducedMotion();
 
   const kindClass =
     kind === 'error'
@@ -48,8 +52,14 @@ export function SystemMessage({ kind = 'info', content }: SystemMessageProps) {
         : undefined;
 
   return (
-    <div className={styles.row}>
+    <motion.div
+      className={styles.row}
+      initial={reduced ? { opacity: 0 } : fadeInUp.initial}
+      animate={fadeInUp.animate}
+      exit={reduced ? { opacity: 0 } : { y: -4, opacity: 0 }}
+      transition={TRANSITION.normal}
+    >
       <div className={`${styles.bubble} ${kindClass || ''}`}>{content}</div>
-    </div>
+    </motion.div>
   );
 }

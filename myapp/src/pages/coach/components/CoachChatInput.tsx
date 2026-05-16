@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
-import { scaleIn, TRANSITION } from '../motion';
+import { scaleIn, springGentle, TRANSITION } from '../motion';
 import type { CoachSkill, SelectedCoachSkill } from '../types';
 
 const { TextArea } = Input;
+
+const ROUTE_COMMANDS = new Set(['resume', 'match', 'learn', 'report']);
 
 const useStyles = createStyles(({ css, token }) => ({
   bar: css`
@@ -41,9 +43,21 @@ const useStyles = createStyles(({ css, token }) => ({
     flex: 1;
     position: relative;
     min-width: 0;
+    border-radius: 14px;
+    background: ${claudeGlass.ghost};
+    backdrop-filter: ${claudeGlass.blurMicro};
+    -webkit-backdrop-filter: ${claudeGlass.blurMicro};
+    border: 1px solid ${claudeGlass.borderInput};
+    padding: 6px 10px;
+    transition: border-color 0.2s;
+    &:focus-within {
+      border-color: ${claudeGlass.borderLight};
+      background: rgba(255, 255, 255, 0.18);
+    }
   `,
   textArea: css`
     flex: 1;
+    background: transparent;
   `,
   palette: css`
     position: absolute;
@@ -189,7 +203,15 @@ export function CoachChatInput({
   const handleSend = useCallback(() => {
     const selectedSkill = selectedSkillFromText;
     const trimmed = text.replace(/^\/[A-Za-z0-9_]+(?:\s+|$)/, '').trim();
-    if (!trimmed || isBusy) return;
+    if (isBusy) return;
+    if (!trimmed) {
+      if (selectedSkill && ROUTE_COMMANDS.has(selectedSkill.name)) {
+        onSend('你好', selectedSkill);
+        setText('');
+        setActiveIndex(0);
+      }
+      return;
+    }
     onSend(trimmed, selectedSkill);
     setText('');
     setActiveIndex(0);
@@ -256,52 +278,69 @@ export function CoachChatInput({
         onChange={handleFileChange}
         disabled={isBusy}
       />
-      <Button
+      <motion.button
+        type="button"
         className={styles.uploadBtn}
         disabled={isBusy}
         onClick={() => fileInputRef.current?.click()}
-        icon={<UploadOutlined />}
-      />
+        whileHover={reduced ? undefined : { scale: 1.1 }}
+        whileTap={reduced ? undefined : { scale: 0.9 }}
+        transition={springGentle}
+      >
+        <UploadOutlined />
+      </motion.button>
       <div className={styles.inputWrap}>
-        {paletteOpen && (
-          <div ref={paletteRef} className={styles.palette} role="listbox" aria-label="教练能力">
-            {filteredSkills.length === 0 ? (
-              <div className={styles.empty}>没有匹配的教练能力</div>
-            ) : (
-              filteredSkills.map((skill, index) => (
-                <button
-                  key={skill.name}
-                  type="button"
-                  role="option"
-                  aria-selected={index === activeIndex}
-                  className={`${styles.skillItem} ${
-                    index === activeIndex ? styles.skillItemActive : ''
-                  }`}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    completeSkill(skill);
-                  }}
-                >
-                  <div className={styles.skillHeader}>
-                    <span className={styles.skillName}>/{skill.name}</span>
-                    <span>
-                      <Tag>{skill.label}</Tag>
-                      <Tag>
-                        {skill.classification === 'readonly'
-                          ? '只读'
-                          : skill.requiresEvidence
-                            ? '需证据裁决'
-                            : '会修改数据'}
-                      </Tag>
-                    </span>
-                  </div>
-                  <div className={styles.skillDesc}>{skill.description}</div>
-                </button>
-              ))
-            )}
-          </div>
-        )}
+        <AnimatePresence>
+          {paletteOpen && (
+            <motion.div
+              ref={paletteRef}
+              className={styles.palette}
+              role="listbox"
+              aria-label="教练能力"
+              initial={reduced ? { opacity: 0 } : { scale: 0.95, opacity: 0, y: 4 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={reduced ? { opacity: 0 } : { scale: 0.95, opacity: 0, y: 4 }}
+              transition={TRANSITION.fast}
+              style={{ transformOrigin: 'bottom' }}
+            >
+              {filteredSkills.length === 0 ? (
+                <div className={styles.empty}>没有匹配的教练能力</div>
+              ) : (
+                filteredSkills.map((skill, index) => (
+                  <button
+                    key={skill.name}
+                    type="button"
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    className={`${styles.skillItem} ${
+                      index === activeIndex ? styles.skillItemActive : ''
+                    }`}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      completeSkill(skill);
+                    }}
+                  >
+                    <div className={styles.skillHeader}>
+                      <span className={styles.skillName}>/{skill.name}</span>
+                      <span>
+                        <Tag>{skill.label}</Tag>
+                        <Tag>
+                          {skill.classification === 'readonly'
+                            ? '只读'
+                            : skill.requiresEvidence
+                              ? '需证据裁决'
+                              : '会修改数据'}
+                        </Tag>
+                      </span>
+                    </div>
+                    <div className={styles.skillDesc}>{skill.description}</div>
+                  </button>
+                ))
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <TextArea
           className={styles.textArea}
           value={text}
@@ -325,6 +364,8 @@ export function CoachChatInput({
             exit={reduced ? undefined : 'initial'}
             variants={reduced ? undefined : scaleIn}
             transition={TRANSITION.fast}
+            whileHover={reduced ? undefined : { scale: 1.03 }}
+            whileTap={reduced ? undefined : { scale: 0.96 }}
           >
             <Button className={styles.stopBtn} onClick={onStop}>
               停止
@@ -338,6 +379,8 @@ export function CoachChatInput({
             exit={reduced ? undefined : 'initial'}
             variants={reduced ? undefined : scaleIn}
             transition={TRANSITION.fast}
+            whileHover={reduced ? undefined : { scale: 1.03 }}
+            whileTap={reduced ? undefined : { scale: 0.96 }}
           >
             <Button
               className={styles.sendBtn}

@@ -1,4 +1,31 @@
 import { keyframes } from 'antd-style';
+import { motionTokens } from '@/styles/motion';
+
+// ── Spring configs ─────────────────────────────────────────────
+
+export const springGentle = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 24,
+  mass: 0.8,
+};
+
+export const springSnappy = {
+  type: 'spring' as const,
+  stiffness: 500,
+  damping: 30,
+  mass: 1,
+};
+
+// ── Transition presets aligned with global tokens ──────────────
+
+export const TRANSITION = {
+  fast: { duration: motionTokens.duration.fast, ease: motionTokens.easing.enter },
+  normal: { duration: motionTokens.duration.normal, ease: motionTokens.easing.enter },
+  slow: { duration: motionTokens.duration.slow, ease: motionTokens.easing.enter },
+} as const;
+
+// ── Enter variants ─────────────────────────────────────────────
 
 export const fadeInUp = {
   initial: { y: 8, opacity: 0 },
@@ -25,16 +52,32 @@ export const scaleIn = {
   animate: { scale: 1, opacity: 1 },
 };
 
+export const expandIn = {
+  initial: { scaleY: 0.95, opacity: 0 },
+  animate: { scaleY: 1, opacity: 1 },
+  exit: { scaleY: 0.95, opacity: 0 },
+};
+
+// ── Interactive variants ───────────────────────────────────────
+
+export const hoverLift = {
+  y: -2,
+  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+  transition: springGentle,
+};
+
+export const tapScale = {
+  scale: 0.97,
+  transition: springSnappy,
+};
+
+// ── Shake ──────────────────────────────────────────────────────
+
 export const shakeKeyframes = {
   x: [0, -4, 4, -4, 4, 0],
 };
 
-export const TRANSITION = {
-  fast: { duration: 0.15, ease: 'easeOut' },
-  normal: { duration: 0.3, ease: 'easeOut' },
-} as const;
-
-// ── Orb float animations ─────────────────────────────────────
+// ── Orb float animations (CSS @keyframes) ──────────────────────
 
 export const orbFloat1 = keyframes`
   0%, 100% { transform: translate(0, 0) scale(1); border-radius: 48% 52% 58% 42%; }

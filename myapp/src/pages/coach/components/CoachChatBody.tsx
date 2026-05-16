@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
-import { claudeColors } from '@/styles/claude-tokens';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+import { prefersReducedMotion } from '@/styles/motion';
+import { scaleIn, TRANSITION } from '../motion';
 import type { CoachMessage } from '../types';
 import { AssistantMessage } from './AssistantMessage';
 import { MessageBubble } from './MessageBubble';
@@ -22,11 +25,30 @@ const useStyles = createStyles(({ css }) => ({
     align-items: center;
     justify-content: center;
     height: 100%;
+    padding: 32px;
+  `,
+  emptyCard: css`
+    max-width: 400px;
+    padding: 28px 32px;
+    border-radius: 18px;
+    background: ${claudeGlass.ghost};
+    backdrop-filter: ${claudeGlass.blurLight};
+    -webkit-backdrop-filter: ${claudeGlass.blurLight};
+    border: 1px solid ${claudeGlass.borderGhost};
+    text-align: center;
+  `,
+  emptyTitle: css`
+    font-family: Georgia, 'Songti SC', serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: ${claudeColors.oliveGray};
+    margin: 0 0 8px;
+  `,
+  emptyDesc: css`
     color: ${claudeColors.stoneGray};
     font-size: 14px;
-    text-align: center;
-    padding: 32px;
-    opacity: 0.7;
+    line-height: 1.6;
+    margin: 0;
   `,
 }));
 
@@ -60,10 +82,33 @@ export function CoachChatBody({
   }, [messages, isStreaming]);
 
   if (messages.length === 0) {
+    const reduced = prefersReducedMotion();
     return (
       <div className={styles.container}>
         <div className={styles.empty}>
-          <p>你好！我是你的 AI 职业规划教练，有什么可以帮你的？</p>
+          <motion.div
+            className={styles.emptyCard}
+            initial={reduced ? { opacity: 0 } : scaleIn.initial}
+            animate={scaleIn.animate}
+            transition={TRANSITION.normal}
+          >
+            <motion.p
+              className={styles.emptyTitle}
+              initial={reduced ? { opacity: 1 } : { y: 8, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: reduced ? 0 : 0.1 }}
+            >
+              AI 职业规划教练
+            </motion.p>
+            <motion.p
+              className={styles.emptyDesc}
+              initial={reduced ? { opacity: 1 } : { y: 8, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: reduced ? 0 : 0.2 }}
+            >
+              你好！我是你的 AI 职业规划教练，有什么可以帮你的？
+            </motion.p>
+          </motion.div>
         </div>
       </div>
     );

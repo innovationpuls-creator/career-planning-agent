@@ -1,6 +1,9 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { prefersReducedMotion } from '@/styles/motion';
+import { springGentle } from '../motion';
 import { formatRunSummary } from './stepLabels';
 
 const useStyles = createStyles(({ css }) => ({
@@ -9,7 +12,6 @@ const useStyles = createStyles(({ css }) => ({
     padding: 8px 14px;
     border-radius: ${claudeRadius.md}px;
     background: transparent;
-    border: 1px solid rgba(200, 185, 160, 0.40);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -21,7 +23,7 @@ const useStyles = createStyles(({ css }) => ({
     text-align: left;
 
     &:hover {
-      background: rgba(245, 240, 232, 0.15);
+      background: rgba(245, 240, 232, 0.25);
     }
   `,
   chevron: css`
@@ -52,6 +54,7 @@ export function CollapsedBar({
   onClick,
 }: CollapsedBarProps) {
   const { styles } = useStyles();
+  const reduced = prefersReducedMotion();
   const summary = formatRunSummary({
     agent,
     runStatus,
@@ -62,9 +65,16 @@ export function CollapsedBar({
   });
 
   return (
-    <button type="button" className={styles.bar} onClick={onClick}>
+    <motion.button
+      type="button"
+      className={styles.bar}
+      onClick={onClick}
+      whileHover={reduced ? undefined : { background: 'rgba(245,240,232,0.25)' }}
+      whileTap={reduced ? undefined : { scale: 0.99 }}
+      transition={springGentle}
+    >
       <span>{summary}</span>
       <span className={styles.chevron}>▸ expand</span>
-    </button>
+    </motion.button>
   );
 }

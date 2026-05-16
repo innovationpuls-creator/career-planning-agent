@@ -1,6 +1,9 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
-import { claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors } from '@/styles/claude-tokens';
+import { prefersReducedMotion, motionTokens } from '@/styles/motion';
+import { fadeInLeft, TRANSITION } from '../motion';
 import type { AgentRunStep } from '../types';
 import { formatStepTitle } from './stepLabels';
 
@@ -8,10 +11,7 @@ const useStyles = createStyles(({ css }) => ({
   shell: css`
     margin: 0 12px;
     padding: 10px 14px;
-    border-radius: ${claudeRadius.md}px ${claudeRadius.md}px 0 0;
     background: transparent;
-    border: 1px solid rgba(200, 185, 160, 0.35);
-    border-bottom: 0;
     font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
     font-size: 12px;
     line-height: 1.7;
@@ -83,6 +83,7 @@ function StatusSymbol({ status }: { status: string }) {
 
 export function ExpandedLog({ steps }: ExpandedLogProps) {
   const { styles } = useStyles();
+  const reduced = prefersReducedMotion();
 
   return (
     <div className={styles.shell}>
@@ -96,7 +97,15 @@ export function ExpandedLog({ steps }: ExpandedLogProps) {
             : styles.statusDone;
 
         return (
-          <div key={step.stepId}>
+          <motion.div
+            key={step.stepId}
+            initial={reduced ? { opacity: 1 } : fadeInLeft.initial}
+            animate={fadeInLeft.animate}
+            transition={{
+              ...TRANSITION.fast,
+              delay: reduced ? 0 : idx * motionTokens.stagger.fast,
+            }}
+          >
             <div className={styles.stepLine}>
               <span className={styles.branch}>{branch}</span>
               <span className={styles.kind}>[{step.kind}]</span>
@@ -113,7 +122,7 @@ export function ExpandedLog({ steps }: ExpandedLogProps) {
             {step.summary && (
               <div className={styles.summary}>{step.summary}</div>
             )}
-          </div>
+          </motion.div>
         );
       })}
     </div>

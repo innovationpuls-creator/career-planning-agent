@@ -92,6 +92,34 @@ COACH_SKILLS: tuple[CoachSkill, ...] = (
         classification="mutation_gated",
         requires_evidence=True,
     ),
+    CoachSkill(
+        name="resume",
+        label="切换到简历教练",
+        description="切换到简历教练并读取最新12维能力画像。",
+        agent="ResumeCoach",
+        classification="readonly",
+    ),
+    CoachSkill(
+        name="match",
+        label="切换到岗位匹配教练",
+        description="切换到岗位匹配教练并搜索最新匹配推荐。",
+        agent="CareerMatchCoach",
+        classification="readonly",
+    ),
+    CoachSkill(
+        name="learn",
+        label="切换到学习路径教练",
+        description="切换到学习路径教练并读取当前学习计划。",
+        agent="LearningPathCoach",
+        classification="readonly",
+    ),
+    CoachSkill(
+        name="report",
+        label="切换到成长报告教练",
+        description="切换到成长报告教练并读取最新报告章节。",
+        agent="ReportCoach",
+        classification="readonly",
+    ),
 )
 
 HIDDEN_COACH_SKILLS = {
@@ -111,6 +139,50 @@ CONTEXT_REQUIRED_SKILLS = {
     "append_achievement",
     "update_reflection",
 }
+
+SKILL_TO_TOOL: dict[str, str] = {
+    "read_profile": "read_profile",
+    "search_matches": "search_matches",
+    "read_plan": "read_plan",
+    "read_report": "read_report",
+    "recall_memory": "recall_memory",
+    "get_home_summary": "get_home_summary",
+    "verify_and_record_progress": "verify_and_record_progress",
+    "generate_report": "generate_report",
+    "append_achievement": "append_achievement",
+    "update_reflection": "update_reflection",
+}
+
+ROUTE_COMMAND_AGENT: dict[str, str] = {
+    "resume": "ResumeCoach",
+    "match": "CareerMatchCoach",
+    "learn": "LearningPathCoach",
+    "report": "ReportCoach",
+}
+
+ROUTE_COMMAND_DEFAULT_TOOL: dict[str, str] = {
+    "resume": "read_profile",
+    "match": "search_matches",
+    "learn": "read_plan",
+    "report": "read_report",
+}
+
+
+def get_skill_tool_name(skill_name: str) -> str | None:
+    return SKILL_TO_TOOL.get(skill_name)
+
+
+def is_route_command(skill_name: str) -> bool:
+    return skill_name in ROUTE_COMMAND_AGENT
+
+
+def get_route_command_agent(skill_name: str) -> str | None:
+    return ROUTE_COMMAND_AGENT.get(skill_name)
+
+
+def get_route_command_default_tool(skill_name: str) -> str | None:
+    return ROUTE_COMMAND_DEFAULT_TOOL.get(skill_name)
+
 
 EVIDENCE_KEYWORDS = (
     "http://",
@@ -210,7 +282,7 @@ def build_selected_skill_prompt(
         "- 处理规则: 用户通过斜杠命令明确选择了该能力。请优先围绕该能力处理；如果缺少必要参数或业务上下文，先说明缺少什么，不要编造成功。",
     ]
     if skill.classification == "readonly":
-        lines.append("- 只读规则: 回答前应优先调用对应只读工具读取真实业务数据。")
+        lines.append("- 只读规则: 对应只读工具的结果已预加载到本轮消息中（见系统预执行结果），请直接使用该数据用中文回答，不要再调用该工具。")
     elif not context_ready:
         lines.extend([
             "- 写入规则: 当前缺少目标或报告上下文，本轮不要调用写入或受控写入工具。",

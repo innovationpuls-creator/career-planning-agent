@@ -1,8 +1,10 @@
-import { Button, List, Skeleton } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import React from 'react';
+import { motion } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
+import { prefersReducedMotion } from '@/styles/motion';
+import { springGentle } from '../motion';
 import type { CoachSession } from '../api';
 
 const useStyles = createStyles(({ css }) => ({
@@ -43,6 +45,7 @@ const useStyles = createStyles(({ css }) => ({
     cursor: pointer;
     padding: 8px 14px !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    position: relative;
     transition: background 0.15s;
     &:hover {
       background: rgba(255, 255, 255, 0.06) !important;
@@ -66,6 +69,24 @@ const useStyles = createStyles(({ css }) => ({
     color: rgba(176, 174, 165, 0.5);
     font-size: 13px;
   `,
+  skeleton: css`
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  `,
+  skeletonLine: css`
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    width: 100%;
+  `,
+  skeletonLineShort: css`
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    width: 60%;
+  `,
 }));
 
 interface CoachChatSidebarProps {
@@ -84,59 +105,64 @@ export function CoachChatSidebar({
   onNewSession,
 }: CoachChatSidebarProps) {
   const { styles } = useStyles();
+  const reduced = prefersReducedMotion();
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Button
+        <motion.button
+          type="button"
           className={styles.newBtn}
-          icon={<PlusOutlined />}
           onClick={onNewSession}
+          whileHover={reduced ? undefined : { scale: 1.02 }}
+          whileTap={reduced ? undefined : { scale: 0.97 }}
+          transition={springGentle}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            cursor: 'pointer',
+            height: 32,
+          }}
         >
+          <PlusOutlined />
           新对话
-        </Button>
+        </motion.button>
       </div>
 
       <div className={styles.title}>Sessions</div>
 
       <div className={styles.list}>
         {loading ? (
-          <div style={{ padding: 12 }}>
-            <Skeleton
-              active
-              paragraph={{ rows: 3 }}
-              title={false}
-            />
+          <div className={styles.skeleton}>
+            <div className={styles.skeletonLine} />
+            <div className={styles.skeletonLineShort} />
+            <div className={styles.skeletonLine} />
+            <div className={styles.skeletonLineShort} />
           </div>
         ) : sessions.length === 0 ? (
           <div className={styles.empty}>尚无对话</div>
         ) : (
-          <List
-            size="small"
-            dataSource={sessions}
-            renderItem={(session) => (
-              <List.Item
+          sessions.map((session) => {
+            const isActive = session.id === activeSessionId;
+            return (
+              <motion.div
                 key={session.id}
                 onClick={() => onSelectSession(session.id)}
-                className={`${styles.item} ${
-                  session.id === activeSessionId ? styles.itemActive : ''
-                }`}
+                className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
+                whileTap={reduced ? undefined : { scale: 0.98 }}
+                transition={springGentle}
               >
-                <List.Item.Meta
-                  title={
-                    <span className={styles.itemTitle}>
-                      {session.title}
-                    </span>
-                  }
-                  description={
-                    <span className={styles.itemMeta}>
-                      {session.messageCount} 条消息
-                    </span>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+                <div>
+                  <div className={styles.itemTitle}>{session.title}</div>
+                  <div className={styles.itemMeta}>
+                    {session.messageCount} 条消息
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })
         )}
       </div>
     </div>

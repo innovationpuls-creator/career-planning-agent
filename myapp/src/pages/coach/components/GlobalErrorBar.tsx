@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createStyles } from 'antd-style';
 import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { prefersReducedMotion } from '@/styles/motion';
-import { slideDown, TRANSITION } from '../motion';
+import { slideDown, shakeKeyframes, TRANSITION } from '../motion';
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
@@ -83,9 +83,16 @@ export function GlobalErrorBar({
         <motion.div
           className={styles.shell}
           initial={reduced ? { opacity: 0 } : slideDown.initial}
-          animate={slideDown.animate}
+          animate={
+            reduced
+              ? { opacity: 1 }
+              : { y: 0, opacity: 1, x: shakeKeyframes.x }
+          }
           exit={reduced ? { opacity: 0 } : slideDown.initial}
-          transition={TRANSITION.fast}
+          transition={{
+            ...TRANSITION.fast,
+            x: { delay: TRANSITION.fast.duration as number, duration: 0.3 },
+          }}
         >
           <div className={styles.bar}>
             <span className={styles.msg}>{message}</span>

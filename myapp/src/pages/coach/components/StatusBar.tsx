@@ -1,20 +1,21 @@
 import React from 'react';
 import { createStyles } from 'antd-style';
-import { claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { claudeColors } from '@/styles/claude-tokens';
 
 const useStyles = createStyles(({ css }) => ({
   bar: css`
     margin: 0 12px 12px;
     padding: 6px 14px;
-    border-radius: 0 0 ${claudeRadius.md}px ${claudeRadius.md}px;
-    background: rgba(250, 249, 245, 0.30);
-    border: 1px solid rgba(200, 185, 160, 0.20);
-    border-top: 0;
     display: flex;
     align-items: center;
     gap: 8px;
     font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
     font-size: 12px;
+    background: transparent;
+  `,
+  divider: css`
+    margin: 0 12px 4px;
+    border-top: 1px solid rgba(200, 185, 160, 0.18);
   `,
   dot: css`
     width: 6px;
@@ -61,12 +62,15 @@ export function StatusBar({ text, time, status = 'running' }: StatusBarProps) {
       : '';
 
   return (
-    <div className={styles.bar}>
-      {status !== 'none' && (
-        <span className={dotClass} data-testid="status-dot" />
-      )}
-      <span className={styles.text}>{text}</span>
-      {time && <span className={styles.time}>{time}</span>}
-    </div>
+    <>
+      <div className={styles.divider} />
+      <div className={styles.bar}>
+        {status !== 'none' && (
+          <span className={dotClass} data-testid="status-dot" />
+        )}
+        <span className={styles.text}>{text}</span>
+        {time && <span className={styles.time}>{time}</span>}
+      </div>
+    </>
   );
 }
