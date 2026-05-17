@@ -1,10 +1,4 @@
-import { ClaudeButton, ClaudeInput, ClaudePassword } from "@/components/ui";
-import { BrandPanel } from "@/components/ui/BrandPanel";
-import { login } from "@/services/ant-design-pro/api";
-import { motionTokens, prefersReducedMotion } from "@/styles/motion";
-import { setAccessToken } from "@/utils/authToken";
-import { resolvePostLoginRedirect } from "@/utils/postLoginRedirect";
-import { LockOutlined, UserOutlined } from "@ant-design/icons";
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import {
   FormattedMessage,
   Helmet,
@@ -12,13 +6,19 @@ import {
   SelectLang,
   useIntl,
   useModel,
-} from "@umijs/max";
-import { Alert, App, Checkbox, Form, Space, theme } from "antd";
-import { createStyles } from "antd-style";
-import { motion } from "framer-motion";
-import React, { startTransition, useState } from "react";
-import { flushSync } from "react-dom";
-import Settings from "../../../../config/defaultSettings";
+} from '@umijs/max';
+import { Alert, App, Checkbox, Form, Space, theme } from 'antd';
+import { createStyles } from 'antd-style';
+import { motion } from 'framer-motion';
+import React, { startTransition, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { ClaudeButton, ClaudeInput, ClaudePassword } from '@/components/ui';
+import { BrandPanel } from '@/components/ui/BrandPanel';
+import { login } from '@/services/ant-design-pro/api';
+import { motionTokens, prefersReducedMotion } from '@/styles/motion';
+import { setAccessToken } from '@/utils/authToken';
+import { resolvePostLoginRedirect } from '@/utils/postLoginRedirect';
+import Settings from '../../../../config/defaultSettings';
 
 const SUCCESS_ANIMATION_DELAY_MS = 350;
 
@@ -29,7 +29,7 @@ const useStyles = createStyles(({ token }: { token: any }) => ({
     color: token.colorText,
     lineHeight: 1.3,
     marginBottom: 6,
-    letterSpacing: "-0.01em",
+    letterSpacing: '-0.01em',
   },
 
   formSubtitle: {
@@ -45,32 +45,32 @@ const useStyles = createStyles(({ token }: { token: any }) => ({
   },
 
   autoLoginRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
   },
 
   forgotLink: {
     fontSize: 13,
     color: token.colorTextSecondary,
-    cursor: "pointer",
-    transition: "color 0.15s ease",
-    "&:hover": {
+    cursor: 'pointer',
+    transition: 'color 0.15s ease',
+    '&:hover': {
       color: token.colorPrimary,
     },
   },
 
   registerEntry: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 24,
     fontSize: token.fontSize,
     color: token.colorTextSecondary,
-    cursor: "pointer",
-    transition: "color 0.15s ease",
-    "&:hover": {
+    cursor: 'pointer',
+    transition: 'color 0.15s ease',
+    '&:hover': {
       color: token.colorPrimary,
     },
   },
@@ -79,7 +79,7 @@ const useStyles = createStyles(({ token }: { token: any }) => ({
 const Lang = () => (
   <div
     style={{
-      position: "fixed",
+      position: 'fixed',
       top: 20,
       right: 24,
       zIndex: 100,
@@ -93,14 +93,14 @@ const LoginMessage: React.FC<{ content: string }> = ({ content }) => (
   <Alert message={content} type="error" showIcon />
 );
 
-const Login: React.FC = () => {
+/** Lightweight state hook — encapsulates all login form logic. */
+function useLoginState() {
   const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
   const [submitting, setSubmitting] = useState(false);
-  const { initialState, setInitialState } = useModel("@@initialState");
-  const { styles } = useStyles();
+  const { initialState, setInitialState } = useModel('@@initialState');
   const { message } = App.useApp();
   const intl = useIntl();
-  const { token } = theme.useToken();
+  const themeToken = theme.useToken();
 
   const fetchUserInfo = async () => {
     const userInfo = await initialState?.fetchUserInfo?.();
@@ -118,19 +118,19 @@ const Login: React.FC = () => {
   const handleSubmit = async (values: API.LoginParams) => {
     try {
       setSubmitting(true);
-      const msg = await login({ ...values, type: "account" });
-      if (msg.status === "ok" && msg.token) {
+      const msg = await login({ ...values, type: 'account' });
+      if (msg.status === 'ok' && msg.token) {
         setAccessToken(msg.token, values.autoLogin !== false);
         const defaultLoginSuccessMessage = intl.formatMessage({
-          id: "pages.login.success",
-          defaultMessage: "登录成功",
+          id: 'pages.login.success',
+          defaultMessage: '登录成功',
         });
         message.success(defaultLoginSuccessMessage);
         const userInfo = await fetchUserInfo();
         const urlParams = new URL(window.location.href).searchParams;
         const nextPath = resolvePostLoginRedirect(
-          urlParams.get("redirect"),
-          userInfo
+          urlParams.get('redirect'),
+          userInfo,
         );
         await new Promise((resolve) => {
           window.setTimeout(resolve, SUCCESS_ANIMATION_DELAY_MS);
@@ -143,7 +143,7 @@ const Login: React.FC = () => {
 
       const nextState = {
         ...msg,
-        status: msg.status || "error",
+        status: msg.status || 'error',
       };
       setUserLoginState(nextState);
       if (nextState.errorMessage) {
@@ -157,11 +157,11 @@ const Login: React.FC = () => {
       const backendMessage =
         err?.response?.data?.detail || err?.info?.errorMessage;
       const defaultLoginFailureMessage = intl.formatMessage({
-        id: "pages.login.failure",
-        defaultMessage: "登录失败，请重试",
+        id: 'pages.login.failure',
+        defaultMessage: '登录失败，请重试',
       });
       setUserLoginState({
-        status: "error",
+        status: 'error',
         errorMessage: backendMessage || defaultLoginFailureMessage,
       });
       message.error(backendMessage || defaultLoginFailureMessage);
@@ -170,10 +170,25 @@ const Login: React.FC = () => {
     }
   };
 
+  return {
+    submitting,
+    userLoginState,
+    handleSubmit,
+    message,
+    intl,
+    token: themeToken.token,
+  } as const;
+}
+
+const Login: React.FC = () => {
+  const { submitting, userLoginState, handleSubmit, message, intl, token } =
+    useLoginState();
+  const { styles } = useStyles();
+
   const { status, errorMessage } = userLoginState;
   const reducedMotion = prefersReducedMotion();
 
-  const MotionDiv = reducedMotion ? "div" : motion.div;
+  const MotionDiv = reducedMotion ? 'div' : motion.div;
 
   const titleAnim = reducedMotion
     ? {}
@@ -203,8 +218,8 @@ const Login: React.FC = () => {
       <Helmet>
         <title>
           {intl.formatMessage({
-            id: "menu.login",
-            defaultMessage: "登录",
+            id: 'menu.login',
+            defaultMessage: '登录',
           })}
           {Settings.title && ` - ${Settings.title}`}
         </title>
@@ -228,11 +243,11 @@ const Login: React.FC = () => {
               </div>
             </MotionDiv>
 
-            {status === "error" && (
+            {status === 'error' && (
               <div className={styles.errorAlert}>
                 <LoginMessage
                   content={
-                    errorMessage || "用户名或密码错误（管理员：admin / 123456）"
+                    errorMessage || '用户名或密码错误（管理员：admin / 123456）'
                   }
                 />
               </div>
@@ -266,8 +281,8 @@ const Login: React.FC = () => {
                     <UserOutlined style={{ color: token.colorTextTertiary }} />
                   }
                   placeholder={intl.formatMessage({
-                    id: "pages.login.username.placeholder",
-                    defaultMessage: "用户名：admin 或普通用户",
+                    id: 'pages.login.username.placeholder',
+                    defaultMessage: '用户名：admin 或普通用户',
                   })}
                   style={{ height: 40 }}
                 />
@@ -294,8 +309,8 @@ const Login: React.FC = () => {
                     <LockOutlined style={{ color: token.colorTextTertiary }} />
                   }
                   placeholder={intl.formatMessage({
-                    id: "pages.login.password.placeholder",
-                    defaultMessage: "密码：管理员为 123456",
+                    id: 'pages.login.password.placeholder',
+                    defaultMessage: '密码：管理员为 123456',
                   })}
                   style={{ height: 40 }}
                 />
@@ -324,9 +339,9 @@ const Login: React.FC = () => {
                   onClick={() => {
                     message.info(
                       intl.formatMessage({
-                        id: "pages.login.forgot",
-                        defaultMessage: "请联系管理员重置密码",
-                      })
+                        id: 'pages.login.forgot',
+                        defaultMessage: '请联系管理员重置密码',
+                      }),
                     );
                   }}
                 >
@@ -359,7 +374,7 @@ const Login: React.FC = () => {
               data-testid="register-account-link"
               onClick={() => {
                 startTransition(() => {
-                  history.push("/user/register");
+                  history.push('/user/register');
                 });
               }}
             >

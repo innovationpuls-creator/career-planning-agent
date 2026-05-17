@@ -1,8 +1,9 @@
 import type { ButtonProps } from 'antd';
 import { Button } from 'antd';
-import { createStyles } from 'antd-style';
+import { createStyles, keyframes } from 'antd-style';
 import * as React from 'react';
 import {
+  claudeAlpha,
   claudeColors,
   claudeRadius,
   claudeShadows,
@@ -20,6 +21,11 @@ export interface ClaudeButtonProps
   extends Omit<ButtonProps, 'type' | 'variant'> {
   variant?: ClaudeButtonVariant;
 }
+
+const glowSpin = keyframes`
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+`;
 
 const useStyles = createStyles(({ css }) => ({
   base: css`
@@ -62,15 +68,81 @@ const useStyles = createStyles(({ css }) => ({
     }
   `,
   terracotta: css`
+    position: relative;
+    overflow: hidden;
     background: ${claudeColors.terracotta};
     color: #fff;
     border-radius: ${claudeRadius.lg}px;
     padding: 8px 16px;
     height: auto;
 
+    /* Glow border — spinning conic-gradient ring */
+    &.ant-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200%;
+      height: 200%;
+      transform: translate(-50%, -50%);
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        ${claudeAlpha(claudeColors.primaryHover, 0)} 40deg,
+        ${claudeAlpha(claudeColors.primaryHover, 0.5)} 70deg,
+        ${claudeAlpha(claudeColors.terracotta, 0.3)} 110deg,
+        transparent 140deg,
+        ${claudeAlpha(claudeColors.primaryHover, 0.25)} 200deg,
+        transparent 240deg,
+        ${claudeAlpha(claudeColors.primaryHover, 0.4)} 290deg,
+        ${claudeAlpha(claudeColors.terracotta, 0.2)} 330deg,
+        transparent 360deg
+      );
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      animation: ${glowSpin} 4s linear infinite;
+      z-index: 0;
+    }
+
+    /* Inner mask — covers center, exposes only the 2px edge ring */
+    &.ant-btn::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 10px;
+      background: ${claudeColors.terracotta};
+      z-index: 1;
+      transition: background 0.2s ease;
+    }
+
+    /* Lift content above the masking ::after */
+    &.ant-btn > span {
+      position: relative;
+      z-index: 2;
+    }
+
     &:hover {
-      background: ${claudeColors.primaryHover};
-      box-shadow: 0px 0px 0px 1px ${claudeColors.terracotta};
+      &.ant-btn::before {
+        opacity: 1;
+      }
+      &.ant-btn::after {
+        background: ${claudeColors.primaryHover};
+      }
+    }
+
+    &:active {
+      &.ant-btn::after {
+        box-shadow: ${claudeShadows.inset};
+      }
+    }
+
+    &:disabled {
+      &.ant-btn::before {
+        animation-play-state: paused;
+      }
+      &.ant-btn::after {
+        background: ${claudeColors.terracotta};
+      }
     }
   `,
   darkCharcoal: css`
@@ -131,9 +203,9 @@ export function ClaudeButton({
 
   const variantMap: Record<ClaudeButtonVariant, string> = {
     'warm-sand': styles.warmSand,
-    'terracotta': styles.terracotta,
+    terracotta: styles.terracotta,
     'dark-charcoal': styles.darkCharcoal,
-    'ghost': styles.ghost,
+    ghost: styles.ghost,
     'white-surface': styles.whiteSurface,
     'dark-primary': styles.darkPrimary,
   };
