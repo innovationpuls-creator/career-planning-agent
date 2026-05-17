@@ -15,6 +15,7 @@ The redesign changes presentation, DOM structure, shared component boundaries, m
 - Preserve all existing business behavior and API contracts.
 - Make the register flow feel like an onboarding console rather than a generic form wizard.
 - Add premium depth through a multi-plane parallax background that stays subtle and performant.
+- Prime the user's mental model of an agentic AI system during registration completion.
 - Keep implementation aligned with the project style: Umi Max, Ant Design, `antd-style`, existing Claude tokens, and existing auth tests.
 
 ## Non-Goals
@@ -23,6 +24,7 @@ The redesign changes presentation, DOM structure, shared component boundaries, m
 - No changes to role-based post-login redirects.
 - No changes to registration step requirements, image upload formats, or onboarding submission behavior.
 - No new product features such as password reset, OAuth, email verification, or account recovery.
+- No new backend streaming endpoint for auth onboarding feedback.
 - No broad global style refactor outside what the auth pages need.
 
 ## Existing Context
@@ -64,6 +66,14 @@ Page responsibility:
 - `login/index.tsx` keeps login state, submit behavior, errors, token storage, user refresh, and redirect logic.
 - `register/index.tsx` keeps the existing three-step form state, validation, job title loading, file list, registration/login/onboarding submission, and redirect logic.
 - Both pages render their form content inside the shared shell and glass card.
+
+Render isolation:
+
+- `AuthPathBackground` should be memoized and receive stable props so form input changes do not re-render the SVG tree.
+- `AuthGlassCard` should stay presentational; login and register form state remains inside page-level or form-level components.
+- Parallax values live in refs and CSS variables, never React state.
+- Form subtrees should be split so controlled input updates do not force the shell, brand panel, or background layers through unnecessary Fiber diff work.
+- Implementation should verify this boundary with React DevTools or targeted render logging during development, then remove any debug code.
 
 ## Visual Direction
 
@@ -164,6 +174,25 @@ Visual changes:
 - The upload zone adopts the same glass/control system and remains clearly clickable.
 - Step content transitions respect reduced-motion settings.
 
+### Agentic Completion Feedback
+
+After the user submits Step 3, the card should avoid a generic spinner-only waiting state. While the existing registration, login, and onboarding submission requests are pending, show a compact agentic progress stream inside the glass card.
+
+Example staged messages:
+
+- 正在解析简历实体...
+- 正在比对岗位能力模型...
+- 构建个人能力图谱...
+- 准备进入职业规划工作台...
+
+Constraints:
+
+- This is local UI feedback driven by the existing pending state, not a new backend streaming API.
+- The submit button still shows loading and remains disabled while pending.
+- The message stream should use short staged text, typewriter, or step-flow motion with reduced-motion fallback.
+- If the request finishes quickly, the feedback may complete with a short minimum display duration so the transition feels deliberate rather than flickery.
+- If an error occurs, the stream yields to the existing error alert and does not hide the actionable message.
+
 ## Responsive Behavior
 
 Desktop:
@@ -193,6 +222,17 @@ Mobile:
 - Reduced-motion mode keeps opacity/position stable enough that forms are immediately usable.
 - Error and loading states must be conveyed through visible text or Ant Design semantics, not animation alone.
 
+## Micro-States And Layout Stability
+
+Async micro-states should feel calm and physically stable.
+
+- Define a small shared helper or hook for minimum loading visibility, with a default around 300ms.
+- Use it for auth-local micro-feedback such as job title option loading, registration completion feedback, and any existing pending indicators that would otherwise flash.
+- Do not add new network validation behavior, such as username availability checks, as part of this redesign.
+- If a future approved feature adds inline async validation, it should use the same minimum loading visibility rule.
+- Reserve stable space for step errors, loading hints, password strength, and agentic completion feedback so text does not push the card around unexpectedly.
+- Icons, loading indicators, and success marks should have fixed dimensions and should not resize their parent controls.
+
 ## Testing And Verification
 
 Unit/component tests:
@@ -201,6 +241,7 @@ Unit/component tests:
 - Preserve register tests for structure, step indicator/rail, step navigation, password strength, profile fields, upload zone, full registration flow, and back-to-login link.
 - Update selectors only when DOM structure changes intentionally.
 - Add structural assertions for shared auth shell, glass card, and register step rail.
+- Add an assertion that register submission shows the agentic completion feedback while pending.
 
 Visual verification:
 
@@ -214,12 +255,21 @@ Visual verification:
   - Register mobile.
 - Inspect that parallax layers render nonblank and do not occlude form text.
 - Verify reduced-motion mode produces a static, usable page.
+- Verify the agentic feedback has readable reduced-motion behavior and yields to errors.
 
 Performance checks:
 
 - Confirm pointer movement does not cause React re-render loops.
+- Confirm controlled input changes do not re-render the memoized background SVG layers.
 - Confirm rAF is stopped or inert when the component unmounts.
 - Confirm no layout shift occurs when inputs focus, buttons load, or steps change.
+
+FCP/LCP checks:
+
+- Noise overlay must be CSS-inlined, for example as a Base64 or URL-encoded SVG data URI, not loaded as an external asset.
+- SVG path count and control points should stay minimal; prefer a few purposeful Bezier curves over dense decorative geometry.
+- The base warm background should render immediately even before parallax initialization.
+- The page should never flash from black or blank to the final background.
 
 ## Acceptance Criteria
 
@@ -228,6 +278,10 @@ Performance checks:
 - Register desktop uses a side step rail; mobile uses a compact top stepper.
 - Background uses multi-plane SVG path parallax with stationary noise overlay.
 - Parallax gracefully disables for reduced motion and mobile/touch contexts.
+- Register Step 3 pending state uses agentic progress feedback instead of relying on a generic spinner alone.
+- Background layers and form state are render-isolated; controlled typing does not re-render path SVG layers.
+- Async micro-feedback uses minimum loading visibility and stable reserved layout space.
+- Noise is inlined and SVG path geometry stays lightweight for fast first paint.
 - Styling is implemented with `antd-style` and existing tokens/helpers.
 - No new `.less` or CSS module files are introduced for auth components.
 - Existing auth tests pass after selector updates.
@@ -241,11 +295,20 @@ Performance checks:
 - Risk: Shared components could accidentally change auth behavior.
   Mitigation: keep API, state, and submit logic in page files; shared components stay presentational.
 
+- Risk: Agentic feedback could imply real-time backend streaming that does not exist.
+  Mitigation: label it as staged local progress tied to the existing pending state; do not invent backend events.
+
 - Risk: Register card may become crowded.
   Mitigation: make the glass card wider on desktop, use side rail only above a safe breakpoint, and preserve mobile top-stepper fallback.
 
 - Risk: Existing global auth styles may conflict.
   Mitigation: prefer new class names scoped through `antd-style`; remove page reliance on `.auth-*` only where needed, without broad global cleanup.
+
+- Risk: Parallax and controlled form inputs could compete for render budget.
+  Mitigation: memoize visual layers, keep parallax outside React state, and verify input typing does not re-render SVG layers.
+
+- Risk: Minimum loading durations could make the app feel slower.
+  Mitigation: keep the default short, around 300ms, and apply it only to micro-feedback where flashing is visually worse than a brief deliberate state.
 
 ## Implementation Boundary
 
