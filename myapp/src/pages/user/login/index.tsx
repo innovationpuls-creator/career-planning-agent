@@ -7,15 +7,17 @@ import {
   useIntl,
   useModel,
 } from '@umijs/max';
-import { Alert, App, Checkbox, Form, Space, theme } from 'antd';
+import { App, Checkbox, Form, Space, theme } from 'antd';
 import { createStyles } from 'antd-style';
-import { motion } from 'framer-motion';
 import React, { startTransition, useState } from 'react';
 import { flushSync } from 'react-dom';
+import {
+  AuthGlassCard,
+  AuthSplitShell,
+  useAuthMorphTransition,
+} from '@/components/auth';
 import { ClaudeButton, ClaudeInput, ClaudePassword } from '@/components/ui';
-import { BrandPanel } from '@/components/ui/BrandPanel';
 import { login } from '@/services/ant-design-pro/api';
-import { motionTokens, prefersReducedMotion } from '@/styles/motion';
 import { setAccessToken } from '@/utils/authToken';
 import { resolvePostLoginRedirect } from '@/utils/postLoginRedirect';
 import Settings from '../../../../config/defaultSettings';
@@ -23,27 +25,6 @@ import Settings from '../../../../config/defaultSettings';
 const SUCCESS_ANIMATION_DELAY_MS = 350;
 
 const useStyles = createStyles(({ token }: { token: any }) => ({
-  formTitle: {
-    fontSize: token.fontSizeHeading1,
-    fontWeight: token.fontWeightSemibold,
-    color: token.colorText,
-    lineHeight: 1.3,
-    marginBottom: 6,
-    letterSpacing: '-0.01em',
-  },
-
-  formSubtitle: {
-    fontSize: token.fontSize,
-    fontWeight: token.fontWeightRegular,
-    color: token.colorTextSecondary,
-    lineHeight: 1.6,
-    marginBottom: 20,
-  },
-
-  errorAlert: {
-    marginBottom: 20,
-  },
-
   autoLoginRow: {
     display: 'flex',
     alignItems: 'center',
@@ -87,10 +68,6 @@ const Lang = () => (
   >
     <SelectLang />
   </div>
-);
-
-const LoginMessage: React.FC<{ content: string }> = ({ content }) => (
-  <Alert message={content} type="error" showIcon />
 );
 
 /** Lightweight state hook — encapsulates all login form logic. */
@@ -184,34 +161,15 @@ const Login: React.FC = () => {
   const { submitting, userLoginState, handleSubmit, message, intl, token } =
     useLoginState();
   const { styles } = useStyles();
-
   const { status, errorMessage } = userLoginState;
-  const reducedMotion = prefersReducedMotion();
-
-  const MotionDiv = reducedMotion ? 'div' : motion.div;
-
-  const titleAnim = reducedMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 16 },
-        animate: { opacity: 1, y: 0 },
-        transition: {
-          duration: motionTokens.duration.normal,
-          ease: motionTokens.easing.enter,
-        },
-      };
-
-  const subtitleAnim = reducedMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 16 },
-        animate: { opacity: 1, y: 0 },
-        transition: {
-          duration: motionTokens.duration.normal,
-          delay: 0.2,
-          ease: motionTokens.easing.enter,
-        },
-      };
+  const morph = useAuthMorphTransition('login');
+  const goRegister = () => {
+    morph.startRouteMorph('register', () => {
+      startTransition(() => {
+        history.push('/user/register');
+      });
+    });
+  };
 
   return (
     <>
@@ -225,34 +183,25 @@ const Login: React.FC = () => {
         </title>
       </Helmet>
       <Lang />
-      <div className="auth-root" data-testid="login-page-shell">
-        <BrandPanel />
-
-        {/* Right panel: form area */}
-        <div className="auth-right">
-          <div className="auth-card" data-testid="login-form-card">
-            <MotionDiv {...titleAnim}>
-              <div className={styles.formTitle}>欢迎回来</div>
-            </MotionDiv>
-            <MotionDiv {...subtitleAnim}>
-              <div className={styles.formSubtitle}>
-                <FormattedMessage
-                  id="pages.login.subtitle"
-                  defaultMessage="登录以继续使用"
-                />
-              </div>
-            </MotionDiv>
-
-            {status === 'error' && (
-              <div className={styles.errorAlert}>
-                <LoginMessage
-                  content={
-                    errorMessage || '用户名或密码错误（管理员：admin / 123456）'
-                  }
-                />
-              </div>
-            )}
-
+      <AuthSplitShell variant="login">
+        <AuthGlassCard
+          variant="login"
+          title="欢迎回来"
+          subtitle={intl.formatMessage({
+            id: 'pages.login.subtitle',
+            defaultMessage: '登录以继续使用',
+          })}
+          errorMessage={
+            status === 'error'
+              ? errorMessage || '用户名或密码错误（管理员：admin / 123456）'
+              : undefined
+          }
+          morphing={morph.isMorphing}
+          onTabChange={(target) => {
+            if (target === 'register') goRegister();
+          }}
+        >
+          <div data-testid="login-form-card">
             <Form
               layout="vertical"
               requiredMark="optional"
@@ -372,11 +321,7 @@ const Login: React.FC = () => {
             <div
               className={styles.registerEntry}
               data-testid="register-account-link"
-              onClick={() => {
-                startTransition(() => {
-                  history.push('/user/register');
-                });
-              }}
+              onClick={goRegister}
             >
               <FormattedMessage
                 id="pages.login.noAccount"
@@ -391,8 +336,8 @@ const Login: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
-      </div>
+        </AuthGlassCard>
+      </AuthSplitShell>
     </>
   );
 };
