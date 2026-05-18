@@ -1,4 +1,5 @@
 import { TestBrowser } from "@@/testBrowser";
+import { AUTH_MORPH } from "@/components/auth";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import * as React from "react";
 import {
@@ -90,6 +91,10 @@ describe("Register Page", () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   afterAll(() => {
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -110,18 +115,15 @@ describe("Register Page", () => {
 
     await rootContainer.findByTestId("register-page-shell");
 
-    const authRoot = rootContainer.baseElement.querySelector(".auth-root");
-    expect(authRoot).not.toBeNull();
-
-    const leftPanel = rootContainer.baseElement.querySelector(".auth-left");
-    const rightPanel = rootContainer.baseElement.querySelector(".auth-right");
-    expect(leftPanel).not.toBeNull();
-    expect(rightPanel).not.toBeNull();
+    expect(rootContainer.getByTestId("register-page-shell")).toBeTruthy();
+    expect(rootContainer.getByTestId("auth-art-console")).toBeTruthy();
+    expect(rootContainer.getByTestId("auth-right-surface")).toBeTruthy();
+    expect(rootContainer.getByTestId("register-form-card")).toBeTruthy();
 
     rootContainer.unmount();
   });
 
-  it("should display serif title in the left brand panel", async () => {
+  it("should display register art in the left brand panel", async () => {
     const historyRef = React.createRef<any>();
     const rootContainer = render(
       <TestBrowser
@@ -132,11 +134,9 @@ describe("Register Page", () => {
 
     await rootContainer.findByTestId("register-page-shell");
 
-    const title = rootContainer.getByText("大学生职业规划智能体");
-    expect(title).toBeTruthy();
-
-    const computedStyle = window.getComputedStyle(title);
-    expect(computedStyle.fontFamily).toMatch(/serif|STSongti|Georgia/i);
+    expect(rootContainer.getByText("「 构 筑 」")).toBeTruthy();
+    expect(rootContainer.getByText(/予 灵 魂/)).toBeTruthy();
+    expect(rootContainer.getByText(/以 算 法 的 脉 络/)).toBeTruthy();
 
     rootContainer.unmount();
   });
@@ -431,7 +431,8 @@ describe("Register Page", () => {
 
   // ── Back to login link ─────────────────────────────────────
 
-  it("should have a link back to login page", async () => {
+  it("should navigate back to login page when clicking the login link", async () => {
+    jest.useFakeTimers();
     const historyRef = React.createRef<any>();
     const rootContainer = render(
       <TestBrowser
@@ -442,7 +443,18 @@ describe("Register Page", () => {
 
     await rootContainer.findByTestId("register-page-shell");
 
-    expect(rootContainer.getByText("返回登录")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(rootContainer.getByText("返回登录"));
+    });
+
+    expect(historyRef.current?.location?.pathname).toBe("/user/register");
+    act(() => {
+      jest.advanceTimersByTime(AUTH_MORPH.durationMs);
+    });
+
+    await waitFor(() => {
+      expect(historyRef.current?.location?.pathname).toBe("/user/login");
+    });
 
     rootContainer.unmount();
   });

@@ -1,4 +1,5 @@
 import { TestBrowser } from '@@/testBrowser';
+import { AUTH_MORPH } from '@/components/auth';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import {
@@ -109,6 +110,10 @@ describe('Login Page', () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   afterAll(() => {
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -129,33 +134,10 @@ describe('Login Page', () => {
 
     await rootContainer.findByTestId('login-form-card');
 
-    const authRoot = rootContainer.baseElement.querySelector('.auth-root');
-    expect(authRoot).not.toBeNull();
-
-    const leftPanel = rootContainer.baseElement.querySelector('.auth-left');
-    const rightPanel = rootContainer.baseElement.querySelector('.auth-right');
-    expect(leftPanel).not.toBeNull();
-    expect(rightPanel).not.toBeNull();
-
-    rootContainer.unmount();
-  });
-
-  it('should display serif title in the left brand panel', async () => {
-    const historyRef = React.createRef<any>();
-    const rootContainer = render(
-      <TestBrowser
-        historyRef={historyRef}
-        location={{ pathname: '/user/login' }}
-      />,
-    );
-
-    await rootContainer.findByTestId('login-form-card');
-
-    const title = rootContainer.getByText('大学生职业规划智能体');
-    expect(title).toBeTruthy();
-
-    const computedStyle = window.getComputedStyle(title);
-    expect(computedStyle.fontFamily).toMatch(/serif|STSongti|Georgia/i);
+    expect(rootContainer.getByTestId('login-page-shell')).toBeTruthy();
+    expect(rootContainer.getByTestId('auth-art-console')).toBeTruthy();
+    expect(rootContainer.getByTestId('auth-right-surface')).toBeTruthy();
+    expect(rootContainer.getByTestId('login-form-card')).toBeTruthy();
 
     rootContainer.unmount();
   });
@@ -171,9 +153,10 @@ describe('Login Page', () => {
 
     await rootContainer.findByTestId('login-form-card');
 
-    expect(rootContainer.getByText('智能职业规划与路径推荐')).toBeTruthy();
-    expect(rootContainer.getByText('个性化成长报告生成')).toBeTruthy();
-    expect(rootContainer.getByText('岗位能力图谱与对比分析')).toBeTruthy();
+    expect(rootContainer.getByText('「 归 序 」')).toBeTruthy();
+    expect(rootContainer.getByText('将旷野，收敛为轨道。')).toBeTruthy();
+    expect(rootContainer.getByText(/read_profile/)).toBeTruthy();
+    expect(rootContainer.getByText(/读取能力画像/)).toBeTruthy();
 
     rootContainer.unmount();
   });
@@ -204,6 +187,7 @@ describe('Login Page', () => {
   // ── Preserved functionality ────────────────────────────────
 
   it('should navigate to register page when clicking register link', async () => {
+    jest.useFakeTimers();
     const historyRef = React.createRef<any>();
     const rootContainer = render(
       <TestBrowser
@@ -216,6 +200,11 @@ describe('Login Page', () => {
 
     await act(async () => {
       fireEvent.click(rootContainer.getByTestId('register-account-link'));
+    });
+
+    expect(historyRef.current?.location?.pathname).toBe('/user/login');
+    act(() => {
+      jest.advanceTimersByTime(AUTH_MORPH.durationMs);
     });
 
     await waitFor(() => {

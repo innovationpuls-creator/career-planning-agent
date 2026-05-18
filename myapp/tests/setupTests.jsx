@@ -1,6 +1,14 @@
 ﻿// Make React available as a global so esbuild's jsx:"react" transform can find it
 global.React = require('react');
 
+jest.mock('antd-style', () => {
+  const actual = jest.requireActual('antd-style');
+  return {
+    ...actual,
+    keyframes: (strings) => `anim-${strings[0].length}`,
+  };
+});
+
 import { defaultConfig } from 'antd/lib/theme/internal';
 
 defaultConfig.hashed = false;
@@ -18,6 +26,15 @@ Object.defineProperty(URL, 'createObjectURL', {
   writable: true,
   value: jest.fn(),
 });
+
+class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = ResizeObserver;
+window.ResizeObserver = ResizeObserver;
 
 class Worker {
   constructor(stringUrl) {
