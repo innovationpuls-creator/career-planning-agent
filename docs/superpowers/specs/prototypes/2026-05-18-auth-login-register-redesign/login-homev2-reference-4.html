@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login From Home V2 Language</title>
+  <style>
+    :root {
+      --parchment: #f5f4ed;
+      --ivory: #faf9f5;
+      --near-black: #141413;
+      --terracotta: #c96442;
+      --success: #4a7c3f;
+      --blue-blob: #4a90e2;
+      --olive: #5e5d59;
+      --stone: #87867f;
+      --white40: rgba(255,255,255,.4);
+      --white50: rgba(255,255,255,.5);
+      --white60: rgba(255,255,255,.6);
+      --mx: 50vw;
+      --my: 50vh;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      background: var(--parchment);
+      color: var(--near-black);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    .auth-homev2 {
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+      padding: 56px;
+      background-color: var(--parchment);
+    }
+
+    .auth-homev2::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      opacity: .018;
+      pointer-events: none;
+      z-index: 3;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    .blob {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 999px;
+      transform: translate3d(0,0,0);
+      will-change: transform;
+    }
+
+    .blob.one {
+      top: -10vh;
+      right: -5vw;
+      width: 50vw;
+      height: 50vh;
+      background: radial-gradient(circle, rgba(201,100,66,.5) 0%, transparent 70%);
+      filter: blur(100px);
+      animation: floatA 20s infinite ease-in-out;
+    }
+
+    .blob.two {
+      bottom: 10vh;
+      left: -5vw;
+      width: 45vw;
+      height: 45vh;
+      background: radial-gradient(circle, rgba(74,144,226,.4) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: floatB 25s infinite ease-in-out;
+    }
+
+    .blob.three {
+      top: 40vh;
+      left: 15vw;
+      width: 30vw;
+      height: 30vh;
+      background: radial-gradient(circle, rgba(74,124,63,.3) 0%, transparent 70%);
+      filter: blur(70px);
+      animation: floatA 18s infinite ease-in-out;
+    }
+
+    .cursor-glow {
+      position: fixed;
+      z-index: 1;
+      left: var(--mx);
+      top: var(--my);
+      width: 36vw;
+      height: 36vw;
+      min-width: 360px;
+      min-height: 360px;
+      max-width: 620px;
+      max-height: 620px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(250,249,245,.5) 0%, rgba(255,255,255,.18) 26%, transparent 64%);
+      filter: blur(18px);
+      opacity: .78;
+      mix-blend-mode: screen;
+    }
+
+    .content {
+      position: relative;
+      z-index: 4;
+      min-height: calc(100vh - 112px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) 420px;
+      gap: 28px;
+      align-items: stretch;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .hero-glass,
+    .login-glass,
+    .stat-card,
+    .mini-step {
+      background: rgba(255,255,255,.4);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid rgba(255,255,255,.5);
+      box-shadow:
+        0 8px 32px 0 rgba(0,0,0,.08),
+        inset 0 0 0 1px rgba(255,255,255,.4);
+    }
+
+    .hero-glass {
+      border-radius: 12px;
+      padding: 60px 56px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 560px;
+    }
+
+    .hero-glass::after {
+      content: "";
+      position: absolute;
+      inset: auto -12% -18% auto;
+      width: 420px;
+      height: 420px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(201,100,66,.2), transparent 68%);
+      filter: blur(12px);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--olive);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: .03em;
+      margin-bottom: 22px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: var(--terracotta);
+      background: rgba(201,100,66,.1);
+      box-shadow: 0 0 0 1px rgba(201,100,66,.18);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      font: 500 clamp(44px, 5.3vw, 76px)/1.05 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+      color: var(--near-black);
+    }
+
+    .hero-copy {
+      max-width: 520px;
+      margin: 26px 0 0;
+      color: var(--olive);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 48px;
+    }
+
+    .stat-card {
+      border-radius: 12px;
+      padding: 22px;
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stat-title {
+      color: var(--olive);
+      font-size: 14px;
+    }
+
+    .stat-value {
+      font: 500 30px/1.1 Georgia, "Songti SC", serif;
+      color: var(--near-black);
+    }
+
+    .road-preview {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(80px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .mini-step {
+      border-radius: 12px;
+      padding: 14px 12px;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .mini-step.current {
+      box-shadow:
+        0 0 0 4px rgba(201,100,66,.09),
+        0 12px 24px rgba(201,100,66,.1),
+        inset 0 0 0 1px rgba(255,255,255,.45);
+      border-color: rgba(201,100,66,.28);
+    }
+
+    .mini-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(201,100,66,.1);
+      color: var(--terracotta);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .mini-label {
+      font-size: 12px;
+      color: var(--olive);
+      line-height: 1.4;
+    }
+
+    .login-wrap {
+      display: flex;
+      align-items: center;
+    }
+
+    .login-glass {
+      width: 100%;
+      border-radius: 12px;
+      padding: 34px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.38), transparent 45%, rgba(201,100,66,.08));
+      pointer-events: none;
+    }
+
+    .login-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .login-title {
+      margin: 0 0 8px;
+      font: 500 34px/1.12 Georgia, "Songti SC", serif;
+      color: var(--near-black);
+    }
+
+    .login-subtitle {
+      margin: 0 0 26px;
+      color: var(--olive);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .field {
+      height: 44px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      background: rgba(250,249,245,.62);
+      border: 1px solid rgba(255,255,255,.6);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.32);
+    }
+
+    .meta-row {
+      height: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 2px 0 18px;
+      color: var(--stone);
+      font-size: 13px;
+    }
+
+    .submit {
+      height: 44px;
+      border-radius: 12px;
+      background: var(--terracotta);
+      box-shadow: 0 10px 26px rgba(201,100,66,.28), 0 0 0 1px var(--terracotta);
+    }
+
+    .register {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--olive);
+      font-size: 14px;
+    }
+
+    .register span {
+      color: var(--terracotta);
+      font-weight: 600;
+    }
+
+    .select-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      gap: 10px;
+    }
+
+    .select-bar button {
+      border: 1px solid rgba(255,255,255,.58);
+      background: rgba(255,255,255,.42);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      color: var(--near-black);
+      box-shadow: 0 8px 24px rgba(0,0,0,.08), inset 0 0 0 1px rgba(255,255,255,.35);
+    }
+
+    @keyframes floatA {
+      0% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(30px,-50px) scale(1.1); }
+      66% { transform: translate(-20px,40px) scale(.9); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+
+    @keyframes floatB {
+      0% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(-40px,30px) scale(1.05); }
+      66% { transform: translate(20px,-30px) scale(.95); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+
+    @media (max-width: 960px) {
+      body { overflow: auto; }
+      .auth-homev2 { padding: 20px; }
+      .content {
+        min-height: auto;
+        grid-template-columns: 1fr;
+      }
+      .hero-glass { min-height: auto; padding: 34px 26px; }
+      h1 { font-size: 42px; }
+      .stat-row { grid-template-columns: 1fr; }
+      .road-preview { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="auth-homev2">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+    <div class="cursor-glow"></div>
+
+    <section class="content">
+      <div class="hero-glass">
+        <div>
+          <div class="eyebrow">
+            <span>目标岗位</span>
+            <span class="tag">职业规划首页同源视觉</span>
+          </div>
+          <h1>大学生职业规划智能体</h1>
+          <p class="hero-copy">登录页直接继承 home-v2 的大面积动态模糊色团、低噪声纹理和玻璃卡片语言。它像进入首页之前的一张聚焦封面，而不是另一套登录模板。</p>
+        </div>
+
+        <div>
+          <div class="stat-row">
+            <div class="stat-card">
+              <span class="stat-title">规划进度</span>
+              <span class="stat-value">72%</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">薪资参考</span>
+              <span class="stat-value">18k+</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">岗位匹配</span>
+              <span class="stat-value">24</span>
+            </div>
+          </div>
+
+          <div class="road-preview">
+            <div class="mini-step"><span class="mini-icon">1</span><span class="mini-label">完善资料</span></div>
+            <div class="mini-step current"><span class="mini-icon">2</span><span class="mini-label">简历解析</span></div>
+            <div class="mini-step"><span class="mini-icon">3</span><span class="mini-label">职业匹配</span></div>
+            <div class="mini-step"><span class="mini-icon">4</span><span class="mini-label">学习路径</span></div>
+            <div class="mini-step"><span class="mini-icon">5</span><span class="mini-label">成长报告</span></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="login-wrap">
+        <div class="login-glass">
+          <div class="login-inner">
+            <h2 class="login-title">欢迎回来</h2>
+            <p class="login-subtitle">继续进入你的职业规划首页</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="meta-row">
+              <span>记住登录</span>
+              <span>忘记密码？</span>
+            </div>
+            <div class="submit"></div>
+            <div class="register">还没有账户？<span>立即注册</span></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <div class="select-bar">
+      <button onclick="record('closer')">这版更接近</button>
+      <button onclick="record('needs-more-homev2')">还要更像 home-v2</button>
+      <button onclick="record('needs-more-impact')">方向对，但冲击更强</button>
+    </div>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    window.addEventListener('pointermove', (event) => {
+      root.style.setProperty('--mx', `${event.clientX}px`);
+      root.style.setProperty('--my', `${event.clientY}px`);
+    });
+    function record(choice) {
+      const detail = {
+        type: 'click',
+        choice,
+        text: choice,
+        timestamp: Date.now() / 1000,
+      };
+      if (window.recordBrainstormEvent) window.recordBrainstormEvent(detail);
+    }
+  </script>
+</body>
+</html>

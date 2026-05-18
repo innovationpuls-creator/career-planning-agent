@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Effect Direction</title>
+  <style>
+    :root {
+      --paper: #f5f4ed;
+      --ink: #141413;
+      --warm: #c96442;
+      --gold: #d9a85f;
+      --green: #82a37d;
+      --ice: #d8ece7;
+      --x: 50%;
+      --y: 50%;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #0f0f0e;
+      overflow-x: hidden;
+    }
+
+    .stage {
+      padding: 28px;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at var(--x) var(--y), rgba(255,255,255,.22), transparent 18vw),
+        linear-gradient(135deg, #171714 0%, #26231e 42%, #111412 100%);
+    }
+
+    .intro {
+      max-width: 1100px;
+      margin: 0 auto 22px;
+      color: rgba(250,249,245,.88);
+    }
+
+    .intro h1 {
+      margin: 0 0 8px;
+      font: 500 34px/1.12 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+    }
+
+    .intro p {
+      margin: 0;
+      color: rgba(250,249,245,.62);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .option {
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 24px;
+      background: rgba(255,255,255,.05);
+      padding: 14px;
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.34);
+      background: rgba(255,255,255,.08);
+    }
+
+    .option.selected {
+      border-color: rgba(201,100,66,.9);
+      box-shadow: 0 0 0 1px rgba(201,100,66,.5), 0 24px 70px rgba(201,100,66,.18);
+    }
+
+    .mock {
+      height: 360px;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      isolation: isolate;
+      border: 1px solid rgba(255,255,255,.16);
+    }
+
+    .mock::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: .35;
+      background-image:
+        linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(circle at var(--x) var(--y), black, transparent 70%);
+    }
+
+    .login-card {
+      position: absolute;
+      right: 7%;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+      width: min(330px, 38%);
+      min-width: 270px;
+      padding: 26px;
+      border-radius: 28px;
+      background: rgba(250,249,245,.22);
+      border: 1px solid rgba(255,255,255,.42);
+      backdrop-filter: blur(34px) saturate(150%);
+      -webkit-backdrop-filter: blur(34px) saturate(150%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.52),
+        inset 0 -40px 80px rgba(255,255,255,.08),
+        0 30px 80px rgba(0,0,0,.26);
+    }
+
+    .login-card h2 {
+      margin: 0 0 8px;
+      font: 500 26px/1.15 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+      color: rgba(20,20,19,.92);
+    }
+
+    .login-card p {
+      margin: 0 0 22px;
+      font-size: 13px;
+      color: rgba(20,20,19,.62);
+    }
+
+    .field,
+    .button {
+      height: 42px;
+      border-radius: 16px;
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,.46);
+      background: rgba(250,249,245,.36);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.48);
+    }
+
+    .button {
+      background: rgba(201,100,66,.9);
+      border-color: rgba(201,100,66,.35);
+      box-shadow: 0 10px 26px rgba(201,100,66,.28);
+    }
+
+    .label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 4px 2px;
+      color: rgba(250,249,245,.86);
+    }
+
+    .label h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .label p {
+      margin: 0;
+      max-width: 660px;
+      text-align: right;
+      color: rgba(250,249,245,.56);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .aurora {
+      background:
+        radial-gradient(circle at var(--x) var(--y), rgba(255,255,255,.32), transparent 16%),
+        radial-gradient(circle at 18% 22%, rgba(201,100,66,.66), transparent 28%),
+        radial-gradient(circle at 62% 12%, rgba(217,168,95,.44), transparent 24%),
+        radial-gradient(circle at 38% 78%, rgba(130,163,125,.5), transparent 30%),
+        linear-gradient(135deg, #171714, #2b261e 58%, #111412);
+    }
+
+    .aurora .beam {
+      position: absolute;
+      inset: -28%;
+      z-index: 1;
+      background:
+        conic-gradient(from 45deg at 45% 50%, transparent, rgba(255,255,255,.2), transparent 22%, rgba(201,100,66,.26), transparent 48%, rgba(217,168,95,.24), transparent);
+      filter: blur(34px);
+      animation: rotate 10s linear infinite;
+      transform-origin: 48% 52%;
+      mix-blend-mode: screen;
+    }
+
+    .glass-map {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        linear-gradient(115deg, transparent 0 12%, rgba(255,255,255,.18) 13%, transparent 16% 44%, rgba(255,255,255,.13) 46%, transparent 50%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, transparent 1px 16px);
+      filter: blur(.2px);
+      opacity: .8;
+    }
+
+    .liquid {
+      background:
+        radial-gradient(circle at var(--x) var(--y), rgba(216,236,231,.55), transparent 16%),
+        radial-gradient(circle at 20% 50%, rgba(201,100,66,.58), transparent 24%),
+        radial-gradient(circle at 72% 34%, rgba(216,236,231,.44), transparent 24%),
+        linear-gradient(120deg, #111412, #2f2a21 48%, #10100f);
+    }
+
+    .liquid .blob {
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 45% 55% 62% 38%;
+      background: rgba(255,255,255,.18);
+      filter: blur(28px);
+      mix-blend-mode: screen;
+      animation: blob 8s ease-in-out infinite alternate;
+    }
+
+    .liquid .blob.one { left: -110px; top: -120px; background: rgba(201,100,66,.42); }
+    .liquid .blob.two { right: 120px; bottom: -160px; background: rgba(216,236,231,.34); animation-delay: -2s; }
+    .liquid .blob.three { left: 34%; top: 18%; background: rgba(217,168,95,.24); animation-delay: -4s; }
+
+    .cinematic {
+      background:
+        radial-gradient(circle at var(--x) var(--y), rgba(250,249,245,.34), transparent 15%),
+        linear-gradient(100deg, #0d0d0c 0%, #201d18 42%, #33271f 56%, #11100f 100%);
+    }
+
+    .cinematic .spot {
+      position: absolute;
+      inset: -10%;
+      z-index: 1;
+      background:
+        radial-gradient(ellipse at 20% 12%, rgba(255,255,255,.5), transparent 18%),
+        linear-gradient(115deg, transparent 0 30%, rgba(255,255,255,.18) 38%, transparent 48%),
+        linear-gradient(75deg, transparent 0 42%, rgba(201,100,66,.24) 48%, transparent 57%);
+      filter: blur(18px);
+      transform: translate(calc((var(--x) - 50%) * .035), calc((var(--y) - 50%) * .025));
+      mix-blend-mode: screen;
+    }
+
+    .cinematic .grain,
+    .aurora .grain,
+    .liquid .grain {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      opacity: .25;
+      background-image: radial-gradient(rgba(255,255,255,.18) .8px, transparent .8px);
+      background-size: 4px 4px;
+      mix-blend-mode: overlay;
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes blob {
+      0% { transform: translate3d(0,0,0) scale(1) rotate(0deg); border-radius: 45% 55% 62% 38%; }
+      100% { transform: translate3d(70px,36px,0) scale(1.18) rotate(28deg); border-radius: 64% 36% 42% 58%; }
+    }
+
+    @media (max-width: 760px) {
+      .stage { padding: 18px; }
+      .mock { height: 500px; }
+      .login-card {
+        left: 18px;
+        right: 18px;
+        top: auto;
+        bottom: 22px;
+        transform: none;
+        width: auto;
+        min-width: 0;
+      }
+      .label { align-items: flex-start; flex-direction: column; }
+      .label p { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="intro">
+      <h1>重置方向：背景是主角，登录只是玻璃上的一层</h1>
+      <p>移动鼠标看光源响应。下面三种不是内容方案，而是“惊艳机制”的选择：动态光、玻璃折射、电影感聚光。点一个你想继续放大的方向。</p>
+    </section>
+
+    <section class="grid">
+      <article class="option" data-choice="aurora-glass" onclick="selectOption(this)">
+        <div class="mock aurora">
+          <div class="beam"></div>
+          <div class="glass-map"></div>
+          <div class="grain"></div>
+          <div class="login-card">
+            <h2>欢迎回来</h2>
+            <p>继续你的职业规划</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+        </div>
+        <div class="label">
+          <h3>A. Aurora Glass / 动态光源玻璃</h3>
+          <p>旋转光束 + 鼠标局部高光 + 重度毛玻璃。最“展示型”，打开页面有记忆点。</p>
+        </div>
+      </article>
+
+      <article class="option" data-choice="liquid-refraction" onclick="selectOption(this)">
+        <div class="mock liquid">
+          <div class="blob one"></div>
+          <div class="blob two"></div>
+          <div class="blob three"></div>
+          <div class="glass-map"></div>
+          <div class="grain"></div>
+          <div class="login-card">
+            <h2>欢迎回来</h2>
+            <p>继续你的职业规划</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+        </div>
+        <div class="label">
+          <h3>B. Liquid Refraction / 液态折射玻璃</h3>
+          <p>大面积慢速流体光斑，像透过厚玻璃看运动光源。更高级、更柔，但冲击略低。</p>
+        </div>
+      </article>
+
+      <article class="option" data-choice="cinematic-spotlight" onclick="selectOption(this)">
+        <div class="mock cinematic">
+          <div class="spot"></div>
+          <div class="glass-map"></div>
+          <div class="grain"></div>
+          <div class="login-card">
+            <h2>欢迎回来</h2>
+            <p>继续你的职业规划</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+        </div>
+        <div class="label">
+          <h3>C. Cinematic Spotlight / 电影级追光</h3>
+          <p>鼠标像舞台灯，扫过时玻璃与背景有明暗层次。克制但很有质感，适合保住可用性。</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    window.addEventListener('pointermove', (event) => {
+      root.style.setProperty('--x', `${event.clientX}px`);
+      root.style.setProperty('--y', `${event.clientY}px`);
+    });
+
+    function selectOption(el) {
+      document.querySelectorAll('.option').forEach((node) => node.classList.remove('selected'));
+      el.classList.add('selected');
+      const detail = {
+        type: 'click',
+        choice: el.dataset.choice,
+        text: el.querySelector('h3')?.innerText || el.dataset.choice,
+        timestamp: Date.now() / 1000,
+      };
+      window.parent?.postMessage?.({ type: 'brainstorm-event', detail }, '*');
+      if (window.recordBrainstormEvent) window.recordBrainstormEvent(detail);
+    }
+  </script>
+</body>
+</html>

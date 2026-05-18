@@ -1,0 +1,98 @@
+<h2>登录页第一眼应该像什么？</h2>
+<p class="subtitle">先选产品气质。你给的动态 console 很适合做“左侧活体系统”的核心元素，但它可以被包装成不同性格。</p>
+
+<div class="cards">
+  <div class="card" data-choice="warm-agent" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:260px; background:#f5f4ed; border:1px solid #e8e6dc; border-radius:14px; overflow:hidden; position:relative; display:grid; grid-template-columns:1.2fr 0.8fr;">
+      <div style="padding:24px; display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="font:600 13px ui-sans-serif; color:#c96442; margin-bottom:14px;">CareerAgent</div>
+          <div style="font:500 30px Georgia,serif; color:#141413; line-height:1.15;">把职业规划变成一条可执行路径</div>
+          <div style="margin-top:14px; color:#5e5d59; font-size:13px; line-height:1.6;">温暖、可信、像打开一个私人职业工作台。</div>
+        </div>
+        <div style="display:grid; gap:8px;">
+          <div style="height:10px; width:62%; background:#e8e6dc; border-radius:99px;"></div>
+          <div style="height:10px; width:78%; background:#e8e6dc; border-radius:99px;"></div>
+          <div style="height:10px; width:48%; background:#e8e6dc; border-radius:99px;"></div>
+        </div>
+      </div>
+      <div style="margin:22px 20px 22px 0; background:#141413; border-radius:16px; padding:14px; box-shadow:0 18px 40px rgba(20,20,19,.16); color:#b0aea5; font:11px ui-monospace, SFMono-Regular, Menlo, monospace;">
+        <div style="display:flex; gap:5px; margin-bottom:12px;"><span style="width:7px;height:7px;border-radius:50%;background:#c96442;"></span><span style="width:7px;height:7px;border-radius:50%;background:#d1cfc5;"></span><span style="width:7px;height:7px;border-radius:50%;background:#d1cfc5;"></span></div>
+        <div style="display:grid; gap:9px;">
+          <div>├─ 12维能力矩阵 <b style="color:#a3d49a;">✓</b></div>
+          <div>├─ 霍兰德模型 <b style="color:#a3d49a;">✓</b></div>
+          <div>├─ 技能差距分析 <b style="color:#a3d49a;">✓</b></div>
+          <div>└─ 成长路径规划 <b style="color:#a3d49a;">✓</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 暖色职业导师</h3>
+      <p>保留 Claude 纸感与 serif 气质，console 作为“智能体正在准备工作台”的活体证据。推荐默认方向。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="command-center" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:260px; background:#141413; border:1px solid #30302e; border-radius:14px; overflow:hidden; position:relative; display:grid; grid-template-columns:1.35fr .65fr;">
+      <div style="padding:22px;">
+        <div style="height:176px; background:#20201e; border:1px solid #30302e; border-radius:16px; padding:16px; color:#b0aea5; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);">
+          <div style="color:#faf9f5; margin-bottom:12px;">agent // career-planning-engine</div>
+          <div style="display:grid; gap:8px;">
+            <div>[初始化] 能力维度矩阵 · 12维 ✓</div>
+            <div>[加载] 简历解析引擎 ✓</div>
+            <div>[工具] 技能差距分析 ✓</div>
+            <div>[预热] 神经网络推理引擎 ✓</div>
+            <div>[加载] 岗位JD语料库 ✓</div>
+          </div>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:8px;">
+          <span style="height:22px; width:58px; border-radius:99px; background:#30302e;"></span>
+          <span style="height:22px; width:86px; border-radius:99px; background:#c96442;"></span>
+        </div>
+      </div>
+      <div style="background:#faf9f5; margin:18px 18px 18px 0; border-radius:18px; padding:18px;">
+        <div style="height:15px; width:80%; background:#30302e; border-radius:8px; margin-bottom:22px;"></div>
+        <div style="display:grid; gap:12px;">
+          <div style="height:34px; background:#f5f4ed; border-radius:12px;"></div>
+          <div style="height:34px; background:#f5f4ed; border-radius:12px;"></div>
+          <div style="height:36px; background:#c96442; border-radius:12px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 智能控制台</h3>
+      <p>更强科技感和动态感，左侧 console 是主视觉。冲击力强，但会比现有 Claude 暖色系统更硬。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hybrid-lab" onclick="toggleSelect(this)">
+    <div class="card-image" style="height:260px; background:linear-gradient(135deg,#faf9f5,#e8e6dc); border:1px solid #e8e6dc; border-radius:14px; overflow:hidden; display:grid; grid-template-columns:1fr 1fr; gap:0;">
+      <div style="padding:24px; position:relative;">
+        <div style="font:500 26px Georgia,serif; line-height:1.14; color:#141413;">登录后继续生成你的职业画像</div>
+        <div style="position:absolute; left:24px; right:24px; bottom:26px; display:grid; gap:10px;">
+          <div style="display:flex; gap:8px; align-items:center;"><span style="width:24px;height:24px;border-radius:8px;background:#c96442;"></span><span style="height:10px;width:70%;border-radius:99px;background:#d1cfc5;"></span></div>
+          <div style="display:flex; gap:8px; align-items:center;"><span style="width:24px;height:24px;border-radius:8px;background:#30302e;"></span><span style="height:10px;width:56%;border-radius:99px;background:#d1cfc5;"></span></div>
+        </div>
+      </div>
+      <div style="padding:18px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:rgba(20,20,19,.9); color:#b0aea5; border-radius:16px; padding:14px; font:10px ui-monospace, SFMono-Regular, Menlo, monospace; min-height:96px;">
+          <div>├─ 岗位匹配引擎 ✓</div>
+          <div>├─ 成长路径规划 ✓</div>
+          <div>└─ 行业薪资数据库 ✓</div>
+        </div>
+        <div style="background:rgba(250,249,245,.72); border:1px solid rgba(255,255,255,.65); border-radius:18px; padding:16px; box-shadow:0 20px 44px rgba(20,20,19,.08);">
+          <div style="height:12px;width:52%;border-radius:99px;background:#141413;margin-bottom:16px;"></div>
+          <div style="height:32px;background:#f5f4ed;border-radius:12px;margin-bottom:10px;"></div>
+          <div style="height:32px;background:#f5f4ed;border-radius:12px;margin-bottom:10px;"></div>
+          <div style="height:34px;background:#c96442;border-radius:12px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 混合智能实验室</h3>
+      <p>左侧有温暖叙事，也有 console 和微型系统卡片。现代感更强，但实现和视觉治理要更克制。</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">问题 1：你希望登录页第一眼更接近 A、B 还是 C？也可以点一个，再在终端补一句“更暖/更酷/console 再多一点”。</p>

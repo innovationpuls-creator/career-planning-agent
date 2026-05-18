@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design.md Background Choices</title>
+  <style>
+    :root {
+      --parchment: #f5f4ed;
+      --ivory: #faf9f5;
+      --warm-sand: #e8e6dc;
+      --near-black: #141413;
+      --dark-surface: #30302e;
+      --terracotta: #c96442;
+      --coral: #d97757;
+      --olive: #5e5d59;
+      --stone: #87867f;
+      --border-cream: #f0eee6;
+      --border-warm: #e8e6dc;
+      --warm-silver: #b0aea5;
+      --ring: #d1cfc5;
+      --x: 50vw;
+      --y: 50vh;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--parchment);
+      color: var(--near-black);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+    }
+    .page {
+      min-height: 100vh;
+      padding: 28px;
+      background: var(--parchment);
+    }
+    .head {
+      max-width: 1180px;
+      margin: 0 auto 22px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font: 500 36px/1.12 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+    }
+    .sub {
+      margin: 0;
+      max-width: 900px;
+      color: var(--olive);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .grid {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .choice {
+      border: 1px solid var(--border-warm);
+      border-radius: 24px;
+      background: var(--ivory);
+      padding: 12px;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .choice:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 0 1px var(--ring), rgba(0,0,0,.05) 0 4px 24px;
+    }
+    .choice.selected {
+      border-color: var(--terracotta);
+      box-shadow: 0 0 0 1px var(--terracotta), rgba(0,0,0,.05) 0 4px 24px;
+    }
+    .mock {
+      height: 430px;
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+      isolation: isolate;
+      border: 1px solid var(--border-cream);
+    }
+    .mock svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .cursor-ring {
+      position: absolute;
+      z-index: 2;
+      left: var(--x);
+      top: var(--y);
+      width: 220px;
+      height: 220px;
+      margin-left: -110px;
+      margin-top: -110px;
+      border-radius: 999px;
+      pointer-events: none;
+      opacity: .58;
+      background: radial-gradient(circle, rgba(201,100,66,.16), rgba(201,100,66,.06) 38%, transparent 68%);
+      box-shadow: 0 0 0 1px rgba(201,100,66,.14);
+      transform: translateZ(0);
+    }
+    .glass {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      bottom: 34px;
+      transform: translateX(-50%);
+      width: min(330px, calc(100% - 44px));
+      border-radius: 32px;
+      padding: 25px;
+      backdrop-filter: blur(28px) saturate(135%);
+      -webkit-backdrop-filter: blur(28px) saturate(135%);
+    }
+    .glass h2 {
+      margin: 0 0 8px;
+      font: 500 27px/1.12 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+    }
+    .glass p {
+      margin: 0 0 22px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .field {
+      height: 42px;
+      border-radius: 16px;
+      margin-top: 12px;
+    }
+    .button {
+      height: 42px;
+      border-radius: 16px;
+      margin-top: 14px;
+      background: var(--terracotta);
+      box-shadow: 0 0 0 1px var(--terracotta);
+    }
+    .paper {
+      background: var(--parchment);
+    }
+    .paper .glass {
+      background: rgba(250,249,245,.58);
+      border: 1px solid rgba(240,238,230,.88);
+      box-shadow: rgba(0,0,0,.05) 0 4px 24px, inset 0 1px 0 rgba(255,255,255,.62);
+    }
+    .paper .glass p { color: var(--olive); }
+    .paper .field {
+      background: rgba(250,249,245,.78);
+      border: 1px solid var(--border-cream);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+    }
+    .dark {
+      background: var(--near-black);
+      border-color: var(--dark-surface);
+    }
+    .dark .cursor-ring {
+      opacity: .64;
+      background: radial-gradient(circle, rgba(201,100,66,.24), rgba(232,230,220,.08) 42%, transparent 70%);
+      box-shadow: 0 0 0 1px rgba(232,230,220,.12);
+    }
+    .dark .glass {
+      color: var(--ivory);
+      background: rgba(48,48,46,.46);
+      border: 1px solid rgba(232,230,220,.16);
+      box-shadow: 0 0 0 1px rgba(232,230,220,.08), inset 0 1px 0 rgba(250,249,245,.1);
+    }
+    .dark .glass p { color: var(--warm-silver); }
+    .dark .field {
+      background: rgba(250,249,245,.1);
+      border: 1px solid rgba(232,230,220,.13);
+      box-shadow: inset 0 0 0 1px rgba(250,249,245,.04);
+    }
+    .chapter {
+      background: var(--parchment);
+    }
+    .chapter::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 48%;
+      background: var(--near-black);
+      z-index: 0;
+    }
+    .chapter .glass {
+      background: rgba(250,249,245,.62);
+      border: 1px solid rgba(240,238,230,.9);
+      box-shadow: rgba(0,0,0,.05) 0 4px 24px, 0 0 0 1px rgba(209,207,197,.45);
+    }
+    .chapter .field {
+      background: rgba(250,249,245,.78);
+      border: 1px solid var(--border-cream);
+    }
+    .label {
+      padding: 13px 4px 2px;
+    }
+    .label h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .label p {
+      margin: 0;
+      color: var(--olive);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .mock { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="head">
+      <h1>按 Design.md 重新收束背景方向</h1>
+      <p class="sub">只使用 Claude 体系：Parchment、Ivory、Warm Sand、Near Black、Terracotta、暖色 ring halo、organic 路径线。鼠标移动只影响温暖光晕和路径视差，不引入蓝紫霓虹、液态渐变、科幻色。</p>
+    </section>
+    <section class="grid">
+      <article class="choice" data-choice="parchment-organic" onclick="selectChoice(this)">
+        <div class="mock paper">
+          <div class="cursor-ring"></div>
+          <svg viewBox="0 0 500 430" preserveAspectRatio="none">
+            <path d="M-40 92 C 90 18, 160 154, 270 84 S 420 16, 560 108" fill="none" stroke="#c96442" stroke-width="2" opacity=".22"/>
+            <path d="M-20 210 C 120 150, 220 240, 330 174 S 460 120, 540 210" fill="none" stroke="#141413" stroke-width="1.2" opacity=".14"/>
+            <path d="M20 320 C 135 270, 230 344, 330 292 S 450 236, 520 298" fill="none" stroke="#82a37d" stroke-width="2" opacity=".16"/>
+          </svg>
+          <div class="glass">
+            <h2>欢迎回来</h2>
+            <p>继续你的职业规划。</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+        </div>
+        <div class="label">
+          <h3>A. Parchment Organic Canvas</h3>
+          <p>最贴 Design.md：暖纸背景 + organic 路径 + 轻玻璃。高级但不够“炸”。</p>
+        </div>
+      </article>
+
+      <article class="choice" data-choice="near-black-chamber" onclick="selectChoice(this)">
+        <div class="mock dark">
+          <div class="cursor-ring"></div>
+          <svg viewBox="0 0 500 430" preserveAspectRatio="none">
+            <path d="M-60 110 C 80 20, 165 160, 280 78 S 430 28, 550 120" fill="none" stroke="#c96442" stroke-width="2" opacity=".34"/>
+            <path d="M-10 205 C 115 150, 220 238, 335 170 S 455 130, 540 230" fill="none" stroke="#e8e6dc" stroke-width="1.2" opacity=".18"/>
+            <path d="M25 324 C 138 270, 232 348, 334 292 S 452 238, 520 300" fill="none" stroke="#5e5d59" stroke-width="2" opacity=".28"/>
+          </svg>
+          <div class="glass">
+            <h2>欢迎回来</h2>
+            <p>继续你的职业规划。</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+        </div>
+        <div class="label">
+          <h3>B. Near Black Warm Chamber</h3>
+          <p>使用 Design.md 的暗章节逻辑制造冲击：近黑暖底 + 陶土光晕 + 暗玻璃。最适合“给别人看效果”。</p>
+        </div>
+      </article>
+
+      <article class="choice" data-choice="chapter-contrast" onclick="selectChoice(this)">
+        <div class="mock chapter">
+          <div class="cursor-ring"></div>
+          <svg viewBox="0 0 500 430" preserveAspectRatio="none">
+            <path d="M-30 88 C 90 25, 150 138, 250 84 S 410 22, 540 110" fill="none" stroke="#c96442" stroke-width="2" opacity=".3"/>
+            <path d="M-20 210 C 120 150, 220 238, 330 174 S 460 120, 540 210" fill="none" stroke="#e8e6dc" stroke-width="1.2" opacity=".2"/>
+            <path d="M18 318 C 135 270, 230 344, 330 292 S 450 236, 520 298" fill="none" stroke="#141413" stroke-width="1.4" opacity=".16"/>
+          </svg>
+          <div class="glass">
+            <h2>欢迎回来</h2>
+            <p>继续你的职业规划。</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+        </div>
+        <div class="label">
+          <h3>C. Light / Dark Chapter Cut</h3>
+          <p>Design.md 的章节式明暗交替：上半近黑、下半暖纸，玻璃跨在交界处。戏剧性强，也更稳。</p>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script>
+    const root = document.documentElement;
+    window.addEventListener('pointermove', (event) => {
+      root.style.setProperty('--x', `${event.clientX}px`);
+      root.style.setProperty('--y', `${event.clientY}px`);
+    });
+    function selectChoice(el) {
+      document.querySelectorAll('.choice').forEach((node) => node.classList.remove('selected'));
+      el.classList.add('selected');
+      const detail = {
+        type: 'click',
+        choice: el.dataset.choice,
+        text: el.querySelector('h3')?.innerText || el.dataset.choice,
+        timestamp: Date.now() / 1000,
+      };
+      if (window.recordBrainstormEvent) window.recordBrainstormEvent(detail);
+    }
+  </script>
+</body>
+</html>

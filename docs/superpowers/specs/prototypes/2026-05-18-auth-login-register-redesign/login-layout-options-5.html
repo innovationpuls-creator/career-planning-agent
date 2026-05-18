@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Layout Options</title>
+  <style>
+    :root {
+      --parchment: #f5f4ed;
+      --ivory: #faf9f5;
+      --near-black: #141413;
+      --dark: #30302e;
+      --terracotta: #c96442;
+      --success: #4a7c3f;
+      --blue: #4a90e2;
+      --olive: #5e5d59;
+      --stone: #87867f;
+      --silver: #b0aea5;
+      --mx: 50vw;
+      --my: 50vh;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--parchment);
+      color: var(--near-black);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    .page {
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      background: var(--parchment);
+    }
+
+    .page::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: .02;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    .blob {
+      position: fixed;
+      z-index: 0;
+      pointer-events: none;
+      border-radius: 999px;
+      will-change: transform;
+    }
+
+    .blob.one {
+      top: -10vh;
+      right: -8vw;
+      width: 54vw;
+      height: 52vh;
+      background: radial-gradient(circle, rgba(201,100,66,.52) 0%, transparent 70%);
+      filter: blur(96px);
+      animation: floatA 20s infinite ease-in-out;
+    }
+
+    .blob.two {
+      bottom: 5vh;
+      left: -8vw;
+      width: 48vw;
+      height: 46vh;
+      background: radial-gradient(circle, rgba(74,144,226,.42) 0%, transparent 70%);
+      filter: blur(86px);
+      animation: floatB 25s infinite ease-in-out;
+    }
+
+    .blob.three {
+      top: 42vh;
+      left: 18vw;
+      width: 34vw;
+      height: 32vh;
+      background: radial-gradient(circle, rgba(74,124,63,.32) 0%, transparent 70%);
+      filter: blur(74px);
+      animation: floatA 18s infinite ease-in-out;
+    }
+
+    .cursor-light {
+      position: fixed;
+      z-index: 2;
+      left: var(--mx);
+      top: var(--my);
+      width: 520px;
+      height: 520px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle, rgba(255,255,255,.72) 0%, rgba(250,249,245,.48) 18%, rgba(201,100,66,.22) 34%, transparent 68%);
+      filter: blur(22px);
+      mix-blend-mode: screen;
+      opacity: .9;
+    }
+
+    .cursor-ring {
+      position: fixed;
+      z-index: 4;
+      left: var(--mx);
+      top: var(--my);
+      width: 180px;
+      height: 180px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      pointer-events: none;
+      border: 1px solid rgba(201,100,66,.26);
+      box-shadow: 0 0 0 10px rgba(255,255,255,.12), 0 18px 48px rgba(201,100,66,.18);
+    }
+
+    .head {
+      position: relative;
+      z-index: 5;
+      max-width: 1240px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font: 500 34px/1.12 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+    }
+
+    .head p {
+      margin: 8px 0 0;
+      color: var(--olive);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 720px;
+    }
+
+    .grid {
+      position: relative;
+      z-index: 5;
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .option {
+      background: rgba(255,255,255,.34);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255,255,255,.55);
+      border-radius: 18px;
+      padding: 10px;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(0,0,0,.06), inset 0 0 0 1px rgba(255,255,255,.32);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    .option:hover {
+      transform: translateY(-3px);
+      border-color: rgba(201,100,66,.38);
+      box-shadow: 0 18px 46px rgba(0,0,0,.1), 0 0 0 4px rgba(201,100,66,.08), inset 0 0 0 1px rgba(255,255,255,.5);
+    }
+
+    .option.selected {
+      border-color: rgba(201,100,66,.75);
+      box-shadow: 0 20px 56px rgba(201,100,66,.16), 0 0 0 4px rgba(201,100,66,.12), inset 0 0 0 1px rgba(255,255,255,.55);
+    }
+
+    .mock {
+      height: 560px;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      background: rgba(245,244,237,.72);
+      border: 1px solid rgba(255,255,255,.45);
+    }
+
+    .mock::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at var(--local-x, 66%) var(--local-y, 34%), rgba(255,255,255,.6), transparent 28%),
+        linear-gradient(135deg, rgba(255,255,255,.34), transparent 44%, rgba(201,100,66,.06));
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .panel,
+    .console,
+    .login,
+    .chip,
+    .stat,
+    .step {
+      background: rgba(255,255,255,.42);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid rgba(255,255,255,.56);
+      box-shadow: 0 8px 32px rgba(0,0,0,.07), inset 0 0 0 1px rgba(255,255,255,.38);
+    }
+
+    .console {
+      background: rgba(20,20,19,.72);
+      color: var(--silver);
+      border-color: rgba(255,255,255,.16);
+      font: 10px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      box-shadow: 0 16px 44px rgba(20,20,19,.22), inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .console-head {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      color: rgba(250,249,245,.68);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--terracotta);
+      opacity: .9;
+    }
+
+    .dot:nth-child(2) { background: rgba(232,230,220,.72); }
+    .dot:nth-child(3) { background: rgba(74,124,63,.72); }
+
+    .logs {
+      padding: 12px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .log {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      white-space: nowrap;
+      opacity: .72;
+    }
+
+    .log.hot {
+      opacity: 1;
+      color: rgba(250,249,245,.9);
+    }
+
+    .kind { color: rgba(201,100,66,.96); }
+    .ok { margin-left: auto; color: #a3d49a; }
+
+    .login {
+      border-radius: 14px;
+      padding: 22px;
+    }
+
+    .login h2 {
+      margin: 0 0 6px;
+      font: 500 28px/1.12 Georgia, "Songti SC", serif;
+      letter-spacing: 0;
+    }
+
+    .login p {
+      margin: 0 0 20px;
+      color: var(--olive);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .field {
+      height: 39px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      background: rgba(250,249,245,.64);
+      border: 1px solid rgba(255,255,255,.64);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
+    }
+
+    .button {
+      height: 40px;
+      border-radius: 12px;
+      background: var(--terracotta);
+      box-shadow: 0 10px 24px rgba(201,100,66,.25), 0 0 0 1px var(--terracotta);
+    }
+
+    .caption {
+      padding: 12px 4px 3px;
+    }
+
+    .caption h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .caption p {
+      margin: 0;
+      color: var(--olive);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    /* Option A */
+    .layout-a {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .layout-a .brand {
+      position: relative;
+      z-index: 2;
+      padding: 18px 18px 0;
+    }
+
+    .layout-a .brand-title {
+      font: 500 34px/1.08 Georgia, "Songti SC", serif;
+      max-width: 340px;
+    }
+
+    .layout-a .console {
+      position: relative;
+      z-index: 2;
+      border-radius: 16px;
+      align-self: stretch;
+      min-height: 245px;
+    }
+
+    .layout-a .bottom {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .layout-a .stat {
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .layout-a .stat strong {
+      font: 500 26px Georgia, serif;
+      color: var(--near-black);
+    }
+
+    /* Option B */
+    .layout-b {
+      display: grid;
+      grid-template-columns: 1fr;
+      padding: 18px;
+      gap: 14px;
+      align-content: center;
+    }
+
+    .layout-b .login {
+      position: relative;
+      z-index: 3;
+      min-height: 260px;
+      padding: 28px;
+      border-radius: 18px;
+    }
+
+    .layout-b .console {
+      position: relative;
+      z-index: 2;
+      border-radius: 16px;
+      min-height: 156px;
+      transform: translateY(-6px);
+      opacity: .94;
+    }
+
+    .layout-b .metric-row {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .layout-b .chip {
+      height: 52px;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 11px;
+      color: var(--olive);
+    }
+
+    .layout-b .chip b {
+      display: block;
+      font: 500 18px Georgia, serif;
+      color: var(--near-black);
+    }
+
+    /* Option C */
+    .layout-c {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    .layout-c .command {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1.2fr .9fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .layout-c .console {
+      border-radius: 16px;
+      min-height: 330px;
+    }
+
+    .layout-c .side {
+      display: grid;
+      grid-template-rows: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .layout-c .step {
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .layout-c .step span {
+      color: var(--olive);
+      font-size: 12px;
+    }
+
+    .layout-c .step b {
+      font: 500 20px Georgia, serif;
+      color: var(--near-black);
+    }
+
+    .layout-c .login {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 18px;
+    }
+
+    .layout-c .login-text h2 { font-size: 24px; }
+    .layout-c .login-form .field { height: 34px; margin-bottom: 8px; }
+    .layout-c .login-form .button { height: 36px; }
+
+    @keyframes floatA {
+      0% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(30px,-50px) scale(1.1); }
+      66% { transform: translate(-20px,40px) scale(.9); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+
+    @keyframes floatB {
+      0% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(-40px,30px) scale(1.05); }
+      66% { transform: translate(20px,-30px) scale(.95); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+
+    @media (max-width: 980px) {
+      body { overflow: auto; }
+      .grid { grid-template-columns: 1fr; }
+      .mock { height: 500px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+    <div class="cursor-light"></div>
+    <div class="cursor-ring"></div>
+
+    <header class="head">
+      <div>
+        <h1>重新做 UI 与排版：console 回来，但要融进 home-v2</h1>
+        <p>背景沿用 home-v2。鼠标光效已加大到可见的暖白/陶土光圈，后续实现会让卡片边缘也响应指针位置。现在先选信息架构。</p>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="option" data-choice="console-hero" onclick="selectOption(this)">
+        <div class="mock layout-a">
+          <div class="brand">
+            <div class="brand-title">职业规划智能体正在启动</div>
+          </div>
+          <div class="console">
+            <div class="console-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>agent // career-planning-engine</span></div>
+            <div class="logs">
+              <div class="log"><span>├─</span><span>08:55:16</span><span class="kind">[加载]</span><span>简历解析引擎</span><span class="ok">✓</span></div>
+              <div class="log"><span>├─</span><span>08:55:19</span><span class="kind">[加载]</span><span>行业薪资数据库</span><span class="ok">✓</span></div>
+              <div class="log hot"><span>├─</span><span>08:55:21</span><span class="kind">[工具]</span><span>技能差距分析</span><span class="ok">✓</span></div>
+              <div class="log hot"><span>├─</span><span>08:55:23</span><span class="kind">[初始化]</span><span>MBTI 倾向评估</span><span class="ok">✓</span></div>
+              <div class="log hot"><span>└─</span><span>08:55:25</span><span class="kind">[预热]</span><span>岗位匹配引擎</span><span class="ok">✓</span></div>
+            </div>
+          </div>
+          <div class="bottom">
+            <div class="stat"><span>能力维度</span><strong>12</strong></div>
+            <div class="login"><h2>登录</h2><p>继续规划</p><div class="field"></div><div class="button"></div></div>
+          </div>
+        </div>
+        <div class="caption">
+          <h3>A. Console Hero</h3>
+          <p>console 是主视觉，登录表单更小。最有“启动智能体”的仪式感，适合强调动态效果。</p>
+        </div>
+      </article>
+
+      <article class="option" data-choice="form-center-console-support" onclick="selectOption(this)">
+        <div class="mock layout-b">
+          <div class="login">
+            <h2>欢迎回来</h2>
+            <p>继续进入你的职业规划首页</p>
+            <div class="field"></div>
+            <div class="field"></div>
+            <div class="button"></div>
+          </div>
+          <div class="console">
+            <div class="console-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>agent status</span></div>
+            <div class="logs">
+              <div class="log hot"><span>├─</span><span class="kind">[初始化]</span><span>能力维度矩阵 · 12维</span><span class="ok">✓</span></div>
+              <div class="log hot"><span>├─</span><span class="kind">[工具]</span><span>成长路径规划</span><span class="ok">✓</span></div>
+              <div class="log"><span>└─</span><span class="kind">[预热]</span><span>岗位匹配引擎</span><span class="ok">✓</span></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="chip">画像进度<b>72%</b></div>
+            <div class="chip">岗位库<b>24</b></div>
+            <div class="chip">阶段<b>初级</b></div>
+          </div>
+        </div>
+        <div class="caption">
+          <h3>B. Form Center + Console Support</h3>
+          <p>登录表单是主角，console 作为下方状态流。最稳、最清晰，但惊艳感相对克制。</p>
+        </div>
+      </article>
+
+      <article class="option" data-choice="command-center" onclick="selectOption(this)">
+        <div class="mock layout-c">
+          <div class="command">
+            <div class="console">
+              <div class="console-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>career-planning-engine</span></div>
+              <div class="logs">
+                <div class="log"><span>├─</span><span>13:42:18</span><span class="kind">[初始化]</span><span>能力维度矩阵 · 12维</span><span class="ok">✓</span></div>
+                <div class="log"><span>├─</span><span>13:42:19</span><span class="kind">[初始化]</span><span>霍兰德评估模型</span><span class="ok">✓</span></div>
+                <div class="log hot"><span>├─</span><span>08:55:21</span><span class="kind">[工具]</span><span>技能差距分析</span><span class="ok">✓</span></div>
+                <div class="log hot"><span>├─</span><span>08:55:25</span><span class="kind">[预热]</span><span>神经网络推理引擎</span><span class="ok">✓</span></div>
+                <div class="log hot"><span>├─</span><span>08:55:27</span><span class="kind">[工具]</span><span>成长路径规划</span><span class="ok">✓</span></div>
+                <div class="log"><span>└─</span><span>08:55:30</span><span class="kind">[加载]</span><span>岗位JD语料库</span><span class="ok">✓</span></div>
+              </div>
+            </div>
+            <div class="side">
+              <div class="step"><span>规划进度</span><b>72%</b></div>
+              <div class="step"><span>下一步</span><b>简历解析</b></div>
+              <div class="step"><span>匹配状态</span><b>Ready</b></div>
+            </div>
+          </div>
+          <div class="login">
+            <div class="login-text"><h2>进入系统</h2><p>智能体已完成预热</p></div>
+            <div class="login-form"><div class="field"></div><div class="field"></div><div class="button"></div></div>
+          </div>
+        </div>
+        <div class="caption">
+          <h3>C. Integrated Command Center</h3>
+          <p>console、状态卡、登录表单组成一个完整控制台。更像展示页，也最适合做强交互光效。</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    window.addEventListener('pointermove', (event) => {
+      root.style.setProperty('--mx', `${event.clientX}px`);
+      root.style.setProperty('--my', `${event.clientY}px`);
+    });
+    function selectOption(el) {
+      document.querySelectorAll('.option').forEach((node) => node.classList.remove('selected'));
+      el.classList.add('selected');
+      const detail = {
+        type: 'click',
+        choice: el.dataset.choice,
+        text: el.querySelector('h3')?.innerText || el.dataset.choice,
+        timestamp: Date.now() / 1000,
+      };
+      if (window.recordBrainstormEvent) window.recordBrainstormEvent(detail);
+    }
+  </script>
+</body>
+</html>
