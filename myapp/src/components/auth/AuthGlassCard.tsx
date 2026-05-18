@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Alert } from 'antd';
 import { createStyles } from 'antd-style';
 import { motion } from 'framer-motion';
@@ -25,6 +25,8 @@ const useStyles = createStyles(({ css, token }) => ({
     position: relative;
     overflow: hidden;
     width: 100%;
+    --auth-card-mouse-x: calc(var(--auth-mouse-x) - var(--auth-card-left, 0px));
+    --auth-card-mouse-y: calc(var(--auth-mouse-y) - var(--auth-card-top, 0px));
     padding: 52px 48px;
     border-radius: ${AUTH_RADIUS.glassCard}px;
     background: ${AUTH_SURFACE_COLORS.glassFill};
@@ -48,7 +50,7 @@ const useStyles = createStyles(({ css, token }) => ({
       opacity: var(--auth-spotlight-opacity);
       transition: opacity 260ms ease;
       background: radial-gradient(
-        260px circle at var(--auth-mouse-x) var(--auth-mouse-y),
+        260px circle at var(--auth-card-mouse-x) var(--auth-card-mouse-y),
         ${AUTH_SURFACE_COLORS.glassHighlight},
         ${AUTH_SURFACE_COLORS.clear} 64%
       );
@@ -67,8 +69,8 @@ const useStyles = createStyles(({ css, token }) => ({
       position: absolute;
       width: 420px;
       height: 420px;
-      left: calc(var(--auth-mouse-x) - 210px);
-      top: calc(var(--auth-mouse-y) - 210px);
+      left: calc(var(--auth-card-mouse-x) - 210px);
+      top: calc(var(--auth-card-mouse-y) - 210px);
       border-radius: 50%;
       pointer-events: none;
       opacity: calc(var(--auth-spotlight-opacity) * 0.72);
@@ -141,9 +143,42 @@ export function AuthGlassCard({
   morphing,
 }: AuthGlassCardProps) {
   const { styles, cx } = useStyles();
+  const cardRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    const surface = card?.closest<HTMLElement>('[data-testid="auth-right-surface"]');
+    if (!card || !surface) return undefined;
+
+    const syncCardOffset = () => {
+      const cardRect = card.getBoundingClientRect();
+      const surfaceRect = surface.getBoundingClientRect();
+      card.style.setProperty(
+        '--auth-card-left',
+        `${cardRect.left - surfaceRect.left}px`,
+      );
+      card.style.setProperty(
+        '--auth-card-top',
+        `${cardRect.top - surfaceRect.top}px`,
+      );
+    };
+
+    syncCardOffset();
+    window.addEventListener('resize', syncCardOffset);
+
+    const resizeObserver = new ResizeObserver(syncCardOffset);
+    resizeObserver.observe(card);
+    resizeObserver.observe(surface);
+
+    return () => {
+      window.removeEventListener('resize', syncCardOffset);
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <motion.section
+      ref={cardRef}
       className={styles.card}
       data-testid="auth-glass-card"
       data-variant={variant}
