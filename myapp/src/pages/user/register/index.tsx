@@ -27,7 +27,7 @@ import { Helmet, history, SelectLang, useIntl } from "@umijs/max";
 import { App, Form, Upload } from "antd";
 import { createStyles } from "antd-style";
 import type { UploadFile } from "antd/es/upload/interface";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import React, { startTransition, useEffect, useState } from "react";
 import Settings from "../../../../config/defaultSettings";
 
@@ -113,6 +113,10 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${claudeColors.stoneGray};
     margin-bottom: 8px;
   `,
+  stepStage: css`
+    position: relative;
+    overflow: hidden;
+  `,
   uploadZone: css`
     border: 2px dashed ${claudeColors.terracotta};
     border-radius: ${claudeRadius.xl}px;
@@ -189,6 +193,7 @@ const RegisterPage: React.FC = () => {
   const intl = useIntl();
   const [form] = Form.useForm<RegisterStepValues>();
   const [currentStep, setCurrentStep] = useState(0);
+  const [stepDirection, setStepDirection] = useState<1 | -1>(1);
   const [submitting, setSubmitting] = useState(false);
   const [registerState, setRegisterState] = useState<API.RegisterResult>({});
   const [jobTitleOptions, setJobTitleOptions] = useState<API.JobTitleOption[]>(
@@ -314,12 +319,12 @@ const RegisterPage: React.FC = () => {
   const strength = getPasswordStrength(passwordValue);
   const reducedMotion = prefersReducedMotion();
 
-  const stepVariants = reducedMotion
+  const stepVariants: Variants = reducedMotion
     ? { initial: {}, animate: {}, exit: {} }
     : {
-        initial: { opacity: 0, x: 24 },
+        initial: (direction: 1 | -1) => ({ opacity: 0, x: direction * 32 }),
         animate: { opacity: 1, x: 0 },
-        exit: { opacity: 0, x: -24 },
+        exit: (direction: 1 | -1) => ({ opacity: 0, x: direction * -32 }),
       };
 
   return (
@@ -376,19 +381,29 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <Form form={form} layout="vertical">
-              <AnimatePresence mode="wait" initial={false}>
-                {currentStep === 0 && (
-                  <motion.div
-                    key="step-0"
-                    variants={stepVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{
-                      duration: motionTokens.duration.normal,
-                      ease: motionTokens.easing.enter,
-                    }}
-                  >
+              <motion.div
+                layout
+                className={styles.stepStage}
+                transition={{
+                  duration: motionTokens.duration.normal,
+                  ease: motionTokens.easing.enter,
+                }}
+              >
+                <AnimatePresence custom={stepDirection} mode="wait" initial={false}>
+                  {currentStep === 0 && (
+                    <motion.div
+                      key="step-0"
+                      layout
+                      custom={stepDirection}
+                      variants={stepVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{
+                        duration: motionTokens.duration.normal,
+                        ease: motionTokens.easing.enter,
+                      }}
+                    >
                     <Form.Item
                       label="用户名"
                       name="username"
@@ -431,21 +446,23 @@ const RegisterPage: React.FC = () => {
                         </div>
                       </div>
                     )}
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
 
-                {currentStep === 1 && (
-                  <motion.div
-                    key="step-1"
-                    variants={stepVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{
-                      duration: motionTokens.duration.normal,
-                      ease: motionTokens.easing.enter,
-                    }}
-                  >
+                  {currentStep === 1 && (
+                    <motion.div
+                      key="step-1"
+                      layout
+                      custom={stepDirection}
+                      variants={stepVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{
+                        duration: motionTokens.duration.normal,
+                        ease: motionTokens.easing.enter,
+                      }}
+                    >
                     <Form.Item
                       label="姓名"
                       name="full_name"
@@ -505,21 +522,23 @@ const RegisterPage: React.FC = () => {
                         style={{ width: "100%" }}
                       />
                     </Form.Item>
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
 
-                {currentStep === 2 && (
-                  <motion.div
-                    key="step-2"
-                    variants={stepVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{
-                      duration: motionTokens.duration.normal,
-                      ease: motionTokens.easing.enter,
-                    }}
-                  >
+                  {currentStep === 2 && (
+                    <motion.div
+                      key="step-2"
+                      layout
+                      custom={stepDirection}
+                      variants={stepVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      transition={{
+                        duration: motionTokens.duration.normal,
+                        ease: motionTokens.easing.enter,
+                      }}
+                    >
                     <Form.Item label="简历图片">
                       <div data-testid="resume-upload-zone">
                         <Upload.Dragger
@@ -543,16 +562,20 @@ const RegisterPage: React.FC = () => {
                         </div>
                       </div>
                     </Form.Item>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </Form>
 
             <div className={styles.footer}>
               <ClaudeButton
                 variant="ghost"
                 disabled={currentStep === 0}
-                onClick={() => setCurrentStep((step) => step - 1)}
+                onClick={() => {
+                  setStepDirection(-1);
+                  setCurrentStep((step) => step - 1);
+                }}
               >
                 上一步
               </ClaudeButton>
@@ -561,6 +584,7 @@ const RegisterPage: React.FC = () => {
                   variant="terracotta"
                   onClick={async () => {
                     await validateCurrentStep();
+                    setStepDirection(1);
                     setCurrentStep((step) => step + 1);
                   }}
                 >
