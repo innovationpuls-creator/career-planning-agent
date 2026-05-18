@@ -256,6 +256,13 @@ Right card contains a two-tab visual control:
 
 The inactive tab triggers the route transition animation.
 
+Browser-native history navigation is different:
+
+- Back/forward browser navigation between `/user/login` and `/user/register` must not run the long morph animation.
+- Do not block or delay `POP` navigation for the sake of animation.
+- The target page may run a very short static settle animation if needed, but it must not depend on the previous page being mounted.
+- This keeps native navigation reliable and avoids long-history-interception edge cases.
+
 ### Route Morph Animation
 
 Replace the current auth fade/slide animation with a continuous glass-card morph.
@@ -285,6 +292,32 @@ Create auth-local shared motion utilities, for example:
 
 This is only for login/register in this implementation, but it should be designed as the future auth pattern for click-to-expand/collapse interactions.
 
+## Form Feedback States
+
+### Loading
+
+Loading feedback stays in the right glass card. The left coach tool console should not inject fake auth rows such as `[Auth] 正在验证密钥`.
+
+Login/register loading behavior:
+
+- Preserve existing button loading behavior.
+- Disable relevant form controls while the current request is pending.
+- Keep the glass card size stable.
+- Optionally intensify the right card border highlight or internal spotlight slightly while pending.
+- Do not alter the autonomous coach tool log cadence because of auth loading.
+
+### Errors
+
+Errors should be visible without breaking the glass composition.
+
+- Reserve a compact fixed-height error slot inside the glass card.
+- When there is no error, the slot remains visually empty but preserves layout stability.
+- When there is an error, show a compact error strip in that slot.
+- Add a red/error ring to the relevant input area when possible.
+- A single subtle shake on failed submit is allowed.
+- Disable the shake under `prefers-reduced-motion`.
+- Existing `message.error` behavior may remain as auxiliary feedback, but it must not be the only error presentation.
+
 ## Register Page Behavior
 
 Preserve current register flow:
@@ -297,6 +330,14 @@ Preserve current register flow:
 - Existing register -> login -> onboarding submission -> `/home-v2`.
 
 The glass card may grow to fit the register flow. It should not flash between steps. Internal step content can animate, but not with the old global fade pattern.
+
+Register step transitions:
+
+- Step changes use directional slide inside the glass card.
+- Moving forward slides the next step in from the right and current step out to the left.
+- Moving backward slides the previous step in from the left and current step out to the right.
+- The glass card height morphs to the next step's required height with the shared nonlinear easing.
+- Step transitions affect only the card's internal content and height. They do not animate the left art console or right background surface.
 
 ## Accessibility And Reduced Motion
 
@@ -359,6 +400,36 @@ Performance:
 - Background blobs and spotlight should update via CSS variables/DOM styles, not React state.
 - Console cycling can use local timers and fixed arrays.
 - Decorative layers should not re-render controlled form inputs.
+
+## Implementation Plan Notes
+
+The implementation plan must include the preserved HTML prototypes as explicit references. It should not simply say "follow the prototype"; it must identify which parts are to be reproduced and which parts are historical exploration.
+
+Required prototype references:
+
+- `docs/superpowers/specs/prototypes/2026-05-18-auth-login-register-redesign/login-target-draft-7.html`
+- `docs/superpowers/specs/prototypes/2026-05-18-auth-login-register-redesign/login-target-draft-8.html`
+- `docs/superpowers/specs/prototypes/2026-05-18-auth-login-register-redesign/login-target-draft-9.html`
+- `docs/superpowers/specs/prototypes/2026-05-18-auth-login-register-redesign/login-target-draft-10.html`
+
+The plan must state that AI implementation should replicate:
+
+- The final full-screen split-screen proportion from the user-provided HTML: left `55%`, right `45%`.
+- The left matte-black art terminal mood, mac dots, blueprint grid texture, serif art typography, and fixed login/register art copy.
+- The console append/stale/fade-out timing from `login-target-draft-8.html` and `.superpowers/brainstorm/current/content/login-v2.html`.
+- The right warm paper region with right-only autonomous drifting blobs, using the final palette: terracotta, warm gold/paper-white, and subtle green.
+- The dual-layer spotlight from the final spec, not the earlier four-edge light drafts.
+- The right glass card visual mood from the user-provided HTML, while keeping existing `ClaudeInput`, `ClaudePassword`, `ClaudeButton`, and existing register controls.
+- The auth morph transition behavior described in this spec.
+
+The plan must state that AI implementation should not replicate:
+
+- Early aurora/liquid/cinematic effects.
+- Extra stat cards, planning steps, or product-description controls inside the auth page.
+- Blue right-side blobs.
+- Mouse-driven background blob movement.
+- Four-edge mouse light bands as the final interaction model.
+- Fake auth logs in the left console.
 
 ## Open Decisions
 
