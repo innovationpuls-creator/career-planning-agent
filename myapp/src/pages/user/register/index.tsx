@@ -1,10 +1,14 @@
 import {
+  AuthGlassCard,
+  AuthSplitShell,
+  useAuthMorphTransition,
+} from "@/components/auth";
+import {
   ClaudeButton,
   ClaudeInput,
   ClaudePassword,
   ClaudeSelect,
 } from "@/components/ui";
-import { BrandPanel } from "@/components/ui/BrandPanel";
 import {
   getJobTitleOptions,
   login,
@@ -20,7 +24,7 @@ import { motionTokens, prefersReducedMotion } from "@/styles/motion";
 import { setAccessToken } from "@/utils/authToken";
 import { InboxOutlined, LockOutlined, UserOutlined } from "@ant-design/icons";
 import { Helmet, history, SelectLang, useIntl } from "@umijs/max";
-import { Alert, App, Form, Upload } from "antd";
+import { App, Form, Upload } from "antd";
 import { createStyles } from "antd-style";
 import type { UploadFile } from "antd/es/upload/interface";
 import { AnimatePresence, motion } from "framer-motion";
@@ -45,19 +49,6 @@ const GRADE_OPTIONS = [
 ].map((value) => ({ label: value, value }));
 
 const useStyles = createStyles(({ css, token }) => ({
-  formTitle: css`
-    font-size: ${token.fontSizeHeading2}px;
-    font-weight: 600;
-    color: ${token.colorText};
-    text-align: center;
-    margin-bottom: 4px;
-  `,
-  formSubtitle: css`
-    font-size: ${token.fontSize}px;
-    color: ${token.colorTextSecondary};
-    text-align: center;
-    margin-bottom: 24px;
-  `,
   stepIndicator: css`
     display: flex;
     justify-content: center;
@@ -206,6 +197,7 @@ const RegisterPage: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [accountCreated, setAccountCreated] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
+  const morph = useAuthMorphTransition("register");
 
   useEffect(() => {
     void getJobTitleOptions({ skipErrorHandler: true })
@@ -216,6 +208,14 @@ const RegisterPage: React.FC = () => {
         setJobTitleOptions([]);
       });
   }, []);
+
+  const goLogin = () => {
+    morph.startRouteMorph("login", () => {
+      startTransition(() => {
+        history.push("/user/login");
+      });
+    });
+  };
 
   const validateCurrentStep = async () => {
     if (currentStep === 0) {
@@ -334,17 +334,22 @@ const RegisterPage: React.FC = () => {
         </title>
       </Helmet>
       <Lang />
-      <div className="auth-root" data-testid="register-page-shell">
-        <BrandPanel />
-
-        {/* Right panel: form area */}
-        <div className="auth-right">
-          <div className="auth-card" data-testid="register-form-card">
-            <div className={styles.formTitle}>创建账户</div>
-            <div className={styles.formSubtitle}>
-              完成注册，开始职业规划之旅
-            </div>
-
+      <AuthSplitShell variant="register">
+        <AuthGlassCard
+          variant="register"
+          title="创建账户"
+          subtitle="完成注册，开始职业规划之旅"
+          errorMessage={
+            registerState.status === "error"
+              ? registerState.errorMessage || "提交失败"
+              : undefined
+          }
+          morphing={morph.isMorphing}
+          onTabChange={(target) => {
+            if (target === "login") goLogin();
+          }}
+        >
+          <div data-testid="register-form-card">
             {/* Custom step indicator */}
             <div className={styles.stepIndicator} data-testid="step-indicator">
               {STEPS.map((label, index) => (
@@ -369,15 +374,6 @@ const RegisterPage: React.FC = () => {
                 </div>
               ))}
             </div>
-
-            {registerState.status === "error" && (
-              <Alert
-                style={{ marginBottom: 16 }}
-                type="error"
-                showIcon
-                message={registerState.errorMessage || "提交失败"}
-              />
-            )}
 
             <Form form={form} layout="vertical">
               <AnimatePresence mode="wait" initial={false}>
@@ -583,17 +579,13 @@ const RegisterPage: React.FC = () => {
 
             <div
               className={styles.linkRow}
-              onClick={() => {
-                startTransition(() => {
-                  history.push("/user/login");
-                });
-              }}
+              onClick={goLogin}
             >
               返回登录
             </div>
           </div>
-        </div>
-      </div>
+        </AuthGlassCard>
+      </AuthSplitShell>
     </>
   );
 };
