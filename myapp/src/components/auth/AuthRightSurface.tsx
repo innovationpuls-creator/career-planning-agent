@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
 import { createStyles } from 'antd-style';
-import { AUTH_SURFACE_COLORS } from './constants';
+import { AUTH_LAYOUT, AUTH_SURFACE_COLORS } from './constants';
 import { useAuthRightSpotlight } from './useAuthRightSpotlight';
 
 const useStyles = createStyles(({ css }) => ({
@@ -20,6 +20,13 @@ const useStyles = createStyles(({ css }) => ({
       ${AUTH_SURFACE_COLORS.paperWhite},
       ${AUTH_SURFACE_COLORS.warmPaper}
     );
+
+    @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
+      flex: 0 0 auto;
+      min-height: 100svh;
+      align-items: flex-start;
+      padding: 32px 0;
+    }
   `,
   blobs: css`
     position: absolute;
@@ -91,6 +98,11 @@ const useStyles = createStyles(({ css }) => ({
     z-index: 1;
     width: min(100%, 520px);
     padding: 32px;
+
+    @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
+      width: 100%;
+      padding: 20px;
+    }
   `,
 }));
 

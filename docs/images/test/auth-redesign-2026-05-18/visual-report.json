@@ -1,0 +1,95 @@
+{
+  "login": {
+    "path": "/user/login",
+    "shell": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 900
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "width": 792,
+      "height": 900
+    },
+    "right": {
+      "x": 792,
+      "y": 0,
+      "width": 648,
+      "height": 900
+    },
+    "card": {
+      "x": 888,
+      "y": 165,
+      "width": 400,
+      "height": 570
+    },
+    "hasLoginCopy": true,
+    "hasToolText": true,
+    "blobInsideRight": true,
+    "blobLayerNames": "right right-warm-ambient",
+    "blobAnimation": "authBlobDrift"
+  },
+  "spotlight": {
+    "opacity": "1",
+    "mouseX": "440.6400146484375px",
+    "mouseY": "378px",
+    "cardLeft": "96px",
+    "cardTop": "165.15625px",
+    "afterIdle": "1",
+    "afterLeave": "0"
+  },
+  "console": {
+    "initialLog": 4,
+    "nextLog": 5,
+    "sample": "└─ [tool] recall_memory // 搜索记忆 | ● 460ms"
+  },
+  "morphLoginToRegisterImmediate": "/user/login",
+  "morphLoginToRegisterAfter": "/user/register",
+  "register": {
+    "path": "/user/register",
+    "hasRegisterCopy": true,
+    "hasFormCopy": true,
+    "hasStepOne": true,
+    "hasRegisterTool": true,
+    "step2Visible": true
+  },
+  "morphRegisterToLoginImmediate": "/user/register",
+  "morphRegisterToLoginAfter": "/user/login",
+  "popBack": "/user/register",
+  "popForward": "/user/login",
+  "mobile": {
+    "art": {
+      "top": 0,
+      "left": 0,
+      "width": 390,
+      "height": 844
+    },
+    "right": {
+      "top": 844,
+      "left": 0,
+      "width": 390,
+      "height": 844
+    },
+    "artBeforeRight": true,
+    "bodyScrollHeight": 844,
+    "viewportHeight": 844,
+    "note": "The app uses #root as the scroll container; see mobileRootScroll for reachability."
+  },
+  "mobileRootScroll": {
+    "before": {
+      "rootScrollHeight": 1688,
+      "rootClientHeight": 844,
+      "artTop": 0,
+      "rightTop": 844,
+      "artBeforeRight": true
+    },
+    "after": {
+      "rootScrollTop": 844,
+      "rightTop": 0,
+      "formTop": 397.828125,
+      "formVisible": true
+    }
+  }
+}

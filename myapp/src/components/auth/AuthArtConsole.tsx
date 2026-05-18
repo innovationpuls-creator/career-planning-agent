@@ -1,6 +1,7 @@
 import { createStyles } from 'antd-style';
 import {
   AUTH_ART_COPY,
+  AUTH_LAYOUT,
   AUTH_RADIUS,
   AUTH_SURFACE_COLORS,
 } from './constants';
@@ -21,6 +22,12 @@ const useStyles = createStyles(({ css, token }) => ({
     justify-content: space-between;
     overflow: hidden;
     background: ${AUTH_SURFACE_COLORS.terminal};
+
+    @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
+      flex: 0 0 auto;
+      min-height: 100svh;
+      padding: 40px 28px;
+    }
 
     &::after {
       content: '';

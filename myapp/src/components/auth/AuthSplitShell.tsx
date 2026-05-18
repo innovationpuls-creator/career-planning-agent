@@ -22,6 +22,8 @@ const useStyles = createStyles(({ css }) => ({
     @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
       display: flex;
       flex-direction: column;
+      min-height: auto;
+      height: auto;
       overflow: visible;
     }
   `,
