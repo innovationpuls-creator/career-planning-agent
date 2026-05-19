@@ -12,43 +12,58 @@ describe('useAuthMorphTransition', () => {
     jest.useRealTimers();
   });
 
-  it('delays navigation until the morph duration completes', () => {
-    const navigate = jest.fn();
+  it('returns false and does not change isMorphing when target equals current variant', () => {
     const { result } = renderHook(() => useAuthMorphTransition('login'));
 
+    let started: boolean = false;
     act(() => {
-      result.current.startRouteMorph('register', navigate);
+      started = result.current.startMorph('login');
     });
 
+    expect(started).toBe(false);
+    expect(result.current.isMorphing).toBe(false);
+    expect(result.current.direction).toBeUndefined();
+  });
+
+  it('starts morph state immediately and clears after duration', () => {
+    const { result } = renderHook(() => useAuthMorphTransition('login'));
+
+    let started: boolean = false;
+    act(() => {
+      started = result.current.startMorph('register');
+    });
+
+    expect(started).toBe(true);
     expect(result.current.isMorphing).toBe(true);
     expect(result.current.direction).toBe('to-register');
-    expect(navigate).not.toHaveBeenCalled();
+    expect(result.current.targetVariant).toBe('register');
 
     act(() => {
       jest.advanceTimersByTime(AUTH_MORPH.durationMs - 1);
     });
-    expect(navigate).not.toHaveBeenCalled();
+    expect(result.current.isMorphing).toBe(true);
 
     act(() => {
       jest.advanceTimersByTime(1);
     });
-    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(result.current.isMorphing).toBe(false);
+    expect(result.current.direction).toBeUndefined();
+    expect(result.current.targetVariant).toBeUndefined();
   });
 
-  it('does not navigate or morph when target is the current variant', () => {
-    const navigate = jest.fn();
+  it('returns false when a morph is already in progress (sync lock via morphingRef)', () => {
     const { result } = renderHook(() => useAuthMorphTransition('login'));
 
     act(() => {
-      result.current.startRouteMorph('login', navigate);
+      result.current.startMorph('register');
     });
 
-    expect(result.current.isMorphing).toBe(false);
-    expect(result.current.direction).toBeUndefined();
-
+    let secondStarted: boolean = false;
     act(() => {
-      jest.advanceTimersByTime(AUTH_MORPH.durationMs);
+      secondStarted = result.current.startMorph('register');
     });
-    expect(navigate).not.toHaveBeenCalled();
+
+    expect(secondStarted).toBe(false);
+    expect(result.current.isMorphing).toBe(true);
   });
 });

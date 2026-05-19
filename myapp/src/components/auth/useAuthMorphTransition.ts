@@ -1,29 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getMorphDirection } from './authMotion';
 import { AUTH_MORPH } from './constants';
-import type {
-  AuthExperienceVariant,
-  AuthMorphDirection,
-  AuthTabKey,
-} from './types';
+import type { AuthExperienceVariant, AuthMorphDirection } from './types';
 
 export interface UseAuthMorphTransitionResult {
   isMorphing: boolean;
   direction?: AuthMorphDirection;
-  startRouteMorph: (
-    target: AuthExperienceVariant,
-    navigate: () => void,
-  ) => void;
-  handleTabChange: (target: AuthTabKey) => void;
+  targetVariant?: AuthExperienceVariant;
+  startMorph: (target: AuthExperienceVariant) => boolean;
 }
 
 export function useAuthMorphTransition(
   current: AuthExperienceVariant,
-  navigateTarget?: (target: AuthExperienceVariant) => void,
 ): UseAuthMorphTransitionResult {
   const [isMorphing, setIsMorphing] = useState(false);
   const [direction, setDirection] = useState<AuthMorphDirection>();
+  const [targetVariant, setTargetVariant] = useState<AuthExperienceVariant>();
   const timerRef = useRef<number | undefined>(undefined);
+  const morphingRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -33,29 +27,30 @@ export function useAuthMorphTransition(
     };
   }, []);
 
-  const startRouteMorph = useCallback(
-    (target: AuthExperienceVariant, navigate: () => void) => {
-      if (target === current || isMorphing) return;
+  const startMorph = useCallback(
+    (target: AuthExperienceVariant): boolean => {
+      if (target === current || morphingRef.current) return false;
+      morphingRef.current = true;
       if (timerRef.current) window.clearTimeout(timerRef.current);
 
       setIsMorphing(true);
       setDirection(getMorphDirection(target));
+      setTargetVariant(target);
       timerRef.current = window.setTimeout(() => {
         setIsMorphing(false);
-        navigate();
+        setDirection(undefined);
+        setTargetVariant(undefined);
+        morphingRef.current = false;
       }, AUTH_MORPH.durationMs);
+      return true;
     },
-    [current, isMorphing],
+    [current],
   );
 
-  const handleTabChange = useCallback(
-    (target: AuthTabKey) => {
-      startRouteMorph(target, () => {
-        navigateTarget?.(target);
-      });
-    },
-    [navigateTarget, startRouteMorph],
-  );
-
-  return { isMorphing, direction, startRouteMorph, handleTabChange };
+  return {
+    isMorphing,
+    direction,
+    targetVariant,
+    startMorph,
+  };
 }

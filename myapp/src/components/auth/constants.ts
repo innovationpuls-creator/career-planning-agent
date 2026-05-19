@@ -15,14 +15,15 @@ export const AUTH_RADIUS = {
 
 export const AUTH_CONSOLE = {
   intervalMs: 2200,
+  initialRows: 5,
   maxRows: 8,
   visibleFreshRows: 4,
   fadeOutMs: 500,
 } as const;
 
 export const AUTH_MORPH = {
-  durationMs: 520,
-  easing: [0.16, 1, 0.3, 1] as [number, number, number, number],
+  durationMs: 500,
+  easing: [0.55, 0, 0.45, 1] as [number, number, number, number],
   settleDurationMs: 180,
 } as const;
 
@@ -42,6 +43,12 @@ export const AUTH_ART_COPY = {
 export const AUTH_SURFACE_COLORS = {
   terminal: claudeColors.nearBlack,
   terminalSoft: claudeColors.darkSurface,
+  terminalGrid: claudeAlpha(claudeColors.ivory, 0.07),
+  terminalArt: claudeAlpha(claudeColors.ivory, 0.85),
+  terminalSubtitle: claudeAlpha(claudeColors.warmSilver, 0.7),
+  consoleText: claudeAlpha(claudeColors.ivory, 0.36),
+  consoleHotText: claudeAlpha(claudeColors.ivory, 0.62),
+  consoleSuccess: claudeColors.success,
   paperWhite: claudeColors.ivory,
   warmPaper: claudeColors.parchment,
   terracotta: claudeColors.terracotta,
@@ -53,7 +60,7 @@ export const AUTH_SURFACE_COLORS = {
   spotlightCore: claudeAlpha(claudeColors.ivory, 0.58),
   spotlightSoft: claudeAlpha(claudeColors.ivory, 0.22),
   clear: claudeAlpha(claudeColors.ivory, 0),
-  macClose: claudeColors.errorText,
-  macMinimize: claudeColors.warning,
-  macMaximize: claudeColors.successText,
+  macClose: '#ff5f56',
+  macMinimize: '#ffbd2e',
+  macMaximize: '#27c93f',
 } as const;

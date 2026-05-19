@@ -1,14 +1,15 @@
 import { createStyles } from 'antd-style';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  LOGIN_TOOL_LOG_ITEMS,
+  REGISTER_TOOL_LOG_ITEMS,
+} from './coachToolLogData';
 import {
   AUTH_ART_COPY,
   AUTH_LAYOUT,
   AUTH_RADIUS,
   AUTH_SURFACE_COLORS,
 } from './constants';
-import {
-  LOGIN_TOOL_LOG_ITEMS,
-  REGISTER_TOOL_LOG_ITEMS,
-} from './coachToolLogData';
 import type { AuthExperienceVariant } from './types';
 import { useAuthToolLog } from './useAuthToolLog';
 
@@ -16,33 +17,29 @@ const useStyles = createStyles(({ css, token }) => ({
   shell: css`
     position: relative;
     min-height: 100vh;
-    padding: 48px 64px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    padding: 24px 32px;
     overflow: hidden;
     background: ${AUTH_SURFACE_COLORS.terminal};
 
     @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
       flex: 0 0 auto;
-      min-height: 100svh;
-      padding: 40px 28px;
+      min-height: 620px;
+      padding: 24px 28px;
     }
 
     &::after {
       content: '';
       position: absolute;
       inset: 0;
-      opacity: 0.08;
       pointer-events: none;
       background-image:
         linear-gradient(
-          ${token.colorBorderSecondary} 1px,
+          ${AUTH_SURFACE_COLORS.terminalGrid} 1px,
           ${AUTH_SURFACE_COLORS.clear} 1px
         ),
         linear-gradient(
           90deg,
-          ${token.colorBorderSecondary} 1px,
+          ${AUTH_SURFACE_COLORS.terminalGrid} 1px,
           ${AUTH_SURFACE_COLORS.clear} 1px
         );
       background-size: 40px 40px;
@@ -51,14 +48,17 @@ const useStyles = createStyles(({ css, token }) => ({
   content: css`
     position: relative;
     z-index: 1;
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    height: calc(100vh - 48px);
+    min-height: 572px;
+
+    @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
+      height: 572px;
+    }
   `,
   dots: css`
     display: flex;
     gap: 8px;
+    margin-bottom: 48px;
   `,
   dot: css`
     width: 12px;
@@ -67,53 +67,89 @@ const useStyles = createStyles(({ css, token }) => ({
     opacity: 0.75;
   `,
   art: css`
-    text-align: center;
-    margin-top: -10vh;
+    text-align: left;
+    max-width: 680px;
   `,
   artRegister: css`
     text-align: left;
-    padding-left: 20px;
   `,
   tag: css`
     font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
     font-weight: 500;
-    font-size: 12px;
-    color: ${token.colorPrimary};
-    letter-spacing: 8px;
-    margin-bottom: 28px;
+    font-size: 11px;
+    color: ${AUTH_SURFACE_COLORS.terracotta};
+    letter-spacing: 4px;
+    margin-bottom: 16px;
   `,
   title: css`
     white-space: pre-line;
     font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
     font-weight: 300;
-    font-size: 36px;
-    color: ${AUTH_SURFACE_COLORS.paperWhite};
-    letter-spacing: 16px;
-    line-height: 1.5;
-    margin: 0 0 24px;
+    font-size: 24px;
+    color: ${AUTH_SURFACE_COLORS.terminalArt};
+    letter-spacing: 8px;
+    line-height: 1.35;
+    margin: 0 0 12px;
+
+    @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
+      white-space: normal;
+      font-size: 22px;
+      letter-spacing: 6px;
+    }
   `,
   subtitle: css`
-    font-size: 13px;
-    color: ${token.colorTextQuaternary};
-    letter-spacing: 4px;
+    font-size: 11px;
+    color: ${AUTH_SURFACE_COLORS.terminalSubtitle};
+    letter-spacing: 1.5px;
   `,
   log: css`
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: clamp(190px, 28vh, 260px);
+    overflow: hidden;
     font-family: ${token.fontFamilyCode};
     font-size: 12px;
-    color: ${token.colorTextQuaternary};
+    color: ${AUTH_SURFACE_COLORS.consoleText};
     line-height: 2.2;
     border-radius: ${AUTH_RADIUS.terminal}px;
+    mask-image: linear-gradient(to bottom, black 0 78%, transparent 100%);
+
+    @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {
+      height: 210px;
+    }
   `,
   row: css`
     display: flex;
     justify-content: space-between;
-    gap: 40px;
+    gap: 22px;
+    white-space: nowrap;
+    transition:
+      opacity 0.35s ease,
+      transform 0.35s ease;
+
+    > span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    > span:last-child {
+      flex: 0 0 auto;
+    }
   `,
   stale: css`
-    opacity: 0.45;
+    opacity: 0.42;
+  `,
+  hot: css`
+    color: ${AUTH_SURFACE_COLORS.consoleHotText};
   `,
   running: css`
-    color: ${token.colorPrimary};
+    color: ${AUTH_SURFACE_COLORS.terracotta};
+  `,
+  success: css`
+    color: ${AUTH_SURFACE_COLORS.consoleSuccess};
   `,
 }));
 
@@ -145,22 +181,47 @@ export function AuthArtConsole({
             style={{ background: AUTH_SURFACE_COLORS.macMaximize }}
           />
         </div>
-        <div className={cx(styles.art, variant === 'register' && styles.artRegister)}>
-          <div className={styles.tag}>{copy.tag}</div>
-          <h2 className={styles.title}>{copy.title}</h2>
-          <div className={styles.subtitle}>{copy.subtitle}</div>
+        <div
+          className={cx(
+            styles.art,
+            variant === 'register' && styles.artRegister,
+          )}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={variant}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.5, ease: [0.55, 0, 0.45, 1] }}
+            >
+              <div className={styles.tag}>{copy.tag}</div>
+              <h2 className={styles.title}>{copy.title}</h2>
+              <div className={styles.subtitle}>{copy.subtitle}</div>
+            </motion.div>
+          </AnimatePresence>
         </div>
         <div className={styles.log} data-testid="auth-console-log">
           {lines.map((line, index) => (
             <div
               key={line.id}
-              className={cx(styles.row, line.stale && styles.stale)}
+              className={cx(
+                styles.row,
+                !line.stale && styles.hot,
+                line.stale && styles.stale,
+              )}
             >
               <span>
                 {index === lines.length - 1 ? '└─' : '├─'} [tool]{' '}
-                {line.toolName} // {line.displayName}
+                {line.toolName}
+                {' // '}
+                {line.displayName}
               </span>
-              <span className={line.status === 'running' ? styles.running : undefined}>
+              <span
+                className={
+                  line.status === 'running' ? styles.running : styles.success
+                }
+              >
                 {line.status === 'running' ? '●' : '✓'} {line.durationText}
               </span>
             </div>

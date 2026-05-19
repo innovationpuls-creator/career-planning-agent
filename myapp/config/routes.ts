@@ -4,14 +4,16 @@ export default [
     layout: false,
     routes: [
       {
-        name: 'login',
         path: '/user/login',
-        component: './user/login',
+        component: './user/layout',
       },
       {
-        name: 'register',
         path: '/user/register',
-        component: './user/register',
+        redirect: '/user/login?mode=register',
+      },
+      {
+        path: '/user',
+        redirect: '/user/login',
       },
     ],
   },

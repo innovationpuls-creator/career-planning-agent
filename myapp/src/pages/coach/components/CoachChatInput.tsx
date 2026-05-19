@@ -1,4 +1,4 @@
-import { Button, Input, Tag } from 'antd';
+import { Button, Input, Tag, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -209,6 +209,8 @@ export function CoachChatInput({
         onSend('你好', selectedSkill);
         setText('');
         setActiveIndex(0);
+      } else if (selectedSkill) {
+        message.warning('请输入文本');
       }
       return;
     }

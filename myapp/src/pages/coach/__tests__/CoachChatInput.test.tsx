@@ -7,6 +7,7 @@ jest.mock('antd-style', () => {
 });
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import { message } from 'antd';
 import { CoachChatInput } from '../components/CoachChatInput';
 
 const skills = [
@@ -126,5 +127,29 @@ describe('CoachChatInput skill slash command', () => {
       label: '读取能力画像',
       classification: 'readonly',
     });
+  });
+
+  it('prompts for text when sending a selected skill without extra message text', () => {
+    const onSend = jest.fn();
+    const warningSpy = jest
+      .spyOn(message, 'warning')
+      .mockImplementation(() => undefined as never);
+    render(
+      <CoachChatInput
+        onSend={onSend}
+        onStop={jest.fn()}
+        onUpload={jest.fn()}
+        isBusy={false}
+        skills={skills}
+      />,
+    );
+
+    const input = screen.getByPlaceholderText('输入你的问题，或输入 / 选择教练能力...');
+    fireEvent.change(input, { target: { value: '/read_profile ' } });
+    fireEvent.click(screen.getByRole('button', { name: /发\s*送/ }));
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(warningSpy).toHaveBeenCalledWith('请输入文本');
+    warningSpy.mockRestore();
   });
 });

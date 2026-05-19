@@ -35,7 +35,10 @@ export function useAuthToolLog(
   enabled = true,
 ): AuthToolLogLine[] {
   const seed = useMemo(
-    () => normalizeLines(items.slice(0, Math.min(items.length, 4)).map(makeLine)),
+    () =>
+      normalizeLines(
+        items.slice(0, Math.min(items.length, AUTH_CONSOLE.initialRows)).map(makeLine),
+      ),
     [items],
   );
   const [lines, setLines] = useState<AuthToolLogLine[]>(seed);
@@ -50,7 +53,9 @@ export function useAuthToolLog(
 
   useEffect(() => {
     return () => {
-      fadeTimerRef.current.forEach((timer) => window.clearTimeout(timer));
+      fadeTimerRef.current.forEach((timer) => {
+        window.clearTimeout(timer);
+      });
       fadeTimerRef.current = [];
       fadingIdsRef.current.clear();
     };

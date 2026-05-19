@@ -96,7 +96,9 @@ const useStyles = createStyles(({ css }) => ({
   content: css`
     position: relative;
     z-index: 1;
-    width: min(100%, 520px);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 584px;
     padding: 32px;
 
     @media (max-width: ${AUTH_LAYOUT.mobileBreakpoint}px) {

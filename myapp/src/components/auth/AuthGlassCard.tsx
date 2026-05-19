@@ -1,13 +1,9 @@
-import { useEffect, useRef, type ReactNode } from 'react';
 import { Alert } from 'antd';
 import { createStyles } from 'antd-style';
 import { motion } from 'framer-motion';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { authMorphTransition, authMorphVariants } from './authMotion';
-import {
-  AUTH_MORPH,
-  AUTH_RADIUS,
-  AUTH_SURFACE_COLORS,
-} from './constants';
+import { AUTH_MORPH, AUTH_RADIUS, AUTH_SURFACE_COLORS } from './constants';
 import type { AuthExperienceVariant, AuthTabKey } from './types';
 
 export interface AuthGlassCardProps {
@@ -18,6 +14,7 @@ export interface AuthGlassCardProps {
   onTabChange: (target: AuthTabKey) => void;
   errorMessage?: string;
   morphing?: boolean;
+  morphVariant?: AuthExperienceVariant;
 }
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -25,6 +22,8 @@ const useStyles = createStyles(({ css, token }) => ({
     position: relative;
     overflow: hidden;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     --auth-card-mouse-x: calc(var(--auth-mouse-x) - var(--auth-card-left, 0px));
     --auth-card-mouse-y: calc(var(--auth-mouse-y) - var(--auth-card-top, 0px));
     padding: 52px 48px;
@@ -34,11 +33,6 @@ const useStyles = createStyles(({ css, token }) => ({
     box-shadow: ${token.boxShadowSecondary};
     backdrop-filter: blur(30px) saturate(145%);
     -webkit-backdrop-filter: blur(30px) saturate(145%);
-    transition:
-      width ${AUTH_MORPH.durationMs}ms cubic-bezier(${AUTH_MORPH.easing.join(',')}),
-      max-width ${AUTH_MORPH.durationMs}ms cubic-bezier(${AUTH_MORPH.easing.join(',')}),
-      padding ${AUTH_MORPH.durationMs}ms cubic-bezier(${AUTH_MORPH.easing.join(',')}),
-      min-height ${AUTH_MORPH.durationMs}ms cubic-bezier(${AUTH_MORPH.easing.join(',')});
 
     &::before {
       content: '';
@@ -141,13 +135,17 @@ export function AuthGlassCard({
   onTabChange,
   errorMessage,
   morphing,
+  morphVariant,
 }: AuthGlassCardProps) {
   const { styles, cx } = useStyles();
   const cardRef = useRef<HTMLElement | null>(null);
+  const visualVariant = morphVariant ?? variant;
 
   useEffect(() => {
     const card = cardRef.current;
-    const surface = card?.closest<HTMLElement>('[data-testid="auth-right-surface"]');
+    const surface = card?.closest<HTMLElement>(
+      '[data-testid="auth-right-surface"]',
+    );
     if (!card || !surface) return undefined;
 
     const syncCardOffset = () => {
@@ -183,7 +181,8 @@ export function AuthGlassCard({
       data-testid="auth-glass-card"
       data-variant={variant}
       data-morphing={morphing ? 'true' : 'false'}
-      animate={authMorphVariants[variant]}
+      data-visual-variant={visualVariant}
+      animate={authMorphVariants[visualVariant]}
       transition={authMorphTransition}
       aria-busy={morphing}
     >
@@ -209,7 +208,9 @@ export function AuthGlassCard({
           ))}
         </div>
         <div className={styles.errorSlot} data-testid="auth-error-slot">
-          {errorMessage ? <Alert type="error" showIcon message={errorMessage} /> : null}
+          {errorMessage ? (
+            <Alert type="error" showIcon message={errorMessage} />
+          ) : null}
         </div>
         <div className={styles.content}>{children}</div>
       </div>
