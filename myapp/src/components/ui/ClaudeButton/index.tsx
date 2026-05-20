@@ -55,6 +55,12 @@ const useStyles = createStyles(({ css }) => ({
       box-shadow: none !important;
     }
   `,
+  content: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: inherit;
+  `,
   warmSand: css`
     background: ${claudeColors.warmSand};
     color: ${claudeColors.nearBlack};
@@ -71,10 +77,18 @@ const useStyles = createStyles(({ css }) => ({
     position: relative;
     overflow: hidden;
     background: ${claudeColors.terracotta};
-    color: #fff;
+    color: ${claudeColors.ivory} !important;
     border-radius: ${claudeRadius.lg}px;
     padding: 8px 16px;
     height: auto;
+
+    &.ant-btn,
+    &.ant-btn:hover,
+    &.ant-btn:focus-visible {
+      background: ${claudeColors.terracotta} !important;
+      border-color: transparent !important;
+      color: ${claudeColors.ivory} !important;
+    }
 
     /* Glow border — spinning conic-gradient ring */
     &.ant-btn::before {
@@ -216,7 +230,7 @@ export function ClaudeButton({
       className={cx(styles.base, variantMap[variant], className)}
       {...rest}
     >
-      {children}
+      <span className={styles.content}>{children}</span>
     </Button>
   );
 }
