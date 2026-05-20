@@ -5,6 +5,8 @@ import { history } from '@umijs/max';
 import { Button, ConfigProvider, Result, Spin } from 'antd';
 import React from 'react';
 import AppHeader from '@/components/AppHeader';
+import AuroraBackground from '@/components/AuroraBackground';
+import AuroraLoader from '@/components/AuroraLoader';
 import { PageRouteTransition } from '@/components/ui';
 import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
 import { serializeRequestParams } from '@/utils/requestParams';
@@ -163,6 +165,8 @@ export const layout: RunTimeLayoutConfig = ({
             },
           }}
         >
+          <AuroraBackground />
+          <AuroraLoader />
           <PageRouteTransition>{children}</PageRouteTransition>
           {isDev && (
             <SettingDrawer

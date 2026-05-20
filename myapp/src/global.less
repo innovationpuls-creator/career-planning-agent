@@ -161,12 +161,12 @@ body,
   min-height: 100vh;
 }
 
-// ProLayout content area — unified warm gradient background
+// ProLayout content area — transparent to let global aurora background show through.
 // !important required: ProLayout injects styles via CSS-in-JS at runtime,
 // which loads after static stylesheets and would otherwise override this rule.
 .ant-pro-layout-content,
 .ant-pro-layout-container {
-  background: var(--app-bg-page) !important;
+  background: transparent !important;
 }
 
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {

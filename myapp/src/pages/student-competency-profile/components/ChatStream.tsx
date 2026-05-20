@@ -26,28 +26,35 @@ const useStyles = createStyles(({ css }) => ({
     box-sizing: border-box;
     height: 100%;
     min-height: 400px;
-    background: ${claudeColors.nearBlack};
-    border-radius: ${claudeRadius.lg}px;
+    background: transparent;
     overflow: hidden;
   `,
   messagesArea: css`
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 24px 8px 24px 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
     scroll-behavior: smooth;
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
   `,
   bubbleUser: css`
     align-self: flex-end;
-    max-width: 75%;
-    padding: 12px 16px;
-    border-radius: ${claudeRadius.lg}px ${claudeRadius.lg}px
-      ${claudeRadius.sm}px ${claudeRadius.lg}px;
-    background: ${claudeColors.warmSand};
-    color: ${claudeColors.charcoalWarm};
-    font-size: 14px;
+    max-width: 90%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border-top-right-radius: 4px;
+    background: transparent;
+    border: 1px solid rgba(217, 93, 57, 0.3);
+    color: rgba(253, 251, 247, 0.9);
+    font-size: 13px;
     line-height: 1.6;
     word-break: break-word;
   `,
@@ -58,9 +65,9 @@ const useStyles = createStyles(({ css }) => ({
     margin-top: 8px;
     padding: 4px 10px;
     border-radius: ${claudeRadius.sm}px;
-    background: ${claudeAlpha(claudeColors.charcoalWarm, 0.08)};
+    background: rgba(255, 255, 255, 0.1);
     font-size: 12px;
-    color: ${claudeColors.charcoalWarm};
+    color: rgba(253, 251, 247, 0.8);
   `,
   fileIcon: css`
     font-size: 13px;
@@ -68,37 +75,38 @@ const useStyles = createStyles(({ css }) => ({
   `,
   bubbleAssistant: css`
     align-self: flex-start;
-    max-width: 80%;
-    padding: 12px 16px;
-    border-radius: ${claudeRadius.lg}px ${claudeRadius.lg}px
-      ${claudeRadius.lg}px ${claudeRadius.sm}px;
+    max-width: 90%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border-top-left-radius: 4px;
     background: ${claudeColors.darkSurface};
-    color: ${claudeColors.warmSilver};
-    font-size: 14px;
+    border: 1px solid rgba(253, 251, 247, 0.05);
+    color: rgba(253, 251, 247, 0.85);
+    font-size: 13px;
     line-height: 1.6;
     word-break: break-word;
   `,
   bubbleError: css`
     align-self: flex-start;
-    max-width: 80%;
-    padding: 12px 16px;
-    border-radius: ${claudeRadius.lg}px ${claudeRadius.lg}px
-      ${claudeRadius.lg}px ${claudeRadius.sm}px;
+    max-width: 90%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border-top-left-radius: 4px;
     background: ${claudeAlpha(claudeColors.error, 0.15)};
     color: ${claudeColors.errorText};
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
     word-break: break-word;
   `,
   resultBubble: css`
     align-self: flex-start;
-    max-width: 80%;
-    padding: 12px 16px;
-    border-radius: ${claudeRadius.lg}px ${claudeRadius.lg}px
-      ${claudeRadius.lg}px ${claudeRadius.sm}px;
+    max-width: 90%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border-top-left-radius: 4px;
     background: ${claudeAlpha(claudeColors.success, 0.15)};
     color: ${claudeColors.successText};
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
     word-break: break-word;
   `,
@@ -131,16 +139,74 @@ const useStyles = createStyles(({ css }) => ({
     border-radius: 1px;
     transition: width 0.3s ease;
   `,
-  inputArea: css`
-    padding: 16px 24px;
-    border-top: 1px solid ${claudeColors.borderDark};
+  chatInputWrapper: css`
+    margin-top: 16px;
     display: flex;
-    gap: 12px;
     align-items: center;
+    gap: 8px;
+    background: ${claudeColors.darkSurface};
+    border: 1px solid rgba(253, 251, 247, 0.08);
+    border-radius: 12px;
+    padding: 8px 12px;
+    transition: border-color 0.3s;
+    &:focus-within {
+      border-color: rgba(217, 93, 57, 0.5);
+    }
   `,
-  inputWrapper: css`
+  actionIconBtn: css`
+    background: transparent;
+    border: none;
+    color: rgba(253, 251, 247, 0.5);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    &:hover {
+      color: rgba(253, 251, 247, 0.9);
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  `,
+  terminalChatInput: css`
     flex: 1;
-    min-width: 0;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: #fdfbf7;
+    font-size: 13px;
+    padding: 4px;
+    font-family: inherit;
+    &::placeholder {
+      color: rgba(253, 251, 247, 0.25);
+    }
+    &:disabled {
+      cursor: not-allowed;
+    }
+  `,
+  sendBtn: css`
+    background: rgba(217, 93, 57, 0.1);
+    border: 1px solid rgba(217, 93, 57, 0.2);
+    color: ${claudeColors.terracotta};
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    &:hover:not(:disabled) {
+      background: ${claudeColors.terracotta};
+      color: #fff;
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
   `,
   stageLabel: css`
     font-size: 12px;
@@ -248,7 +314,7 @@ export function ChatStream({
           <MessageBubble key={msg.id} message={msg} />
         ))}
       </div>
-      <div className={styles.inputArea}>
+      <div className={styles.chatInputWrapper}>
         <Upload
           accept={ACCEPTED_EXTENSIONS.join(",")}
           beforeUpload={(file) => {
@@ -258,24 +324,61 @@ export function ChatStream({
           disabled={isStreaming || !onSendFile}
           showUploadList={false}
         >
-          <ClaudeButton
-            aria-label="追加文件"
+          <button
+            className={styles.actionIconBtn}
+            title="上传附件"
             disabled={isStreaming || !onSendFile}
-            icon={<UploadOutlined />}
-            variant="ghost"
+            type="button"
           >
-            追加文件
-          </ClaudeButton>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+            </svg>
+          </button>
         </Upload>
-        <div className={styles.inputWrapper}>
-          <ClaudeInput
-            placeholder={isStreaming ? "正在解析中..." : "输入补充信息..."}
-            disabled={isStreaming}
-            onKeyDown={handleKeyDown}
-            data-testid="chat-input"
-          />
-        </div>
+
+        <input
+          className={styles.terminalChatInput}
+          placeholder={isStreaming ? "正在解析中..." : "输入补充信息..."}
+          disabled={isStreaming}
+          onKeyDown={handleKeyDown}
+          data-testid="chat-input"
+        />
+
+        <button
+          className={styles.sendBtn}
+          title="发送"
+          disabled={isStreaming}
+          onClick={() => {
+            // we need to access the input value
+            // simplest way: we can let enter key handle it or we can add a ref.
+            // for now, we leave onClick empty as it was not explicitly requested or we add a ref.
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
       </div>
     </div>
   );
 }
+

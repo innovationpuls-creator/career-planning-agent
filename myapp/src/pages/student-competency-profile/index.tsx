@@ -198,149 +198,168 @@ const StudentCompetencyProfilePage: React.FC = () => {
     competency.conversation.currentProfile || competency.currentProfile
   );
 
+  const isFlipped =
+    hasResult ||
+    stream.isStreaming ||
+    stream.messages.length > 0 ||
+    competency.interactionStage === "workspace";
+
   if (competency.loading) return <PageLoading />;
   if (competency.error) return <PageError message={competency.error} />;
 
   return (
-    <GlassShell>
+    <div className={styles.shell}>
       <div className={styles.page}>
-        {!hasResult && !stream.isStreaming && (
-          <FadeInWhenVisible>
-            <div className={styles.uploadSection}>
-              <ResumeUploadZone
-                onUpload={handleUpload}
-                disabled={stream.isStreaming}
-              />
-            </div>
-          </FadeInWhenVisible>
-        )}
-
-        {(stream.messages.length > 0 ||
-          competency.interactionStage === "workspace") && (
-          <FadeInWhenVisible>
-            <div className={styles.section}>
-              <ChatStream
-                messages={stream.messages}
-                isStreaming={stream.isStreaming}
-                onSendText={handleSendText}
-                onSendFile={handleSendFile}
-              />
-            </div>
-          </FadeInWhenVisible>
-        )}
-
-        {hasResult && (
-          <FadeInWhenVisible>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: 12,
-              }}
-            >
-              <Space>
-                <AskCoachButton
-                  step="resume"
-                  context={{ sourcePage: "student-competency-profile" }}
+        <div className={styles.viewContainer}>
+          <div data-testid="flipper" className={`${styles.flipper} ${isFlipped ? "flipped" : ""}`}>
+            {/* Front */}
+            <div className={styles.viewFront}>
+              <div className={styles.uploadSection}>
+                <ResumeUploadZone
+                  onUpload={handleUpload}
+                  disabled={stream.isStreaming}
                 />
-                <ClaudeButton
-                  variant="ghost"
-                  onClick={async () => {
-                    const shouldResetStream = await competency.reset();
-                    if (shouldResetStream) stream.reset();
-                  }}
-                >
-                  重新解析
-                </ClaudeButton>
-              </Space>
+              </div>
             </div>
-            <Tabs
-              className={styles.tabs}
-              activeKey={competency.activeResultTab}
-              onChange={(key) =>
-                competency.setActiveResultTab(key as ResultTabKey)
-              }
-              items={[
-                {
-                  key: "result",
-                  label: "能力雷达",
-                  children: (
-                    <RadarScorePanel
-                      scores={competency.analysis.chart_series}
-                      onDimensionClick={competency.setActiveGapKey}
-                    />
-                  ),
-                },
-                {
-                  key: "advice",
-                  label: "差距分析",
-                  children: (
-                    <GapAnalysisPanel
-                      advices={competency.analysis.action_advices}
-                      priorityGaps={competency.analysis.priority_gap_dimensions}
-                      activeGapKey={competency.activeGapKey}
-                      onGapSelect={competency.setActiveGapKey}
-                    />
-                  ),
-                },
-                {
-                  key: "keyword",
-                  label: "关键字提取",
-                  children: (
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          marginBottom: 12,
-                        }}
+
+            {/* Back */}
+            <div className={styles.viewBack}>
+              {/* Left Panel */}
+              <div className={styles.panelLeft}>
+                <div className={styles.panelLeftContent}>
+                  <div className={styles.panelLeftHeader}>
+                    <div className={styles.macDots}>
+                      <span
+                        className={styles.macDot}
+                        style={{ background: "#ff5f56" }}
+                      />
+                      <span
+                        className={styles.macDot}
+                        style={{ background: "#ffbd2e" }}
+                      />
+                      <span
+                        className={styles.macDot}
+                        style={{ background: "#27c93f" }}
+                      />
+                    </div>
+                    <button
+                      className={styles.resetBtn}
+                      onClick={async () => {
+                        const shouldResetStream = await competency.reset();
+                        if (shouldResetStream) stream.reset();
+                      }}
+                      title="重置解析"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
-                        {competency.isEditing ? (
-                          <Space>
-                            <ClaudeButton
-                              variant="ghost"
-                              onClick={competency.cancelEdit}
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <polyline points="3 3 3 8 8 8"></polyline>
+                      </svg>
+                      重新解析
+                    </button>
+                  </div>
+                  <ChatStream
+                    messages={stream.messages}
+                    isStreaming={stream.isStreaming}
+                    onSendText={handleSendText}
+                    onSendFile={handleSendFile}
+                  />
+                </div>
+              </div>
+
+              {/* Right Panel */}
+              <div className={styles.panelRight}>
+                <div className={styles.tabsContainer}>
+                  <div className={styles.tabsHeaderContent}>
+                    <AskCoachButton
+                      step="resume"
+                      context={{ sourcePage: "student-competency-profile" }}
+                    />
+                  </div>
+                  <Tabs
+                    className={styles.tabs}
+                    activeKey={competency.activeResultTab}
+                    onChange={(key) =>
+                      competency.setActiveResultTab(key as ResultTabKey)
+                    }
+                    items={[
+                      {
+                        key: "result",
+                        label: "能力雷达",
+                        children: (
+                          <RadarScorePanel
+                            scores={competency.analysis.chart_series}
+                            onDimensionClick={competency.setActiveGapKey}
+                          />
+                        ),
+                      },
+                      {
+                        key: "advice",
+                        label: "差距分析",
+                        children: (
+                          <GapAnalysisPanel
+                            advices={competency.analysis.action_advices}
+                            priorityGaps={
+                              competency.analysis.priority_gap_dimensions
+                            }
+                            activeGapKey={competency.activeGapKey}
+                            onGapSelect={competency.setActiveGapKey}
+                          />
+                        ),
+                      },
+                      {
+                        key: "keyword",
+                        label: "关键字提取",
+                        children: (
+                          <div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 24,
+                              }}
                             >
-                              取消
-                            </ClaudeButton>
-                            <ClaudeButton
-                              variant="terracotta"
-                              onClick={() =>
+                              <span style={{ color: "var(--claude-warmSilver)" }}>
+                                点击卡片以集中编辑该维度的关键字标签
+                              </span>
+                            </div>
+                            <DimensionKeywordEditor
+                              dimensions={competency.editorProfile}
+                              tagInputs={competency.tagInputs}
+                              isEditing={competency.isEditing}
+                              onUpdateTagInput={competency.updateTagInput}
+                              onAddTag={competency.addTag}
+                              onRemoveTag={competency.removeTag}
+                              onStartEdit={competency.startEdit}
+                              onCancelEdit={competency.cancelEdit}
+                              onSaveEdit={() =>
                                 competency.save(
                                   competency.conversation.id,
                                   competency.conversation.difyConversationId
                                 )
                               }
-                            >
-                              保存
-                            </ClaudeButton>
-                          </Space>
-                        ) : (
-                          <ClaudeButton
-                            variant="warm-sand"
-                            onClick={competency.startEdit}
-                          >
-                            编辑
-                          </ClaudeButton>
-                        )}
-                      </div>
-                      <DimensionKeywordEditor
-                        dimensions={competency.editorProfile}
-                        tagInputs={competency.tagInputs}
-                        isEditing={competency.isEditing}
-                        onUpdateTagInput={competency.updateTagInput}
-                        onAddTag={competency.addTag}
-                        onRemoveTag={competency.removeTag}
-                      />
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          </FadeInWhenVisible>
-        )}
+                            />
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </GlassShell>
+    </div>
   );
 };
 

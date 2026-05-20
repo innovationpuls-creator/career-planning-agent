@@ -151,20 +151,13 @@ describe("StudentCompetencyProfilePage", () => {
     });
   });
 
-  it("hides chat stream on initial load (no black box)", async () => {
-    render(React.createElement(StudentCompetencyProfilePage));
-    await waitFor(() => {
-      expect(screen.getByText("拖放简历文件到此处")).toBeTruthy();
-    });
-    expect(screen.queryByPlaceholderText("输入补充信息...")).toBeNull();
-  });
-
-  it("hides upload zone when analysis result exists", async () => {
+  it("hides upload zone visually when analysis result exists", async () => {
     mockGetLatestAnalysis.mockResolvedValue({
       success: true,
       data: {
         ...emptyAnalysis,
         available: true,
+        workspace_conversation_id: "conv-1",
         profile: {
           professional_skills: ["Python"],
           professional_background: ["计算机"],
@@ -186,14 +179,15 @@ describe("StudentCompetencyProfilePage", () => {
       data: {
         dify_conversation_id: "dify-1",
         last_message_id: "msg-1",
-        profile: {},
+        profile: { professional_skills: ["Python"] },
         updated_at: "2024-01-01",
       },
     });
 
     render(React.createElement(StudentCompetencyProfilePage));
     await waitFor(() => {
-      expect(screen.queryByText("拖放简历文件到此处")).toBeNull();
+      const flipper = screen.getByTestId('flipper');
+      expect(flipper.classList.contains('flipped')).toBe(true);
     });
   });
 
@@ -412,7 +406,8 @@ describe("StudentCompetencyProfilePage", () => {
     await waitFor(() => {
       expect(screen.getByText("拖放简历文件到此处")).toBeTruthy();
     });
-    // Results tabs should be gone
-    expect(screen.queryByText("能力雷达")).toBeNull();
+    // Check if it is no longer flipped
+    const flipper = screen.getByTestId('flipper');
+    expect(flipper.classList.contains('flipped')).toBe(false);
   });
 });

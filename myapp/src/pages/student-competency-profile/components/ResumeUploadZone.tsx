@@ -27,16 +27,20 @@ const useStyles = createStyles(({ css }) => ({
     gap: 16px;
     min-height: 280px;
     padding: 48px 32px;
-    border: 2px dashed ${claudeColors.terracotta};
-    border-radius: ${claudeRadius.xl}px;
-    background: ${claudeColors.ivory};
+    border: 2px dashed rgba(0, 0, 0, 0.15);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 
     &:hover {
-      background: ${claudeColors.primaryBg};
-      border-color: ${claudeColors.primaryHover};
-      box-shadow: ${claudeShadows.whisper};
+      border-color: ${claudeColors.terracotta};
+      background: rgba(217, 93, 57, 0.04);
+      transform: scale(1.02);
+    }
+
+    &:hover .upload-icon {
+      color: ${claudeColors.terracotta};
     }
 
     :global(.ant-upload-drag) {
@@ -50,25 +54,24 @@ const useStyles = createStyles(({ css }) => ({
     }
   `,
   dropZoneDragging: css`
-    background: ${claudeColors.primaryBg};
-    border-color: ${claudeColors.primaryActive};
-    box-shadow: 0 0 0 3px ${claudeColors.primaryBg}, ${claudeShadows.whisper};
+    background: rgba(217, 93, 57, 0.08);
+    border-color: ${claudeColors.terracotta};
+    box-shadow: 0 0 0 3px rgba(217, 93, 57, 0.1), ${claudeShadows.whisper};
   `,
   icon: css`
-    font-size: 48px;
-    color: ${claudeColors.terracotta};
-    opacity: 0.7;
+    color: ${claudeColors.warmSilver};
+    transition: color 0.3s;
   `,
   title: css`
-    font-family: ${claudeFonts.heading};
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 24px;
+    font-weight: 500;
     color: ${claudeColors.nearBlack};
     margin: 0;
+    margin-bottom: 12px;
   `,
   subtitle: css`
     font-size: 14px;
-    color: ${claudeColors.stoneGray};
+    color: ${claudeColors.warmSilver};
     margin: 0;
   `,
   tagRow: css`
@@ -113,7 +116,7 @@ export function ResumeUploadZone({
         disabled={disabled}
         multiple
       >
-        <div className={styles.icon}>
+        <div className={`${styles.icon} upload-icon`}>
           <svg
             width="48"
             height="48"
@@ -121,8 +124,13 @@ export function ResumeUploadZone({
             fill="none"
             stroke="currentColor"
             strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
           </svg>
         </div>
         <p className={styles.title}>拖放简历文件到此处</p>

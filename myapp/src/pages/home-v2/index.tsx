@@ -7,8 +7,8 @@ import {
 import { PageContainer } from "@ant-design/pro-components";
 import { history } from "@umijs/max";
 import { Spin } from "antd";
-import { createStyles, keyframes } from "antd-style";
-import { useMemo } from "react";
+import { createStyles } from "antd-style";
+import { useEffect, useMemo, useRef } from "react";
 import { claudeColors, claudeAlpha } from "@/styles/claude-tokens";
 import { CtaSection } from "./components/CtaSection";
 import { GrowthRoadmap } from "./components/GrowthRoadmap";
@@ -71,19 +71,6 @@ const FALLBACK_NEXT_ACTION: API.HomeV2NextAction = {
 };
 
 const useStyles = createStyles(({ css }) => {
-  const float = keyframes`
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 40px) scale(0.9); }
-    100% { transform: translate(0, 0) scale(1); }
-  `;
-
-  const floatReverse = keyframes`
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(-40px, 30px) scale(1.05); }
-    66% { transform: translate(20px, -30px) scale(0.95); }
-    100% { transform: translate(0, 0) scale(1); }
-  `;
 
   return {
     pageContainer: css`
@@ -95,57 +82,10 @@ const useStyles = createStyles(({ css }) => {
     shell: css`
       min-height: 100vh;
       margin: -24px;
-      background-color: ${claudeColors.parchment};
+      background: transparent;
       padding: calc(var(--header-height, 56px) + 24px) 0 24px;
       position: relative;
       overflow: hidden;
-
-      /* Subtle noise texture to make blur look more like frosted glass */
-      &::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        opacity: 0.015;
-        pointer-events: none;
-        z-index: 1;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      }
-    `,
-    backgroundBlob1: css`
-      position: fixed;
-      top: -10vh;
-      right: -5vw;
-      width: 50vw;
-      height: 50vh;
-      background: radial-gradient(circle, ${claudeAlpha(claudeColors.terracotta, 0.5)} 0%, transparent 70%);
-      filter: blur(100px);
-      pointer-events: none;
-      z-index: 0;
-      animation: ${float} 20s infinite ease-in-out;
-    `,
-    backgroundBlob2: css`
-      position: fixed;
-      bottom: 10vh;
-      left: -5vw;
-      width: 45vw;
-      height: 45vh;
-      background: radial-gradient(circle, ${claudeAlpha('#4a90e2', 0.4)} 0%, transparent 70%);
-      filter: blur(80px);
-      pointer-events: none;
-      z-index: 0;
-      animation: ${floatReverse} 25s infinite ease-in-out;
-    `,
-    backgroundBlob3: css`
-      position: fixed;
-      top: 40vh;
-      left: 15vw;
-      width: 30vw;
-      height: 30vh;
-      background: radial-gradient(circle, ${claudeAlpha(claudeColors.success, 0.3)} 0%, transparent 70%);
-      filter: blur(70px);
-      pointer-events: none;
-      z-index: 0;
-      animation: ${float} 18s infinite ease-in-out;
     `,
     bandIvory: css`
       background-color: transparent;
@@ -185,6 +125,24 @@ const useStyles = createStyles(({ css }) => {
 export default function HomeV2Page() {
   const { styles } = useStyles();
   const { homeData, favorites, loading, error, refresh } = useHomeData();
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  /* ── Parallax scroll on bands ──────────────────────────────── */
+  useEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      el.querySelectorAll<HTMLElement>('[data-scroll-speed]').forEach((band) => {
+        const speed = parseFloat(band.dataset.scrollSpeed || '1');
+        band.style.transform = `translateY(${-(y * (1 - speed))}px)`;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const progress = homeData?.planning_progress;
   const profile = homeData?.profile;
@@ -270,11 +228,8 @@ export default function HomeV2Page() {
       title={false}
       pageHeaderRender={false}
     >
-      <div className={styles.shell}>
-        <div className={styles.backgroundBlob1} />
-        <div className={styles.backgroundBlob2} />
-        <div className={styles.backgroundBlob3} />
-        <div className={styles.bandIvory}>
+      <div className={styles.shell} ref={shellRef}>
+        <div className={styles.bandIvory} data-scroll-speed="0.95">
           <div className={styles.content}>
             <FadeInWhenVisible className={styles.section}>
               <HeroSection
@@ -299,7 +254,7 @@ export default function HomeV2Page() {
           </div>
         </div>
 
-        <div className={styles.bandParchment}>
+        <div className={styles.bandParchment} data-scroll-speed="0.90">
           <div className={styles.content}>
             <FadeInWhenVisible className={styles.section}>
               <PipelineSteps
@@ -321,7 +276,7 @@ export default function HomeV2Page() {
           </div>
         </div>
 
-        <div className={styles.bandIvory}>
+        <div className={styles.bandIvory} data-scroll-speed="0.85">
           <div className={styles.content}>
             {profile && (
               <FadeInWhenVisible className={styles.section}>

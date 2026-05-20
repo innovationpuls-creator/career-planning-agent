@@ -2,8 +2,7 @@ import { PageError, PageLoading } from '@/components/ui';
 import { createStyles } from 'antd-style';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from '@umijs/max';
-import { claudeColors, claudeAlpha, claudeGlass } from '@/styles/claude-tokens';
-import { orbFloat1, orbFloat2 } from './motion';
+import { claudeColors, claudeGlass } from '@/styles/claude-tokens';
 import { useCoachChat } from './hooks/useCoachChat';
 import { useSessionRecovery } from './hooks/useSessionRecovery';
 import { CoachChatBody } from './components/CoachChatBody';
@@ -23,69 +22,6 @@ const useStyles = createStyles(({ css }) => ({
     margin: -24px;
     position: relative;
     overflow: hidden;
-  `,
-  canvas: css`
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      140deg,
-      #f0e9db 0%,
-      #e6d9c4 30%,
-      #ede4d5 60%,
-      #f3ede2 100%
-    );
-  `,
-  orb: css`
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(50px);
-    pointer-events: none;
-  `,
-  orb1: css`
-    top: -8%;
-    right: -6%;
-    width: 42%;
-    height: 60%;
-    background: radial-gradient(
-      ellipse,
-      ${claudeAlpha(claudeColors.terracotta, 0.45)} 0%,
-      transparent 72%
-    );
-    animation: ${orbFloat1} 25s infinite ease-in-out;
-  `,
-  orb2: css`
-    bottom: -10%;
-    left: 20%;
-    width: 38%;
-    height: 50%;
-    background: radial-gradient(
-      ellipse,
-      rgba(74, 144, 226, 0.28) 0%,
-      transparent 70%
-    );
-    animation: ${orbFloat2} 30s infinite ease-in-out;
-  `,
-  orb3: css`
-    top: 40%;
-    left: 45%;
-    width: 30%;
-    height: 40%;
-    background: radial-gradient(
-      ellipse,
-      ${claudeAlpha(claudeColors.success, 0.22)} 0%,
-      transparent 70%
-    );
-    filter: blur(45px);
-    animation: ${orbFloat2} 22s infinite ease-in-out reverse;
-  `,
-  noise: css`
-    position: absolute;
-    inset: 0;
-    opacity: 0.022;
-    z-index: 3;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   `,
   content: css`
     position: relative;
@@ -220,12 +156,6 @@ export default function CoachPage() {
   if (sessionLoading) {
     return (
       <div className={styles.shell}>
-        <div className={styles.canvas}>
-          <div className={`${styles.orb} ${styles.orb1}`} />
-          <div className={`${styles.orb} ${styles.orb2}`} />
-          <div className={`${styles.orb} ${styles.orb3}`} />
-          <div className={styles.noise} />
-        </div>
         <div className={styles.content}>
           <div className={styles.main} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <PageLoading tip="加载对话历史..." />
@@ -241,12 +171,6 @@ export default function CoachPage() {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.canvas}>
-        <div className={`${styles.orb} ${styles.orb1}`} />
-        <div className={`${styles.orb} ${styles.orb2}`} />
-        <div className={`${styles.orb} ${styles.orb3}`} />
-        <div className={styles.noise} />
-      </div>
       <div className={styles.content}>
         <div className={styles.sidebar}>
           <CoachChatSidebar

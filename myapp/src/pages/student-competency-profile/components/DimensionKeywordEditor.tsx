@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { Collapse, Typography } from 'antd';
+import { Modal } from 'antd';
 import { createStyles } from 'antd-style';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ClaudeInput, ClaudeTag } from '@/components/ui';
 import {
   claudeAlpha,
@@ -14,11 +14,8 @@ import {
   hasMeaningfulValues,
   type JobProfileDimensions,
   PROFILE_FIELDS,
-  PROFILE_GROUPS,
   type ProfileKey,
 } from '../shared';
-
-const { Text } = Typography;
 
 interface DimensionKeywordEditorProps {
   dimensions: JobProfileDimensions;
@@ -27,6 +24,9 @@ interface DimensionKeywordEditorProps {
   onUpdateTagInput: (key: ProfileKey, value: string) => void;
   onAddTag: (key: ProfileKey) => void;
   onRemoveTag: (key: ProfileKey, value: string) => void;
+  onStartEdit?: () => void;
+  onCancelEdit?: () => void;
+  onSaveEdit?: () => void;
 }
 
 const FIELD_MAP = new Map(
@@ -34,186 +34,91 @@ const FIELD_MAP = new Map(
 );
 
 const useStyles = createStyles(({ css }) => ({
-  container: css`
-    background: ${claudeAlpha('#ffffff', 0.4)};
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
-    border-radius: ${claudeRadius.md}px;
-    padding: 24px;
-    width: 100%;
+  keywordGrid: css`
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
   `,
-  title: css`
-    font-family: ${claudeFonts.heading};
-    font-size: 18px;
+  dimensionCard: css`
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 0.2s;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    &:hover {
+      transform: translateY(-2px);
+      border-color: rgba(217, 93, 57, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    }
+  `,
+  dimHeader: css`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  `,
+  dimTitle: css`
+    font-size: 16px;
     font-weight: 600;
     color: ${claudeColors.nearBlack};
-    margin: 0 0 16px;
   `,
-  collapse: css`
-    background: transparent !important;
-    border: none !important;
-
-    :global(.ant-collapse-item) {
-      border: 1px solid ${claudeAlpha('#ffffff', 0.6)} !important;
-      border-radius: ${claudeRadius.md}px !important;
-      margin-bottom: 8px !important;
-      overflow: hidden;
-      background: ${claudeAlpha('#ffffff', 0.4)};
-    }
-
-    :global(.ant-collapse-header) {
-      font-family: ${claudeFonts.heading} !important;
-      font-weight: 600 !important;
-      color: ${claudeColors.nearBlack} !important;
-      padding: 14px 16px !important;
-    }
-
-    :global(.ant-collapse-content) {
-      border-top: 1px solid ${claudeAlpha('#ffffff', 0.6)} !important;
-      background: transparent;
-    }
-
-    :global(.ant-collapse-content-box) {
-      padding: 12px 16px !important;
-    }
-  `,
-  groupMeta: css`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `,
-  groupCount: css`
-    font-size: 12px;
-    color: ${claudeColors.stoneGray};
-    font-weight: 400;
-  `,
-  dimensionSection: css`
-    margin-bottom: 12px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  `,
-  dimensionLabel: css`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${claudeColors.charcoalWarm};
-    margin-bottom: 6px;
-  `,
-  dimensionDesc: css`
-    font-size: 11px;
-    color: ${claudeColors.stoneGray};
-    margin-bottom: 8px;
-  `,
-  tagRow: css`
+  tagsWrapper: css`
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    min-height: 28px;
-    align-items: center;
-    min-width: 0;
+    gap: 8px;
+  `,
+  tag: css`
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: ${claudeColors.nearBlack};
   `,
   emptyText: css`
     font-size: 13px;
     color: ${claudeColors.stoneGray};
     font-style: italic;
   `,
+  modalTitle: css`
+    font-size: 20px;
+    font-weight: 600;
+    color: ${claudeColors.nearBlack};
+    margin: 0 0 24px 0;
+  `,
   addRow: css`
     display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  `,
+  saveBtn: css`
+    width: 100%;
+    background: ${claudeColors.nearBlack};
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+    margin-top: 24px;
+    &:hover {
+      background: #3f3f46;
+    }
+  `,
+  editableTags: css`
+    display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
   `,
 }));
-
-function DimensionTags({
-  profileKey,
-  values,
-  tagInput,
-  isEditing,
-  onUpdateTagInput,
-  onAddTag,
-  onRemoveTag,
-}: {
-  profileKey: ProfileKey;
-  values: string[];
-  tagInput: string;
-  isEditing: boolean;
-  onUpdateTagInput: (key: ProfileKey, value: string) => void;
-  onAddTag: (key: ProfileKey) => void;
-  onRemoveTag: (key: ProfileKey, value: string) => void;
-}) {
-  const { styles } = useStyles();
-  const meta = FIELD_MAP.get(profileKey);
-  const hasValues = hasMeaningfulValues(values);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        onAddTag(profileKey);
-      }
-    },
-    [profileKey, onAddTag],
-  );
-
-  return (
-    <div className={styles.dimensionSection}>
-      <div className={styles.dimensionLabel}>{meta?.title || profileKey}</div>
-      <div className={styles.dimensionDesc}>{meta?.desc}</div>
-      <div className={styles.tagRow}>
-        {!hasValues && <span className={styles.emptyText}>暂无关键词</span>}
-        {values.map((value) =>
-          value === DEFAULT_VALUE ? null : (
-            <ClaudeTag
-              key={value}
-              closable={isEditing}
-              onClose={() => onRemoveTag(profileKey, value)}
-            >
-              {value}
-            </ClaudeTag>
-          ),
-        )}
-      </div>
-      {isEditing && (
-        <div className={styles.addRow}>
-          <ClaudeInput
-            size="small"
-            placeholder="输入关键词..."
-            value={tagInput}
-            onChange={(e) =>
-              onUpdateTagInput(profileKey, (e.target as HTMLInputElement).value)
-            }
-            onKeyDown={handleKeyDown}
-            style={{ maxWidth: 200 }}
-          />
-          <button
-            type="button"
-            onClick={() => onAddTag(profileKey)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 12px',
-              borderRadius: 32,
-              background: claudeColors.primaryBg,
-              color: claudeColors.terracotta,
-              fontSize: 13,
-              fontWeight: 500,
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <PlusOutlined style={{ fontSize: 10 }} /> 添加
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function DimensionKeywordEditor({
   dimensions,
@@ -222,51 +127,150 @@ export function DimensionKeywordEditor({
   onUpdateTagInput,
   onAddTag,
   onRemoveTag,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
 }: DimensionKeywordEditorProps) {
   const { styles } = useStyles();
+  const [activeKey, setActiveKey] = useState<ProfileKey | null>(null);
 
-  const collapseItems = PROFILE_GROUPS.map((group) => {
-    const activeCount = group.dimensionKeys.filter((key) =>
-      hasMeaningfulValues(dimensions[key as ProfileKey]),
-    ).length;
+  const handleCardClick = (key: ProfileKey) => {
+    onStartEdit?.();
+    setActiveKey(key);
+  };
 
-    return {
-      key: group.key,
-      label: (
-        <span className={styles.groupMeta}>
-          {group.title}
-          <span className={styles.groupCount}>
-            {activeCount}/{group.dimensionKeys.length} 已填充
-          </span>
-        </span>
-      ),
-      children: (
-        <div>
-          {group.dimensionKeys.map((key) => (
-            <DimensionTags
-              key={key}
-              profileKey={key as ProfileKey}
-              values={dimensions[key as ProfileKey] || []}
-              tagInput={tagInputs[key as ProfileKey] || ''}
-              isEditing={isEditing}
-              onUpdateTagInput={onUpdateTagInput}
-              onAddTag={onAddTag}
-              onRemoveTag={onRemoveTag}
-            />
-          ))}
-        </div>
-      ),
-    };
-  });
+  const handleModalClose = () => {
+    onCancelEdit?.();
+    setActiveKey(null);
+  };
+
+  const handleModalSave = () => {
+    onSaveEdit?.();
+    setActiveKey(null);
+  };
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && activeKey) {
+        e.preventDefault();
+        onAddTag(activeKey);
+      }
+    },
+    [activeKey, onAddTag]
+  );
 
   return (
-    <div className={styles.container} data-testid="dimension-keyword-editor">
-      <Text className={styles.title}>12 维度关键词</Text>
-      <Collapse
-        className={styles.collapse}
-        defaultActiveKey={PROFILE_GROUPS.map((g) => g.key)}
-        items={collapseItems}
-      />
+    <div data-testid="dimension-keyword-editor">
+      <div className={styles.keywordGrid}>
+        {PROFILE_FIELDS.map(([key]) => {
+          const profileKey = key as ProfileKey;
+          const meta = FIELD_MAP.get(profileKey);
+          const values = dimensions[profileKey] || [];
+          const displayValues = values.filter((v) => v !== DEFAULT_VALUE);
+          const hasValues = displayValues.length > 0;
+
+          return (
+            <div
+              key={profileKey}
+              className={styles.dimensionCard}
+              onClick={() => handleCardClick(profileKey)}
+            >
+              <div className={styles.dimHeader}>
+                <span className={styles.dimTitle}>
+                  {meta?.title || profileKey}
+                </span>
+              </div>
+              <div className={styles.tagsWrapper}>
+                {!hasValues && (
+                  <span className={styles.emptyText}>暂无关键词</span>
+                )}
+                {displayValues.map((value) => (
+                  <span key={value} className={styles.tag}>
+                    {value}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Modal
+        open={!!activeKey}
+        onCancel={handleModalClose}
+        footer={null}
+        width={500}
+        centered
+        destroyOnClose
+        styles={{
+          content: {
+            borderRadius: 20,
+            padding: 32,
+            background: claudeColors.ivory,
+          }
+        }}
+        closeIcon={
+          <span style={{ fontSize: 24, color: claudeColors.warmSilver }}>×</span>
+        }
+      >
+        {activeKey && (
+          <div>
+            <h2 className={styles.modalTitle}>
+              {FIELD_MAP.get(activeKey)?.title || activeKey}
+            </h2>
+            <div className={styles.editableTags}>
+              {(dimensions[activeKey] || [])
+                .filter((v) => v !== DEFAULT_VALUE)
+                .map((value) => (
+                  <ClaudeTag
+                    key={value}
+                    closable
+                    onClose={() => onRemoveTag(activeKey, value)}
+                  >
+                    {value}
+                  </ClaudeTag>
+                ))}
+            </div>
+            <div className={styles.addRow}>
+              <ClaudeInput
+                placeholder="输入关键词并回车..."
+                value={tagInputs[activeKey] || ''}
+                onChange={(e) =>
+                  onUpdateTagInput(activeKey, (e.target as HTMLInputElement).value)
+                }
+                onKeyDown={handleKeyDown}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => onAddTag(activeKey)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '0 16px',
+                  borderRadius: 8,
+                  background: claudeColors.primaryBg,
+                  color: claudeColors.terracotta,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  border: `1px solid ${claudeAlpha(claudeColors.terracotta, 0.2)}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusOutlined style={{ fontSize: 12 }} /> 添加
+              </button>
+            </div>
+            <button
+              className={styles.saveBtn}
+              onClick={handleModalSave}
+              type="button"
+            >
+              保存修改
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

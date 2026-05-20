@@ -32,22 +32,10 @@ describe('DimensionKeywordEditor', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the title', () => {
-    render(<DimensionKeywordEditor {...defaultProps} />);
-    expect(screen.getByText('12 维度关键词')).toBeTruthy();
-  });
 
   it('renders data-testid', () => {
     render(<DimensionKeywordEditor {...defaultProps} />);
     expect(screen.getByTestId('dimension-keyword-editor')).toBeTruthy();
-  });
-
-  it('renders group titles', () => {
-    render(<DimensionKeywordEditor {...defaultProps} />);
-    expect(screen.getByText(/基础背景/)).toBeTruthy();
-    expect(screen.getByText(/核心能力/)).toBeTruthy();
-    const supplementary = screen.getAllByText(/补充信息/);
-    expect(supplementary.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders dimension labels', () => {
@@ -68,21 +56,17 @@ describe('DimensionKeywordEditor', () => {
     expect(emptyTexts.length).toBeGreaterThan(0);
   });
 
-  it('shows fill count in group headers', () => {
-    render(<DimensionKeywordEditor {...defaultProps} />);
-    const filled = screen.getAllByText(/已填充/);
-    expect(filled.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it('shows add input when isEditing is true', () => {
-    render(<DimensionKeywordEditor {...defaultProps} isEditing={true} />);
-    const inputs = screen.getAllByPlaceholderText('输入关键词...');
-    expect(inputs.length).toBeGreaterThan(0);
-  });
-
-  it('does not show add input when isEditing is false', () => {
-    render(<DimensionKeywordEditor {...defaultProps} isEditing={false} />);
-    expect(screen.queryByPlaceholderText('输入关键词...')).toBeNull();
+  it('opens modal on card click', () => {
+    const onStartEdit = jest.fn();
+    render(
+      <DimensionKeywordEditor
+        {...defaultProps}
+        onStartEdit={onStartEdit}
+      />
+    );
+    fireEvent.click(screen.getByText('专业技能'));
+    expect(onStartEdit).toHaveBeenCalled();
+    expect(screen.getByPlaceholderText('输入关键词并回车...')).toBeTruthy();
   });
 
   it('calls onAddTag on Enter key in tag input', () => {
@@ -90,19 +74,12 @@ describe('DimensionKeywordEditor', () => {
     render(
       <DimensionKeywordEditor
         {...defaultProps}
-        isEditing={true}
         onAddTag={onAddTag}
       />,
     );
-    const inputs = screen.getAllByPlaceholderText('输入关键词...');
-    fireEvent.keyDown(inputs[0], { key: 'Enter' });
-    expect(onAddTag).toHaveBeenCalled();
-  });
-
-  it('renders dimension descriptions', () => {
-    render(<DimensionKeywordEditor {...defaultProps} />);
-    expect(
-      screen.getByText('与岗位直接相关的工具、语言、技术能力。'),
-    ).toBeTruthy();
+    fireEvent.click(screen.getByText('专业技能'));
+    const input = screen.getByPlaceholderText('输入关键词并回车...');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onAddTag).toHaveBeenCalledWith('professional_skills');
   });
 });
