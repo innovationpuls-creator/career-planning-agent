@@ -317,6 +317,18 @@ describe("StudentCompetencyProfilePage", () => {
             market_importance: 80,
             user_readiness: 60,
           },
+          {
+            key: "teamwork",
+            title: "团队协作能力",
+            market_importance: 70,
+            user_readiness: 50,
+          },
+          {
+            key: "communication",
+            title: "沟通表达能力",
+            market_importance: 75,
+            user_readiness: 65,
+          },
         ],
         action_advices: [
           {

@@ -1,5 +1,5 @@
 import { Radar } from '@ant-design/charts';
-import { Empty, Typography } from 'antd';
+import { Empty, Typography, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React, {
   useCallback,
@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { studentCompetencyRadarColors } from '@/styles/chart-tokens';
 import {
   claudeAlpha,
   claudeColors,
@@ -21,6 +22,7 @@ const { Text } = Typography;
 interface RadarScorePanelProps {
   scores: API.StudentCompetencyChartSeriesItem[];
   onDimensionClick?: (key: string) => void;
+  isStreaming?: boolean;
 }
 
 const DIMENSION_SHORT_LABELS: Record<string, string> = Object.fromEntries(
@@ -128,22 +130,29 @@ const useStyles = createStyles(({ css }) => ({
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: ${claudeColors.terracotta};
-    border: 1.5px solid ${claudeColors.terracotta};
+    background: ${studentCompetencyRadarColors.marketImportance};
+    border: 1.5px solid ${studentCompetencyRadarColors.marketImportance};
   `,
 }));
 
 export function RadarScorePanel({
   scores,
   onDimensionClick,
+  isStreaming,
 }: RadarScorePanelProps) {
   const { styles } = useStyles();
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartSize, setChartSize] = useState({ width: 0, height: 320 });
+  const hasRenderableScores = scores.length >= 3;
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    if (!hasRenderableScores || !el) {
+      setChartSize((cur) =>
+        cur.width === 0 && cur.height === 320 ? cur : { width: 0, height: 320 },
+      );
+      return undefined;
+    }
 
     const update = () => {
       const w = Math.max(Math.floor(el.clientWidth), 0);
@@ -153,11 +162,28 @@ export function RadarScorePanel({
       );
     };
 
+    let frameId = 0;
+    const scheduleUpdate = () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(update);
+    };
+
     update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    scheduleUpdate();
+    const timeoutId = window.setTimeout(update, 120);
+    const observer =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    observer?.observe(el);
+    window.addEventListener('resize', update);
+    document.addEventListener('visibilitychange', scheduleUpdate);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+      observer?.disconnect();
+      window.removeEventListener('resize', update);
+      document.removeEventListener('visibilitychange', scheduleUpdate);
+    };
+  }, [hasRenderableScores]);
 
   const chartData = useMemo(
     () =>
@@ -192,7 +218,15 @@ export function RadarScorePanel({
       xField: 'dimension',
       yField: 'value',
       colorField: 'category',
-      scale: { y: { domain: [0, 100] } },
+      scale: {
+        y: { domain: [0, 100] },
+        color: {
+          range: [
+            studentCompetencyRadarColors.marketImportance,
+            studentCompetencyRadarColors.userReadiness,
+          ],
+        },
+      },
       style: {
         lineWidth: 2,
       },
@@ -223,13 +257,36 @@ export function RadarScorePanel({
     [chartData],
   );
 
-  if (!scores.length) {
+  if (!hasRenderableScores) {
+    if (isStreaming && scores.length === 0) {
+      return (
+        <div className={styles.panel}>
+          <div className={styles.emptyWrap}>
+            <div
+              style={{
+                textAlign: 'center',
+                color: claudeColors.stoneGray,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Spin size="large" style={{ marginBottom: 16 }} />
+              <div>正在深度分析您的简历与经历，请稍候...</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className={styles.panel}>
         <div className={styles.emptyWrap}>
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="暂无维度数据"
+            description={
+              scores.length > 0 ? '正在生成多维雷达图...' : '暂无维度数据'
+            }
           />
         </div>
       </div>
@@ -244,7 +301,7 @@ export function RadarScorePanel({
       <div className={styles.chartWrap} ref={containerRef}>
         {chartSize.width > 0 ? (
           <Radar
-            key={`${chartSize.width}-${chartSize.height}-${chartData.length}`}
+            key={`${chartSize.width}-${chartSize.height}`}
             {...config}
             autoFit={false}
             width={chartSize.width}
@@ -269,8 +326,8 @@ export function RadarScorePanel({
           <span
             className={styles.legendDot}
             style={{
-              background: 'transparent',
-              borderColor: claudeColors.oliveGray,
+              background: studentCompetencyRadarColors.userReadiness,
+              borderColor: studentCompetencyRadarColors.userReadiness,
             }}
           />
           个人准备度

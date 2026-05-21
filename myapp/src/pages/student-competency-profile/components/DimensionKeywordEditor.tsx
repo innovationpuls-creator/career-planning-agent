@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Modal, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useCallback, useState } from 'react';
 import { ClaudeInput, ClaudeTag } from '@/components/ui';
@@ -27,6 +27,7 @@ interface DimensionKeywordEditorProps {
   onStartEdit?: () => void;
   onCancelEdit?: () => void;
   onSaveEdit?: () => void;
+  isStreaming?: boolean;
 }
 
 const FIELD_MAP = new Map(
@@ -161,6 +162,7 @@ export function DimensionKeywordEditor({
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
+  isStreaming,
 }: DimensionKeywordEditorProps) {
   const { styles } = useStyles();
   const [activeKey, setActiveKey] = useState<ProfileKey | null>(null);
@@ -195,7 +197,13 @@ export function DimensionKeywordEditor({
       <div className={styles.header}>
         <span>点击卡片以集中编辑该维度的关键字标签</span>
       </div>
-      <div className={styles.keywordGrid}>
+      {isStreaming && !Object.values(dimensions || {}).some(arr => arr && arr.length > 0 && arr[0] !== DEFAULT_VALUE) ? (
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 300, color: claudeColors.stoneGray }}>
+          <Spin size="large" style={{ marginBottom: 16 }} />
+          <div>正在提取维度关键词，请稍候...</div>
+        </div>
+      ) : (
+        <div className={styles.keywordGrid}>
         {PROFILE_FIELDS.map(([key]) => {
           const profileKey = key as ProfileKey;
           const meta = FIELD_MAP.get(profileKey);
@@ -228,6 +236,7 @@ export function DimensionKeywordEditor({
           );
         })}
       </div>
+      )}
 
       <Modal
         open={!!activeKey}

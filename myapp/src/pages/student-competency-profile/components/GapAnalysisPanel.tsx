@@ -1,5 +1,5 @@
 import { WarningOutlined } from '@ant-design/icons';
-import { Collapse, Typography } from 'antd';
+import { Collapse, Typography, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { ClaudeTag } from '@/components/ui';
@@ -17,6 +17,7 @@ interface GapAnalysisPanelProps {
   priorityGaps: string[];
   activeGapKey: string | undefined;
   onGapSelect: (key: string) => void;
+  isStreaming?: boolean;
 }
 
 const useStyles = createStyles(({ css }) => ({
@@ -174,6 +175,7 @@ export function GapAnalysisPanel({
   priorityGaps,
   activeGapKey,
   onGapSelect,
+  isStreaming,
 }: GapAnalysisPanelProps) {
   const { styles, cx } = useStyles();
 
@@ -185,8 +187,19 @@ export function GapAnalysisPanel({
   });
 
   if (!sorted.length) {
+    if (isStreaming) {
+      return (
+        <div className={styles.panel} data-testid="gap-analysis-panel">
+          <Text className={styles.title}>差距分析与提升建议</Text>
+          <div className={styles.emptyText} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0' }}>
+            <Spin size="large" style={{ marginBottom: 16 }} />
+            <div>正在分析差距并生成提升建议，请稍候...</div>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className={styles.panel}>
+      <div className={styles.panel} data-testid="gap-analysis-panel">
         <Text className={styles.title}>差距分析与提升建议</Text>
         <div className={styles.emptyText}>暂无差距分析数据</div>
       </div>

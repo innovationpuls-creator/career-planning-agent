@@ -298,6 +298,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
                           <RadarScorePanel
                             scores={competency.analysis.chart_series}
                             onDimensionClick={competency.setActiveGapKey}
+                            isStreaming={stream.isStreaming}
                           />
                         ),
                       },
@@ -312,6 +313,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
                             }
                             activeGapKey={competency.activeGapKey}
                             onGapSelect={competency.setActiveGapKey}
+                            isStreaming={stream.isStreaming}
                           />
                         ),
                       },
@@ -334,6 +336,7 @@ const StudentCompetencyProfilePage: React.FC = () => {
                                 competency.conversation.difyConversationId
                               )
                             }
+                            isStreaming={stream.isStreaming}
                           />
                         ),
                       },
