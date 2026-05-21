@@ -34,25 +34,47 @@ const FIELD_MAP = new Map(
 );
 
 const useStyles = createStyles(({ css }) => ({
+  panel: css`
+    background: ${claudeAlpha('#ffffff', 0.4)};
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
+    border-radius: ${claudeRadius.md}px;
+    padding: 24px;
+  `,
+  header: css`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    color: ${claudeColors.warmSilver};
+    font-size: 14px;
+  `,
   keywordGrid: css`
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    @media (max-width: 768px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    @media (max-width: 1024px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @media (max-width: 640px) {
       grid-template-columns: 1fr;
     }
   `,
   dimensionCard: css`
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 12px;
-    padding: 24px;
-    transition: all 0.2s;
+    padding: 20px;
+    transition: all 0.2s ease;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
     &:hover {
       transform: translateY(-2px);
-      border-color: rgba(217, 93, 57, 0.3);
+      border-color: ${claudeAlpha(claudeColors.terracotta, 0.3)};
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
     }
   `,
@@ -60,12 +82,14 @@ const useStyles = createStyles(({ css }) => ({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   `,
   dimTitle: css`
-    font-size: 16px;
+    font-family: ${claudeFonts.heading};
+    font-size: 17px;
     font-weight: 600;
     color: ${claudeColors.nearBlack};
+    letter-spacing: 0.02em;
   `,
   tagsWrapper: css`
     display: flex;
@@ -73,17 +97,24 @@ const useStyles = createStyles(({ css }) => ({
     gap: 8px;
   `,
   tag: css`
-    background: rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: ${claudeColors.ivory};
+    border: 1px solid ${claudeColors.borderWarm};
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 13px;
-    color: ${claudeColors.nearBlack};
+    color: ${claudeColors.oliveGray};
+    transition: all 0.2s ease;
   `,
   emptyText: css`
     font-size: 13px;
     color: ${claudeColors.stoneGray};
-    font-style: italic;
+    font-style: normal;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px dashed ${claudeColors.borderCream};
+    padding: 4px 10px;
+    border-radius: 6px;
+    width: 100%;
+    text-align: center;
   `,
   modalTitle: css`
     font-size: 20px;
@@ -160,7 +191,10 @@ export function DimensionKeywordEditor({
   );
 
   return (
-    <div data-testid="dimension-keyword-editor">
+    <div data-testid="dimension-keyword-editor" className={styles.panel}>
+      <div className={styles.header}>
+        <span>点击卡片以集中编辑该维度的关键字标签</span>
+      </div>
       <div className={styles.keywordGrid}>
         {PROFILE_FIELDS.map(([key]) => {
           const profileKey = key as ProfileKey;

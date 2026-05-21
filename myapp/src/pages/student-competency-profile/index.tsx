@@ -319,36 +319,22 @@ const StudentCompetencyProfilePage: React.FC = () => {
                         key: "keyword",
                         label: "关键字提取",
                         children: (
-                          <div>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 24,
-                              }}
-                            >
-                              <span style={{ color: "var(--claude-warmSilver)" }}>
-                                点击卡片以集中编辑该维度的关键字标签
-                              </span>
-                            </div>
-                            <DimensionKeywordEditor
-                              dimensions={competency.editorProfile}
-                              tagInputs={competency.tagInputs}
-                              isEditing={competency.isEditing}
-                              onUpdateTagInput={competency.updateTagInput}
-                              onAddTag={competency.addTag}
-                              onRemoveTag={competency.removeTag}
-                              onStartEdit={competency.startEdit}
-                              onCancelEdit={competency.cancelEdit}
-                              onSaveEdit={() =>
-                                competency.save(
-                                  competency.conversation.id,
-                                  competency.conversation.difyConversationId
-                                )
-                              }
-                            />
-                          </div>
+                          <DimensionKeywordEditor
+                            dimensions={competency.editorProfile}
+                            tagInputs={competency.tagInputs}
+                            isEditing={competency.isEditing}
+                            onUpdateTagInput={competency.updateTagInput}
+                            onAddTag={competency.addTag}
+                            onRemoveTag={competency.removeTag}
+                            onStartEdit={competency.startEdit}
+                            onCancelEdit={competency.cancelEdit}
+                            onSaveEdit={() =>
+                              competency.save(
+                                competency.conversation.id,
+                                competency.conversation.difyConversationId
+                              )
+                            }
+                          />
                         ),
                       },
                     ]}

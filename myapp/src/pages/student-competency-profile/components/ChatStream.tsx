@@ -1,10 +1,8 @@
-import { ClaudeButton, ClaudeInput } from "@/components/ui";
 import {
   claudeAlpha,
   claudeColors,
   claudeRadius,
 } from "@/styles/claude-tokens";
-import { UploadOutlined } from "@ant-design/icons";
 import { Upload } from "antd";
 import { createStyles } from "antd-style";
 import React, { useEffect, useRef } from "react";
@@ -109,6 +107,39 @@ const useStyles = createStyles(({ css }) => ({
     font-size: 13px;
     line-height: 1.6;
     word-break: break-word;
+    white-space: pre-wrap;
+  `,
+  '@keyframes sweep': {
+    '0%': { backgroundPosition: '-200% center' },
+    '100%': { backgroundPosition: '200% center' },
+  },
+  glowingText: css`
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: sweep 2.5s linear infinite;
+    display: inline-block;
+  `,
+  glowingTextAssistant: css`
+    background-image: linear-gradient(
+      120deg,
+      rgba(253, 251, 247, 0.85) 0%,
+      rgba(255, 255, 255, 1) 40%,
+      ${claudeColors.terracotta} 50%,
+      rgba(255, 255, 255, 1) 60%,
+      rgba(253, 251, 247, 0.85) 100%
+    );
+  `,
+  glowingTextResult: css`
+    background-image: linear-gradient(
+      120deg,
+      ${claudeColors.successText} 0%,
+      #4ade80 40%,
+      #86efac 50%,
+      #4ade80 60%,
+      ${claudeColors.successText} 100%
+    );
   `,
   cursor: css`
     display: inline-block;
@@ -216,8 +247,43 @@ const useStyles = createStyles(({ css }) => ({
   `,
 }));
 
+function TypewriterText({ text, className, animate = true }: { text: string; className?: string; animate?: boolean }) {
+  const [displayed, setDisplayed] = React.useState(animate ? '' : text);
+
+  React.useEffect(() => {
+    if (!animate) {
+      setDisplayed(text);
+      return;
+    }
+
+    setDisplayed((prev) => {
+      if (!text.startsWith(prev)) return '';
+      return prev;
+    });
+
+    const interval = setInterval(() => {
+      setDisplayed((prev) => {
+        if (prev.length >= text.length) {
+          clearInterval(interval);
+          return prev;
+        }
+        return text.slice(0, prev.length + 1);
+      });
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, [text, animate]);
+
+  return <span className={className}>{displayed}</span>;
+}
+
 function MessageBubble({ message }: { message: WorkspaceMessage }) {
   const { styles } = useStyles();
+
+  const isNewMessage = React.useMemo(() => {
+    if (!message.createdAt) return false;
+    return Date.now() - new Date(message.createdAt).getTime() < 5000;
+  }, [message.createdAt]);
 
   // Skip empty completed non-result messages (cleared status bubbles)
   if (
@@ -257,9 +323,10 @@ function MessageBubble({ message }: { message: WorkspaceMessage }) {
   }
 
   if (message.kind === "result") {
+    const text = message.content || "解析结果已生成";
     return (
       <div className={styles.resultBubble} data-testid="chat-bubble-result">
-        {message.content || "解析结果已生成"}
+        <TypewriterText text={text} animate={isNewMessage} className={isNewMessage ? `${styles.glowingText} ${styles.glowingTextResult}` : ''} />
       </div>
     );
   }
@@ -276,7 +343,11 @@ function MessageBubble({ message }: { message: WorkspaceMessage }) {
           style={{ width: `${message.progress}%` }}
         />
       )}
-      {message.content || (msgIsStreaming ? "思考中..." : "")}
+      <TypewriterText 
+        text={message.content || (msgIsStreaming ? "思考中..." : "")} 
+        animate={isNewMessage || msgIsStreaming}
+        className={(isNewMessage || msgIsStreaming) ? `${styles.glowingText} ${styles.glowingTextAssistant}` : ''} 
+      />
       {msgIsStreaming && <span className={styles.cursor} />}
     </div>
   );
@@ -356,6 +427,7 @@ export function ChatStream({
         <button
           className={styles.sendBtn}
           title="发送"
+          type="button"
           disabled={isStreaming}
           onClick={() => {
             // we need to access the input value
@@ -372,6 +444,7 @@ export function ChatStream({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-label="发送按钮"
           >
             <line x1="22" y1="2" x2="11" y2="13"></line>
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>

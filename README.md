@@ -22,7 +22,7 @@
 <p>
   <a href="#">Live Demo</a> &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#-quick-start">Quick Start</a> &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="./docs/UI功能后端接口对照.md">Docs</a> &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="./docs/UI功能模块/README.md">Docs</a> &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="https://github.com/innovationpuls-creator/career-planning-agent/issues">Report Bug</a>
 </p>
 
@@ -344,8 +344,7 @@ career-planning-agent/
     ├── architecture.md
     ├── database-schema.md
     ├── testing.md
-    ├── UI功能详细整理.md
-    ├── UI功能后端接口对照.md
+    ├── UI功能模块/
     ├── Design.md
     ├── deploy-centos.md
     └── changes/
@@ -387,7 +386,7 @@ career-planning-agent/
 <details>
 <summary>📖 API 文档</summary>
 
-所有接口规范见 [`docs/UI功能后端接口对照.md`](./docs/UI功能后端接口对照.md)，按页面分组，包含请求/响应示例、SSE 流格式和错误码约定。系统架构见 [`docs/architecture.md`](./docs/architecture.md)。
+功能、路由与接口索引见 [`docs/UI功能模块/README.md`](./docs/UI功能模块/README.md)，按模块分组维护页面功能、前端调用、后端端点、SSE 汇总和缺失端点清单。系统架构见 [`docs/architecture.md`](./docs/architecture.md)。
 
 后端启动后 Swagger UI：`http://127.0.0.1:9100/docs`。
 </details>

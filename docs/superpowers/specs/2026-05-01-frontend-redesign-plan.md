@@ -1,7 +1,7 @@
 # 前端重设计实施计划
 
 > 基于 `docs/superpowers/specs/2026-05-01-frontend-redesign-design.md`
-> 参考：`docs/UI功能详细整理.md`（功能保全）、`docs/UI功能后端接口对照.md`（API 对接）
+> 参考：`docs/UI功能模块/README.md`（功能、路由与 API 模块索引）
 > 日期：2026-05-01
 
 ---
@@ -10,11 +10,11 @@
 
 ### 功能保全原则
 
-每一阶段完成后，该页面的所有功能点必须与 `docs/UI功能详细整理.md` 中列出的完全一致。不允许因重设计而丢失任何功能。
+每一阶段完成后，该页面的所有功能点必须与 `docs/UI功能模块/README.md` 及对应模块文档中列出的当前实现一致。不允许因重设计而丢失任何功能。
 
 ### API 对接原则
 
-所有前端 API 调用必须与 `docs/UI功能后端接口对照.md` 中记录的端点一致。重构组件时，提取的 hook 中的 API 调用路径不得改变。
+所有前端 API 调用必须与 `docs/UI功能模块/README.md` 及对应模块文档中记录的端点一致。重构组件时，提取的 hook 中的 API 调用路径不得改变。
 
 ### 文件规范
 
@@ -187,14 +187,14 @@ interface StatCardProps {
 
 ### 功能保全清单
 
-**登录页**（`docs/UI功能详细整理.md` §1）：
+**登录页**（`docs/UI功能模块/01-auth.md`）：
 
 - [ ] 用户名 + 密码登录
 - [ ] 记住登录
 - [ ] 忘记密码
 - [ ] 跳转到注册页
 
-**注册页**（`docs/UI功能详细整理.md` §2）：
+**注册页**（`docs/UI功能模块/01-auth.md`）：
 
 - [ ] Step 1：用户名、密码（最少 8 位）
 - [ ] Step 2：姓名、学校、专业、学历、年级、目标岗位（下拉选择，数据来自 API）
@@ -253,7 +253,7 @@ interface StatCardProps {
 
 ### 功能保全清单
 
-（`docs/UI功能详细整理.md` §3）：
+（`docs/UI功能模块/02-home-v2.md`）：
 
 - [ ] 展示当前目标岗位、阶段（初级/进阶/高阶）、匹配百分比
 - [ ] 展示下一步操作建议及 CTA 按钮
@@ -343,7 +343,7 @@ interface StatCardProps {
 
 ### 功能保全清单
 
-（`docs/UI功能详细整理.md` §4）：
+（`docs/UI功能模块/03-student-competency-profile.md`、`docs/UI功能模块/04-career-match.md`）：
 
 **模块 1：简历解析**
 
@@ -497,7 +497,7 @@ interface StatCardProps {
 
 ### 功能保全清单
 
-（`docs/UI功能详细整理.md` §5）：
+（`docs/UI功能模块/05-snail-learning-path.md`）：
 
 - [ ] 展示当前阶段、匹配度、内容完成度、练习完成度、当前模块
 - [ ] 展示短期/中期/长期 3 阶段时间线，可点击切换
@@ -604,7 +604,7 @@ interface StatCardProps {
 
 ### 功能保全清单
 
-（`docs/UI功能详细整理.md` §6）：
+（`docs/UI功能模块/06-personal-growth-report.md`）：
 
 - [ ] 生成报告（AI 生成，支持取消）
 - [ ] 重新生成报告
@@ -723,7 +723,7 @@ interface StatCardProps {
 
 ### 功能保全清单
 
-**岗位能力图谱**（`docs/UI功能详细整理.md` §7）：
+**岗位能力图谱**（`docs/UI功能模块/07-job-competency-graph.md`）：
 
 - [ ] 三层交互式知识图谱（根节点 → 维度组 → 12 维度）
 - [ ] 点击节点聚焦，高亮相关节点和边
@@ -731,7 +731,7 @@ interface StatCardProps {
 - [ ] 右侧面板：描述、招聘关键词、聚合统计、覆盖度百分比
 - [ ] 图谱阅读指南（可折叠）
 
-**同岗行业对比**（`docs/UI功能详细整理.md` §8）：
+**同岗行业对比**（`docs/UI功能模块/08-same-job-cross-industry.md`）：
 
 - [ ] 选择岗位名称（单选）
 - [ ] 选择行业（多选，根据岗位动态加载）

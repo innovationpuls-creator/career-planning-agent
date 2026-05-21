@@ -182,41 +182,8 @@ export const useStyles = createStyles(({ css }) => ({
   `,
   tabs: css`
     height: 100%;
-    :global(.ant-tabs-nav) {
-      margin-bottom: 0 !important;
-      padding: 0 40px;
-      height: 70px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    }
-    :global(.ant-tabs-nav-list) {
-      display: flex !important;
-      flex: 1 1 auto !important;
-      height: 100%;
-    }
-    :global(.ant-tabs-tab) {
-      padding: 0 24px !important;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: ${claudeColors.warmSilver};
-      font-weight: 500;
-      margin: 0 !important;
-    }
-    :global(.ant-tabs-tab-active .ant-tabs-tab-btn) {
-      color: ${claudeColors.nearBlack} !important;
-    }
-    :global(.ant-tabs-ink-bar) {
-      background: ${claudeColors.terracotta} !important;
-      height: 2px !important;
-      bottom: -1px !important;
-    }
-    :global(.ant-tabs-content-holder) {
-      flex: 1;
-      overflow-y: auto;
-    }
     :global(.ant-tabs-tabpane) {
-      padding: 40px;
+      padding: 32px 40px;
     }
   `,
 }));

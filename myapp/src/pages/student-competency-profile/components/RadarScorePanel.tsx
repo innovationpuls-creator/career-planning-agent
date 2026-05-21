@@ -249,14 +249,13 @@ export function RadarScorePanel({
             autoFit={false}
             width={chartSize.width}
             height={chartSize.height}
-            onReady={(chart: {
-              on: (event: string, handler: (evt: unknown) => void) => void;
-            }) => {
-              chart.on('plot:click', (evt: unknown) =>
-                handleChartClick(
-                  evt as { data?: { datum?: { key?: string } } },
-                ),
-              );
+            onEvent={(_chart: any, event: any) => {
+              if (event.type === 'element:click') {
+                const key = event.data?.data?.key;
+                if (key) {
+                  handleChartClick({ data: { datum: { key } } });
+                }
+              }
             }}
           />
         ) : null}

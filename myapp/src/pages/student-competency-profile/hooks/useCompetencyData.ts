@@ -214,7 +214,6 @@ export function useCompetencyData(): UseCompetencyDataResult {
 
   const startEdit = useCallback(() => {
     setIsEditing(true);
-    setActiveResultTab('result');
   }, []);
 
   const cancelEdit = useCallback(() => {

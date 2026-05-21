@@ -1,19 +1,75 @@
-/* Equal-width tabs for student-competency-profile */
+/* Global overrides for Ant Tabs inside student-competency-profile.
+   Using plain CSS because :global() in createStyles is silently dropped
+   by the Mako bundler. See learned skill: antd-style-global-mako-bypass. */
+
+/* Equal-width tabs */
 .ant-tabs-nav-list {
   display: flex !important;
   flex: 1 1 auto !important;
   width: 100%;
 }
 
+/* Force Ant Tabs root to be a flex column so content-holder can use flex:1 */
+.ant-tabs.ant-tabs-top {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Tab nav: leave right space for the AskCoachButton, set height and border */
+.ant-tabs.ant-tabs-top > .ant-tabs-nav {
+  flex-shrink: 0 !important;
+  padding-right: 160px !important;
+  margin-bottom: 0 !important;
+  height: 70px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Tab items: equal-width, centered, full height */
 .ant-tabs .ant-tabs-tab {
   flex: 1 1 0 !important;
+  padding: 0 24px !important;
+  height: 100%;
   display: flex;
+  align-items: center;
   justify-content: center;
+  color: #b0aea5;
+  font-weight: 500;
   margin: 0 !important;
 }
 
+/* Active tab text color */
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #141413 !important;
+}
+
+/* Ink bar */
+.ant-tabs-ink-bar {
+  background: #c96442 !important;
+  height: 2px !important;
+  bottom: -1px !important;
+}
+
+/* Content holder: must scroll, not be clipped */
 .ant-tabs-content-holder {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
   width: 100%;
+}
+
+/* Custom scrollbar */
+.ant-tabs-content-holder::-webkit-scrollbar {
+  width: 5px;
+}
+.ant-tabs-content-holder::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ant-tabs-content-holder::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+.ant-tabs-content-holder::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .ant-tabs-tabpane {

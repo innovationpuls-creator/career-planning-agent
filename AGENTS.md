@@ -21,8 +21,8 @@ Read the relevant source before implementation, then verify against code.
 
 | Need | Source |
 |---|---|
-| Page features/routes | `docs/UI功能详细整理.md` |
-| Page-to-backend API mapping | `docs/UI功能后端接口对照.md` |
+| Page features/routes | `docs/UI功能模块/README.md` |
+| Page-to-backend API mapping | `docs/UI功能模块/README.md` |
 | Architecture | `docs/architecture.md` |
 | Database schema/models | `docs/database-schema.md` |
 | Testing | `docs/testing.md` |

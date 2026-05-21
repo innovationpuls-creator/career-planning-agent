@@ -98,8 +98,7 @@ PROFILE_FIELD_FALLBACK_META: dict[str, dict[str, str]] = {
     },
 }
 FALLBACK_OPENING_STATEMENT = (
-    "上传简历、成绩材料、项目说明、图片或直接补充说明，系统会整理学生就业能力 12 维画像。"
-    " 生成后可在右侧继续编辑并同步到后续对话上下文。"
+    "发送你的简历材料（支持文档/图片格式），或者直接输入经历补充，我来为你提取专属的 12 维能力画像~"
 )
 DEFAULT_ANALYSIS_QUERY = "请基于上传材料或当前输入提取学生就业能力 12 维画像，并直接返回 JSON。"
 
@@ -503,8 +502,8 @@ def build_assistant_message(profile: JobProfile12Dimensions) -> str:
         field for field, values in profile.model_dump().items() if values != DEFAULT_PROFILE_VALUE
     ]
     return (
-        f"已生成学生就业能力画像，识别出 {len(explicit_dimensions)} 个有明确信息的维度。"
-        " 右侧结果区已同步，可继续编辑或追问完善。"
+        f"🎉 画像解析完成！我在你的材料中发现了 {len(explicit_dimensions)} 个维度的亮点。\n\n"
+        "👉 详细的 12 维能力图谱已经更新在右侧面板。你可以直接在右侧修改，或者在这里继续补充你的其他经历～"
     )
 
 

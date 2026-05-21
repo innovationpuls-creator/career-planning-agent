@@ -351,7 +351,7 @@ async def create_student_competency_chat(
 
         _append_status(
             workspace_conversation_id,
-            status_text="已开始准备学生就业能力画像请求。",
+            status_text="稍等，我正在准备解析材料...",
             stage="prepare",
             progress=5,
         )
@@ -361,7 +361,7 @@ async def create_student_competency_chat(
         for upload in image_uploads:
             _append_status(
                 workspace_conversation_id,
-                status_text=f"正在上传图片：{upload.filename}",
+                status_text=f"🖼️ 正在读取图片：{upload.filename}",
                 stage="upload-image",
                 progress=15,
             )
@@ -375,7 +375,7 @@ async def create_student_competency_chat(
             uploaded_images.append(uploaded)
             _append_status(
                 workspace_conversation_id,
-                status_text=f"图片上传完成：{upload.filename}",
+                status_text=f"✅ 图片读取成功",
                 stage="upload-image",
                 progress=25,
             )
@@ -384,7 +384,7 @@ async def create_student_competency_chat(
         for upload in document_uploads:
             _append_status(
                 workspace_conversation_id,
-                status_text=f"正在上传文档：{upload.filename}",
+                status_text=f"📄 正在读取文档：{upload.filename}",
                 stage="upload-document",
                 progress=35,
             )
@@ -398,12 +398,12 @@ async def create_student_competency_chat(
             uploaded_documents.append(uploaded)
             _append_status(
                 workspace_conversation_id,
-                status_text=f"文档上传完成：{upload.filename}",
+                status_text=f"✅ 文档读取成功",
                 stage="upload-document",
                 progress=45,
             )
 
-        _append_status(workspace_conversation_id, status_text="Dify 正在分析材料", stage="analyze", progress=60)
+        _append_status(workspace_conversation_id, status_text="🧠 正在深度分析你的经历与能力项...", stage="analyze", progress=60)
         result = await client.send_message(
             query=prompt,
             user=workspace_conversation_id,
@@ -420,7 +420,7 @@ async def create_student_competency_chat(
         )
         _append_status(
             workspace_conversation_id,
-            status_text="已生成最新 12 维画像" if payload.output_mode == "profile" else "已收到对话回复",
+            status_text="✨ 画像生成完成，请在右侧查看" if payload.output_mode == "profile" else "✨ 已收到你的补充信息，正在处理...",
             stage="complete",
             progress=100,
         )
@@ -503,7 +503,7 @@ async def stream_student_competency_chat(
 
             status_event = _append_status(
                 workspace_conversation_id,
-                status_text="已开始准备学生就业能力画像请求。",
+                status_text="稍等，我正在准备解析材料...",
                 stage="prepare",
                 progress=5,
             )
@@ -514,7 +514,7 @@ async def stream_student_competency_chat(
             for upload in image_uploads:
                 status_event = _append_status(
                     workspace_conversation_id,
-                    status_text=f"正在上传图片：{upload.filename}",
+                    status_text=f"🖼️ 正在读取图片：{upload.filename}",
                     stage="upload-image",
                     progress=15,
                 )
@@ -529,7 +529,7 @@ async def stream_student_competency_chat(
                 uploaded_images.append(uploaded)
                 status_event = _append_status(
                     workspace_conversation_id,
-                    status_text=f"图片上传完成：{upload.filename}",
+                    status_text=f"✅ 图片读取成功",
                     stage="upload-image",
                     progress=25,
                 )
@@ -539,7 +539,7 @@ async def stream_student_competency_chat(
             for upload in document_uploads:
                 status_event = _append_status(
                     workspace_conversation_id,
-                    status_text=f"正在上传文档：{upload.filename}",
+                    status_text=f"📄 正在读取文档：{upload.filename}",
                     stage="upload-document",
                     progress=35,
                 )
@@ -554,7 +554,7 @@ async def stream_student_competency_chat(
                 uploaded_documents.append(uploaded)
                 status_event = _append_status(
                     workspace_conversation_id,
-                    status_text=f"文档上传完成：{upload.filename}",
+                    status_text=f"✅ 文档读取成功",
                     stage="upload-document",
                     progress=45,
                 )
@@ -562,7 +562,7 @@ async def stream_student_competency_chat(
 
             status_event = _append_status(
                 workspace_conversation_id,
-                status_text="Dify 正在分析材料",
+                status_text="🧠 正在深度分析你的经历与能力项...",
                 stage="analyze",
                 progress=60,
             )
@@ -584,7 +584,7 @@ async def stream_student_competency_chat(
             )
             status_event = _append_status(
                 workspace_conversation_id,
-                status_text="已生成最新 12 维画像" if payload.output_mode == "profile" else "已收到对话回复",
+                status_text="✨ 画像生成完成，请在右侧查看" if payload.output_mode == "profile" else "✨ 已收到你的补充信息，正在处理...",
                 stage="complete",
                 progress=100,
             )
@@ -717,7 +717,7 @@ async def sync_student_competency_result(
 
         _append_status(
             workspace_conversation_id,
-            status_text="正在同步右侧编辑结果到云端",
+            status_text="☁️ 正在保存你的修改...",
             stage="sync",
             progress=70,
         )
@@ -747,7 +747,7 @@ async def sync_student_competency_result(
             profile=payload.profile,
             analysis=latest_analysis,
         )
-        _append_status(workspace_conversation_id, status_text="右侧 12 维结果已同步到云端", stage="sync", progress=100)
+        _append_status(workspace_conversation_id, status_text="✅ 修改已保存", stage="sync", progress=100)
     except StudentCompetencyProfileAccessError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except StudentCompetencyProfileError as exc:

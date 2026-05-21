@@ -2,7 +2,7 @@
 
 > 日期：2026-05-01
 > 状态：待审核
-> 参考：`docs/Design.md`（Claude 设计语言）、`docs/UI功能详细整理.md`、`docs/UI功能后端接口对照.md`
+> 参考：`docs/Design.md`（Claude 设计语言）、`docs/UI功能模块/README.md`（功能、路由与 API 模块索引）
 
 ---
 

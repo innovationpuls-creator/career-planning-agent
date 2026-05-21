@@ -269,12 +269,12 @@ export const appendStreamLine = (content: string, nextLine: string) => {
 };
 
 const PROCESS_COPY_BY_STAGE: Record<string, string> = {
-  prepare: '已上传文件并开始解析',
-  'upload-image': '正在上传图片',
-  'upload-document': '正在上传文档',
-  analyze: '正在提取关键信息',
-  complete: '已生成解析结果',
-  sync: '已同步解析结果',
+  prepare: '文件已就绪，稍等我准备开始解析',
+  'upload-image': '🖼️ 正在读取图片内容',
+  'upload-document': '📄 正在读取文档内容',
+  analyze: '🧠 正在深度提取能力亮点',
+  complete: '✨ 已生成解析结果',
+  sync: '☁️ 已同步解析结果',
   error: '解析失败',
 };
 
@@ -317,7 +317,7 @@ export const extractRequestError = (error: unknown) => {
 };
 
 export const emptyLatestAnalysis = (
-  message = '上传简历或补充描述后开始解析',
+  message = '发送简历或补充描述，我来帮你提取专属能力画像~',
 ): API.StudentCompetencyLatestAnalysisPayload => ({
   available: false,
   message,

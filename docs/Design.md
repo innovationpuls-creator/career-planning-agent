@@ -8,9 +8,8 @@
 
 1. 先读本文件，确认整体设计语言和不允许越界的规则。
 2. 需要页面、组件、表格、图表、状态模式时，读 `docs/Design-patterns.md`。
-3. 需要具体功能和路由时，读 `docs/UI功能详细整理.md`。
-4. 需要页面到后端接口映射时，读 `docs/UI功能后端接口对照.md`。
-5. 需要运行时样式值时，查源码：
+3. 需要具体功能、路由和页面到后端接口映射时，读 `docs/UI功能模块/README.md`，再进入对应模块文档。
+4. 需要运行时样式值时，查源码：
    - `myapp/config/defaultSettings.ts`
    - `myapp/src/styles/claude-tokens.ts`
    - `myapp/src/styles/motion.ts`
