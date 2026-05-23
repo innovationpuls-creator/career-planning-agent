@@ -1,76 +1,172 @@
+import { Spin } from 'antd';
 import React from 'react';
-import { AskCoachButton, FadeInWhenVisible, GlassShell } from '@/components/ui';
-import { CompanyMatchCards } from '@/pages/student-competency-profile/components/CompanyMatchCards';
-import { ComparisonPanel } from '@/pages/student-competency-profile/components/ComparisonPanel';
 import {
-  type MatchResultTabKey,
-  MatchWorkspace,
-} from '@/pages/student-competency-profile/components/MatchWorkspace';
-import { GapAnalysisPanel } from '@/pages/student-competency-profile/components/GapAnalysisPanel';
-import { useCompetencyData } from '@/pages/student-competency-profile/hooks/useCompetencyData';
-import { useMatchResults } from '@/pages/student-competency-profile/hooks/useMatchResults';
+  AskCoachButton,
+  FadeInWhenVisible,
+  GlassShell,
+  PageError,
+} from '@/components/ui';
 import { useStyles } from './pageStyles';
+import {
+  useCareerMatchData,
+  type MatchTabKey,
+} from './hooks/useCareerMatchData';
+import { ScoreNav } from './components/ScoreNav';
+import { MatchOverviewCard } from './components/MatchOverviewCard';
+import { RadarComparisonPanel } from './components/RadarComparisonPanel';
+import { GapAdvicePanel } from './components/GapAdvicePanel';
+import { CompanyGallery } from './components/CompanyGallery';
+import { DataSourceFooter } from './components/DataSourceFooter';
 
 const CareerMatchPage: React.FC = () => {
-  const { styles } = useStyles();
-  const competency = useCompetencyData();
-  const match = useMatchResults();
+  const { styles, cx } = useStyles();
+  const data = useCareerMatchData();
+
+  if (data.loading) {
+    return (
+      <GlassShell>
+        <div className={styles.shell}>
+          <div className={styles.page}>
+            <div className={styles.loading}>
+              <Spin size="large" />
+            </div>
+          </div>
+        </div>
+      </GlassShell>
+    );
+  }
+
+  if (data.error) {
+    return (
+      <GlassShell>
+        <div className={styles.shell}>
+          <div className={styles.page}>
+            <PageError
+              description={data.error}
+              onRetry={() => window.location.reload()}
+            />
+          </div>
+        </div>
+      </GlassShell>
+    );
+  }
+
+  const recommendations = data.matchData?.recommendations || [];
+  const activeReport = data.activeRecommendation;
+  const isFavorited = Boolean(data.activeRecommendationFavorite);
+  const tabCounts = {
+    comparison: activeReport?.comparison_dimensions?.length || 0,
+    advice: activeReport?.action_advices?.length || 0,
+    company: activeReport?.evidence_cards?.length || 0,
+  };
+
+  const tabs: { key: MatchTabKey; label: string }[] = [
+    { key: 'comparison', label: '能力对比' },
+    { key: 'advice', label: '提升建议' },
+    { key: 'company', label: '最匹配工作' },
+  ];
 
   return (
     <GlassShell>
-      <div className={styles.page}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <AskCoachButton
-            step="match"
-            context={{
-              sourcePage: 'career-match',
-              favoriteId: match.activeRecommendationFavorite?.favorite_id,
-              reportId: match.activeRecommendation?.report_id,
-              recommendationId: match.activeRecommendationId,
-            }}
-          />
+      <div className={styles.shell}>
+        <div className={styles.page}>
+          <div className={styles.header}>
+            <div className={styles.headerLabel}>Career Match</div>
+            <h1 className={styles.headerTitle}>职业匹配分析</h1>
+            <p className={styles.headerSub}>
+              基于你的 12 维能力画像，匹配最适合的职业方向
+            </p>
+          </div>
+
+          <div className={styles.coachRow}>
+            <AskCoachButton
+              step="match"
+              context={{
+                sourcePage: 'career-match',
+                favoriteId:
+                  data.activeRecommendationFavorite?.favorite_id,
+                reportId: activeReport?.report_id,
+                recommendationId: data.activeRecommendationId,
+              }}
+            />
+          </div>
+
+          <FadeInWhenVisible>
+            <div className={styles.workspace}>
+              <ScoreNav
+                recommendations={recommendations}
+                activeId={data.activeRecommendationId}
+                onSelect={data.setActiveRecommendationId}
+              />
+
+              <div className={styles.contentArea}>
+                {activeReport && (
+                  <MatchOverviewCard
+                    report={activeReport}
+                    isFavorited={isFavorited}
+                    favoriteSubmitting={data.favoriteSubmitting}
+                    onToggleFavorite={data.toggleFavorite}
+                    onGeneratePlan={data.generatePlan}
+                  />
+                )}
+
+                <div className={styles.tabsBar}>
+                  {tabs.map((t) => (
+                    <button
+                      key={t.key}
+                      className={cx(
+                        styles.tab,
+                        data.activeTab === t.key && styles.tabActive,
+                      )}
+                      onClick={() => data.setActiveTab(t.key)}
+                    >
+                      {t.label}
+                      <span
+                        className={cx(
+                          styles.tabCount,
+                          data.activeTab === t.key && styles.tabCountActive,
+                        )}
+                      >
+                        {tabCounts[t.key]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className={styles.tabPanel} key={data.activeTab}>
+                  {data.activeTab === 'comparison' && (
+                    <RadarComparisonPanel
+                      chartSeries={activeReport?.chart_series || []}
+                      dimensions={activeReport?.comparison_dimensions || []}
+                    />
+                  )}
+                  {data.activeTab === 'advice' && (
+                    <GapAdvicePanel
+                      advices={activeReport?.action_advices || []}
+                      priorityGaps={
+                        activeReport?.priority_gap_dimensions || []
+                      }
+                      activeGapKey={data.activeGapKey}
+                      onGapSelect={data.setActiveGapKey}
+                    />
+                  )}
+                  {data.activeTab === 'company' && (
+                    <CompanyGallery
+                      cards={activeReport?.evidence_cards || []}
+                    />
+                  )}
+                </div>
+
+                <DataSourceFooter
+                  dimensionCount={
+                    data.matchData?.source?.active_dimension_count || 12
+                  }
+                  updatedAt={data.sourceUpdatedAt}
+                />
+              </div>
+            </div>
+          </FadeInWhenVisible>
         </div>
-        <FadeInWhenVisible>
-          <MatchWorkspace
-            matchData={match.matchData}
-            activeRecommendationId={match.activeRecommendationId}
-            activeResultTab={match.activeResultTab}
-            favorites={match.favorites}
-            favoriteSubmitting={match.favoriteSubmitting}
-            loading={match.loading}
-            onSelectRecommendation={match.setActiveRecommendationId}
-            onResultTabChange={
-              match.setActiveResultTab as (tab: MatchResultTabKey) => void
-            }
-            onGapSelect={match.setActiveGapKey}
-            onToggleFavorite={match.toggleFavorite}
-            onGeneratePlan={match.generatePlan}
-            comparisonContent={
-              <ComparisonPanel
-                dimensions={
-                  match.activeRecommendation?.comparison_dimensions || []
-                }
-                userProfile={competency.currentProfile}
-                careerTitle={match.activeRecommendation?.canonical_job_title}
-              />
-            }
-            adviceContent={
-              <GapAnalysisPanel
-                advices={match.activeRecommendation?.action_advices || []}
-                priorityGaps={
-                  match.activeRecommendation?.priority_gap_dimensions || []
-                }
-                activeGapKey={match.activeGapKey}
-                onGapSelect={match.setActiveGapKey}
-              />
-            }
-            companyContent={
-              <CompanyMatchCards
-                cards={match.activeRecommendation?.evidence_cards || []}
-              />
-            }
-          />
-        </FadeInWhenVisible>
       </div>
     </GlassShell>
   );
