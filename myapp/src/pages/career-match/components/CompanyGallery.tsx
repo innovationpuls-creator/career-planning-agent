@@ -145,7 +145,9 @@ export function CompanyGallery({ cards, onCardClick }: CompanyGalleryProps) {
             const score = Math.round(card.match_score);
             const circ = 2 * Math.PI * 16;
             return (
-              <div key={card.profile_id} className={styles.card}
+              <div
+                key={card.profile_id}
+                className={styles.card}
                 onClick={() => onCardClick?.(card)}
                 role="button"
                 tabIndex={0}

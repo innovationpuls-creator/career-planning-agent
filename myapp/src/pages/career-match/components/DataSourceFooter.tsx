@@ -23,12 +23,16 @@ function formatDate(iso?: string): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-export function DataSourceFooter({ dimensionCount, updatedAt }: DataSourceFooterProps) {
+export function DataSourceFooter({
+  dimensionCount,
+  updatedAt,
+}: DataSourceFooterProps) {
   const { styles } = useStyles();
   return (
     <div className={styles.footer} data-testid="datasource-footer">
       <ClockCircleOutlined style={{ marginRight: 4 }} />
-      数据来源：{dimensionCount} 维度分析{updatedAt ? ` · 更新于 ${formatDate(updatedAt)}` : ''}
+      数据来源：{dimensionCount} 维度分析
+      {updatedAt ? ` · 更新于 ${formatDate(updatedAt)}` : ''}
     </div>
   );
 }

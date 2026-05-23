@@ -46,6 +46,11 @@ export const claudeColors = {
   // Functional text (for dark surfaces)
   errorText: '#f5a3a3',
   successText: '#a3d49a',
+
+  // Console controls
+  macClose: '#ff5f56',
+  macMinimize: '#ffbd2e',
+  macMaximize: '#27c93f',
 } as const;
 
 // ── Alpha helper ───────────────────────────────────────────────

@@ -1,9 +1,13 @@
+import { Radar } from '@ant-design/charts';
 import { Empty, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useMemo } from 'react';
-import { Radar } from '@ant-design/charts';
-import { claudeColors, claudeFonts, claudeRadius } from '@/styles/claude-tokens';
 import { studentCompetencyRadarColors } from '@/styles/chart-tokens';
+import {
+  claudeColors,
+  claudeFonts,
+  claudeRadius,
+} from '@/styles/claude-tokens';
 
 interface RadarComparisonPanelProps {
   chartSeries: API.StudentCompetencyChartSeriesItem[];

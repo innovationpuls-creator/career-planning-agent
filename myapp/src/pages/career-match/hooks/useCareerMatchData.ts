@@ -16,7 +16,9 @@ interface UseCareerMatchDataResult {
   favorites: API.CareerDevelopmentFavoritePayload[];
   activeRecommendationId: string | undefined;
   activeRecommendation: API.CareerDevelopmentMatchReport | undefined;
-  activeRecommendationFavorite: API.CareerDevelopmentFavoritePayload | undefined;
+  activeRecommendationFavorite:
+    | API.CareerDevelopmentFavoritePayload
+    | undefined;
   activeTab: MatchTabKey;
   activeGapKey: string | undefined;
   favoriteSubmitting: boolean;
@@ -80,9 +82,7 @@ export function useCareerMatchData(): UseCareerMatchDataResult {
         });
       } catch (err: unknown) {
         if (!mounted) return;
-        setError(
-          err instanceof Error ? err.message : extractRequestError(err),
-        );
+        setError(err instanceof Error ? err.message : extractRequestError(err));
         setMatchData(undefined);
         setActiveRecommendationId(undefined);
       } finally {
@@ -133,8 +133,7 @@ export function useCareerMatchData(): UseCareerMatchDataResult {
         );
         setFavorites((prev) =>
           prev.filter(
-            (f) =>
-              f.favorite_id !== activeRecommendationFavorite.favorite_id,
+            (f) => f.favorite_id !== activeRecommendationFavorite.favorite_id,
           ),
         );
       } else {

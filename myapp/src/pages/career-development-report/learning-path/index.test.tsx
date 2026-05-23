@@ -36,6 +36,12 @@ jest.mock('antd-style', () => ({
   }),
 }));
 
+jest.mock('@/components/ui', () => ({
+  GlassShell: ({ children }: any) => (
+    <div data-testid="glass-shell">{children}</div>
+  ),
+}));
+
 jest.mock('@/services/ant-design-pro/api', () => ({
   getCareerDevelopmentFavorites: (...args: any[]) =>
     mockGetCareerDevelopmentFavorites(...args),
@@ -53,19 +59,15 @@ jest.mock('@/services/ant-design-pro/api', () => ({
 }));
 
 // ── Sub-component mocks ──────────────────────────────────────────────────────
-jest.mock('@/components/ui/FadeInWhenVisible', () => ({
-  FadeInWhenVisible: ({ children }: any) => children ?? null,
-}));
-
-jest.mock('./components/PhaseTimeline', () => ({
-  PhaseTimeline: ({ phases, onPhaseChange }: any) => (
-    <div data-testid="phase-timeline">
-      {phases?.map((phase: any) => (
+jest.mock('./components/PhaseOrbitPanel', () => ({
+  PhaseOrbitPanel: ({ phases, onPhaseChange }: any) => (
+    <div data-testid="phase-orbit-panel">
+      {phases?.map((phase: any, index: number) => (
         <button
           type="button"
           key={phase.phase_key}
           data-testid={`phase-btn-${phase.phase_key}`}
-          onClick={() => onPhaseChange(phases.indexOf(phase))}
+          onClick={() => onPhaseChange(index)}
         >
           {phase.phase_label}
         </button>
@@ -74,39 +76,46 @@ jest.mock('./components/PhaseTimeline', () => ({
   ),
 }));
 
-jest.mock('./components/ModuleList', () => ({
-  ModuleList: ({ modules, practiceActions, onModuleComplete }: any) => (
-    <div data-testid="module-list">
-      {modules?.map((module: any, idx: number) => (
-        <div key={module.module_id} data-testid={`module-${idx}`}>
-          <span>{module.topic}</span>
-          {practiceActions && practiceActions.length > 0 && idx === 0 && (
-            <div data-testid="practice-actions">
-              {practiceActions.map((action: any) => (
-                <div key={action.title}>{action.title}</div>
-              ))}
-            </div>
-          )}
-          <input
-            type="checkbox"
-            aria-label="标记完成"
-            onChange={(e: any) =>
-              onModuleComplete(module.module_id, e.target.checked)
-            }
-          />
-        </div>
-      ))}
+jest.mock('./components/LearningTopTools', () => ({
+  LearningTopTools: ({ onOpenReview, onEditPlan, onRefresh }: any) => (
+    <div data-testid="learning-top-tools">
+      <button type="button" onClick={onRefresh}>
+        刷新
+      </button>
+      <button type="button" onClick={() => onOpenReview('weekly')}>
+        周检查
+      </button>
+      <button type="button" onClick={() => onOpenReview('monthly')}>
+        月检查
+      </button>
+      <button type="button" onClick={onEditPlan}>
+        编辑计划
+      </button>
     </div>
   ),
 }));
 
-jest.mock('./components/ResourceCards', () => ({
-  ResourceCards: ({ resources, onResourceDetail }: any) => (
-    <div data-testid="resource-cards">
+jest.mock('./components/LearningContextStrip', () => ({
+  LearningContextStrip: ({ targetTitle, onModuleSelect }: any) => (
+    <div data-testid="learning-context-strip">
+      <span>{targetTitle}</span>
+      <button type="button" onClick={() => onModuleSelect('m2')}>
+        选择模块
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock('./components/LearningResourceFocus', () => ({
+  LearningResourceFocus: ({
+    resources,
+    onResourceDetail,
+    onResourceCheck,
+  }: any) => (
+    <div data-testid="learning-resource-focus">
       {resources?.map((resource: any, idx: number) => (
         <div key={resource.url || resource.title}>
-          <span data-testid={`resource-title-${idx}`}>{resource.title}</span>
-          <img alt={resource.logoAlt} src={resource.logoUrl} />
+          <span>{resource.title}</span>
           <button
             type="button"
             data-testid="resource-detail-trigger"
@@ -114,17 +123,60 @@ jest.mock('./components/ResourceCards', () => ({
           >
             详情
           </button>
+          <button
+            type="button"
+            aria-label="已打卡"
+            onClick={() => onResourceCheck(idx, true)}
+          >
+            打卡
+          </button>
         </div>
       ))}
     </div>
   ),
 }));
 
+jest.mock('./components/ReviewWorkspacePanel', () => ({
+  ReviewWorkspacePanel: ({ activeReviewType, onClose }: any) => (
+    <div data-testid="review-workspace-panel">
+      ReviewWorkspacePanel:{activeReviewType}
+      <button type="button" onClick={onClose}>
+        关闭复盘
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock('./components/LearningWorkspaceSplit', () => ({
+  LearningWorkspaceSplit: ({ reviewOpen, resourceContent, reviewContent }: any) => (
+    <div
+      data-testid="learning-workspace-split"
+      data-review-open={reviewOpen ? 'true' : 'false'}
+    >
+      <div
+        data-testid="learning-resource-pane"
+        data-narrowed={reviewOpen ? 'true' : 'false'}
+      >
+        {resourceContent}
+      </div>
+      {reviewOpen ? reviewContent : null}
+    </div>
+  ),
+}));
+
 jest.mock('./components/ResourceDetail', () => ({
-  ResourceDetail: ({ resource, open, onClose, onCheckToggle, checked }: any) =>
+  ResourceDetail: ({
+    resource,
+    moduleTitle,
+    open,
+    onClose,
+    onCheckToggle,
+    checked,
+  }: any) =>
     open ? (
       <div data-testid="resource-detail-drawer">
         <div>{resource?.title}</div>
+        <div>{moduleTitle}</div>
         <div data-testid="detail-whyLearn">
           <span>为什么学这条资源？</span>
           <span>{resource?.whyLearn}</span>
@@ -152,32 +204,6 @@ jest.mock('./components/ResourceDetail', () => ({
         </button>
       </div>
     ) : null,
-}));
-
-jest.mock('./components/ReviewPanel', () => ({
-  ReviewPanel: ({ activeReviewType }: any) => (
-    <div data-testid="review-panel">ReviewPanel:{activeReviewType}</div>
-  ),
-}));
-
-jest.mock('./components/PathHero', () => ({
-  PathHero: ({
-    currentPhaseLabel,
-    matchPercent,
-    contentCompletion,
-    practiceCompletion,
-    currentModuleName,
-  }: any) => (
-    <div data-testid="path-hero">
-      <span data-testid="hero-phase">{currentPhaseLabel}</span>
-      <span data-testid="hero-match">{matchPercent}%</span>
-      <span data-testid="hero-content-completion">{contentCompletion}</span>
-      <span data-testid="hero-practice-completion">{practiceCompletion}</span>
-      {currentModuleName && (
-        <span data-testid="hero-module">{currentModuleName}</span>
-      )}
-    </div>
-  ),
 }));
 
 jest.mock('./hooks/useWorkspace', () => ({
@@ -445,27 +471,19 @@ describe('LearningPathPage', () => {
     render(React.createElement(LearningPathPage));
 
     expect(await screen.findByText('React Docs')).toBeTruthy();
-    expect(screen.getByAltText('React Docs logo')).toBeTruthy();
     expect(screen.getAllByText('Frontend Engineer').length).toBeGreaterThan(0);
   });
 
-  it('displays hero metrics for the active phase', async () => {
+  it('renders the phase orbit workbench and learning context', async () => {
     render(React.createElement(LearningPathPage));
 
-    const hero = await screen.findByTestId('path-hero');
-    expect(within(hero).getByTestId('hero-phase').textContent).toBe(
-      'Short Term',
-    );
-    expect(within(hero).getByTestId('hero-match').textContent).toBe('87%');
-    expect(
-      within(hero).getByTestId('hero-content-completion').textContent,
-    ).toBe('0');
-    expect(
-      within(hero).getByTestId('hero-practice-completion').textContent,
-    ).toBe('0');
+    expect(await screen.findByTestId('phase-orbit-panel')).toBeTruthy();
+    expect(screen.getByTestId('learning-context-strip')).toBeTruthy();
+    expect(screen.getByTestId('learning-resource-focus')).toBeTruthy();
+    expect(screen.getAllByText('Frontend Engineer').length).toBeGreaterThan(0);
   });
 
-  it('moves header review shortcuts to the matching review panel tab', async () => {
+  it('opens weekly and monthly review split panes from top tools', async () => {
     const { useModuleProgress } = jest.requireMock('./hooks/useModuleProgress');
     const submitProgress = jest.fn();
     useModuleProgress.mockReturnValue({
@@ -482,11 +500,29 @@ describe('LearningPathPage', () => {
     render(React.createElement(LearningPathPage));
 
     fireEvent.click(await screen.findByRole('button', { name: '月检查' }));
-    expect(screen.getByTestId('review-panel').textContent).toContain('monthly');
-    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(
+      screen
+        .getByTestId('learning-workspace-split')
+        .getAttribute('data-review-open'),
+    ).toBe('true');
+    expect(
+      screen.getByTestId('learning-resource-pane').getAttribute('data-narrowed'),
+    ).toBe('true');
+    expect(screen.getByTestId('review-workspace-panel').textContent).toContain(
+      'monthly',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭复盘' }));
+    expect(
+      screen
+        .getByTestId('learning-workspace-split')
+        .getAttribute('data-review-open'),
+    ).toBe('false');
 
     fireEvent.click(screen.getByRole('button', { name: '周检查' }));
-    expect(screen.getByTestId('review-panel').textContent).toContain('weekly');
+    expect(screen.getByTestId('review-workspace-panel').textContent).toContain(
+      'weekly',
+    );
     expect(submitProgress).not.toHaveBeenCalled();
   });
 
@@ -598,7 +634,8 @@ describe('LearningPathPage', () => {
     });
 
     render(React.createElement(LearningPathPage));
-    expect(screen.getByTestId('learning-path-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('learning-path-orbit-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('learning-path-resource-skeleton')).toBeTruthy();
   });
 
   it('shows guidance when favorite id is missing', async () => {
@@ -717,7 +754,7 @@ describe('LearningPathPage', () => {
 
     render(React.createElement(LearningPathPage));
 
-    expect(await screen.findByText('Build a small showcase page')).toBeTruthy();
+    expect(await screen.findByText('React Docs')).toBeTruthy();
 
     const midTermBtn = await screen.findByText('Mid Term');
     await fireEvent.click(midTermBtn);

@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 import React from 'react';
-import { claudeColors, claudeAlpha } from '@/styles/claude-tokens';
+import { claudeAlpha, claudeColors } from '@/styles/claude-tokens';
 
 interface ScoreNavProps {
   recommendations: API.CareerDevelopmentMatchReport[];
@@ -65,7 +65,11 @@ const useStyles = createStyles(({ css }) => ({
   `,
 }));
 
-export function ScoreNav({ recommendations, activeId, onSelect }: ScoreNavProps) {
+export function ScoreNav({
+  recommendations,
+  activeId,
+  onSelect,
+}: ScoreNavProps) {
   const { styles, cx } = useStyles();
   const visible = recommendations.slice(0, 5);
   const remaining = Math.max(0, recommendations.length - 5);

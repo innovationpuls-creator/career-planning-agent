@@ -58,7 +58,11 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 export function MatchOverviewCard({
-  report, isFavorited, favoriteSubmitting, onToggleFavorite, onGeneratePlan,
+  report,
+  isFavorited,
+  favoriteSubmitting,
+  onToggleFavorite,
+  onGeneratePlan,
 }: MatchOverviewCardProps) {
   const { styles } = useStyles();
   const percent = Math.round(report.overall_match);
@@ -68,11 +72,31 @@ export function MatchOverviewCard({
   return (
     <div className={styles.card} data-testid="match-overview-card">
       <div className={styles.ringWrap}>
-        <svg className={styles.ringSvg} width="88" height="88" viewBox="0 0 88 88">
-          <circle cx="44" cy="44" r="38" fill="none" stroke="#f0eee6" strokeWidth="8" />
-          <circle cx="44" cy="44" r="38" fill="none" stroke={claudeColors.terracotta}
-            strokeWidth="8" strokeDasharray={circumference}
-            strokeDashoffset={offset} strokeLinecap="round" />
+        <svg
+          className={styles.ringSvg}
+          width="88"
+          height="88"
+          viewBox="0 0 88 88"
+        >
+          <circle
+            cx="44"
+            cy="44"
+            r="38"
+            fill="none"
+            stroke="#f0eee6"
+            strokeWidth="8"
+          />
+          <circle
+            cx="44"
+            cy="44"
+            r="38"
+            fill="none"
+            stroke={claudeColors.terracotta}
+            strokeWidth="8"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
         </svg>
         <div className={styles.ringValue}>
           <span className={styles.ringNum}>{percent}</span>
@@ -83,9 +107,13 @@ export function MatchOverviewCard({
         <div className={styles.job}>{report.canonical_job_title}</div>
         <div className={styles.meta}>
           {report.industry && (
-            <span><span className={styles.metaDot}></span> {report.industry}</span>
+            <span>
+              <span className={styles.metaDot}></span> {report.industry}
+            </span>
           )}
-          <span>基于 {report.comparison_dimensions?.length || 12} 维度分析</span>
+          <span>
+            基于 {report.comparison_dimensions?.length || 12} 维度分析
+          </span>
         </div>
       </div>
       <div className={styles.actions}>

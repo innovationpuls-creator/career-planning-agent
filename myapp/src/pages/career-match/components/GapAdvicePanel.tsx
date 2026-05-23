@@ -1,9 +1,14 @@
 import { WarningOutlined } from '@ant-design/icons';
-import { Collapse, Typography, Spin } from 'antd';
+import { Collapse, Spin, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { ClaudeTag } from '@/components/ui';
-import { claudeColors, claudeFonts, claudeAlpha, claudeRadius } from '@/styles/claude-tokens';
+import {
+  claudeAlpha,
+  claudeColors,
+  claudeFonts,
+  claudeRadius,
+} from '@/styles/claude-tokens';
 
 const { Text } = Typography;
 
@@ -60,29 +65,57 @@ const useStyles = createStyles(({ css }) => ({
   emptyText: css`color: ${claudeColors.stoneGray}; font-size: 14px; text-align: center; padding: 32px 0;`,
 }));
 
-function AdviceDetail({ advice }: { advice: API.StudentCompetencyActionAdviceItem }) {
+function AdviceDetail({
+  advice,
+}: {
+  advice: API.StudentCompetencyActionAdviceItem;
+}) {
   const { styles } = useStyles();
   return (
     <div className={styles.adviceBody}>
       {advice.why_it_matters && (
-        <><div className={styles.sectionLabel}>重要性</div><div className={styles.bodyText}>{advice.why_it_matters}</div></>
+        <>
+          <div className={styles.sectionLabel}>重要性</div>
+          <div className={styles.bodyText}>{advice.why_it_matters}</div>
+        </>
       )}
       {advice.current_issue && (
-        <><div className={styles.sectionLabel}>当前问题</div><div className={styles.bodyTextMuted}>{advice.current_issue}</div></>
+        <>
+          <div className={styles.sectionLabel}>当前问题</div>
+          <div className={styles.bodyTextMuted}>{advice.current_issue}</div>
+        </>
       )}
       {advice.next_actions?.length > 0 && (
-        <><div className={styles.sectionLabel}>下一步行动</div>
-          <ul className={styles.actionList}>{advice.next_actions.map((a, i) => <li key={i}>{a}</li>)}</ul></>
+        <>
+          <div className={styles.sectionLabel}>下一步行动</div>
+          <ul className={styles.actionList}>
+            {advice.next_actions.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </>
       )}
       {advice.recommended_keywords?.length > 0 && (
-        <><div className={styles.sectionLabel}>推荐关键词</div>
-          <div className={styles.keywordRow}>{advice.recommended_keywords.map((kw) => <ClaudeTag key={kw}>{kw}</ClaudeTag>)}</div></>
+        <>
+          <div className={styles.sectionLabel}>推荐关键词</div>
+          <div className={styles.keywordRow}>
+            {advice.recommended_keywords.map((kw) => (
+              <ClaudeTag key={kw}>{kw}</ClaudeTag>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-export function GapAdvicePanel({ advices, priorityGaps, activeGapKey, onGapSelect, loading }: GapAdvicePanelProps) {
+export function GapAdvicePanel({
+  advices,
+  priorityGaps,
+  activeGapKey,
+  onGapSelect,
+  loading,
+}: GapAdvicePanelProps) {
   const { styles, cx } = useStyles();
   const prioritySet = new Set(priorityGaps);
 
@@ -96,7 +129,9 @@ export function GapAdvicePanel({ advices, priorityGaps, activeGapKey, onGapSelec
     return (
       <div className={styles.panel} data-testid="gap-advice-panel">
         <Text className={styles.title}>差距分析与提升建议</Text>
-        <div className={styles.emptyText}><Spin size="large" /></div>
+        <div className={styles.emptyText}>
+          <Spin size="large" />
+        </div>
       </div>
     );
   }
@@ -116,12 +151,21 @@ export function GapAdvicePanel({ advices, priorityGaps, activeGapKey, onGapSelec
       key: advice.key,
       label: (
         <span className={styles.adviceTitle}>
-          {isPriority && <WarningOutlined style={{ color: claudeColors.terracotta, marginRight: 6 }} />}
+          {isPriority && (
+            <WarningOutlined
+              style={{ color: claudeColors.terracotta, marginRight: 6 }}
+            />
+          )}
           {advice.title}
         </span>
       ),
       extra: (
-        <span className={cx(styles.adviceStatus, advice.gap > 0 ? styles.statusNeeds : styles.statusOk)}>
+        <span
+          className={cx(
+            styles.adviceStatus,
+            advice.gap > 0 ? styles.statusNeeds : styles.statusOk,
+          )}
+        >
           {advice.status_label || (advice.gap > 0 ? '需要补充' : '基本匹配')}
         </span>
       ),
@@ -135,7 +179,9 @@ export function GapAdvicePanel({ advices, priorityGaps, activeGapKey, onGapSelec
       <Collapse
         accordion
         activeKey={activeGapKey}
-        onChange={(key) => onGapSelect(Array.isArray(key) ? key[0] : (key as string))}
+        onChange={(key) =>
+          onGapSelect(Array.isArray(key) ? key[0] : (key as string))
+        }
         items={items}
         expandIconPosition="end"
         style={{ background: 'transparent', border: 'none' }}

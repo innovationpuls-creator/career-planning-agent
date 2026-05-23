@@ -1,6 +1,6 @@
-import { PageContainer, ProCard } from '@ant-design/pro-components';
+import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, Button, Result, Skeleton, Space } from 'antd';
+import { Alert, Button, Result, Space } from 'antd';
 import { createStyles } from 'antd-style';
 import React, {
   useCallback,
@@ -9,15 +9,15 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { FadeInWhenVisible } from '@/components/ui/FadeInWhenVisible';
-import { AskCoachButton, GlassShell } from '@/components/ui';
-import { claudeAlpha, claudeRadius } from '@/styles/claude-tokens';
-import { ModuleList } from './components/ModuleList';
-import { PathHero } from './components/PathHero';
-import { PhaseTimeline } from './components/PhaseTimeline';
-import { ResourceCards } from './components/ResourceCards';
+import { GlassShell } from '@/components/ui';
+import { claudeAlpha, claudeColors, claudeRadius } from '@/styles/claude-tokens';
+import { LearningContextStrip } from './components/LearningContextStrip';
+import { LearningResourceFocus } from './components/LearningResourceFocus';
+import { LearningTopTools } from './components/LearningTopTools';
+import { LearningWorkspaceSplit } from './components/LearningWorkspaceSplit';
+import { PhaseOrbitPanel } from './components/PhaseOrbitPanel';
 import { ResourceDetail } from './components/ResourceDetail';
-import { ReviewPanel } from './components/ReviewPanel';
+import { ReviewWorkspacePanel } from './components/ReviewWorkspacePanel';
 import { useModuleProgress } from './hooks/useModuleProgress';
 import { useReviews } from './hooks/useReviews';
 import { useWorkspace } from './hooks/useWorkspace';
@@ -41,95 +41,53 @@ import {
   saveFavoriteId,
 } from './learningPathUtils';
 
-const useStyles = createStyles(({ css, token }) => ({
+const useStyles = createStyles(({ css }) => ({
   page: css`
     position: relative;
     isolation: isolate;
-    max-width: 1200px;
+    width: min(100%, 1360px);
     min-height: calc(100vh - 72px);
     margin: 0 auto;
-    padding: 24px 24px 160px;
+    padding: 24px 24px 96px;
     background: transparent;
+
     @media (max-width: 768px) {
-      padding: 14px 12px 128px;
+      padding: 14px 12px 72px;
     }
   `,
-  workspaceHeader: css`
+  workbench: css`
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding: 14px 18px;
-    background: ${claudeAlpha('#ffffff', 0.4)};
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
-    border-radius: ${claudeRadius.md}px;
-    @media (max-width: 860px) {
-      grid-template-columns: 1fr;
-    }
-  `,
-  workspaceTitleLine: css`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    min-width: 0;
-  `,
-  workspaceTitle: css`
-    font-family: var(--font-heading, "Noto Serif SC", "Songti SC", serif);
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    color: ${token.colorText};
-  `,
-  workspaceSubtitle: css`
-    font-size: 13px;
-    color: ${token.colorTextTertiary};
-  `,
-  mainLayout: css`
-    display: grid;
-    grid-template-columns: minmax(260px, 0.4fr) minmax(0, 0.6fr);
-    gap: 20px;
+    grid-template-columns: minmax(280px, 0.34fr) minmax(0, 0.66fr);
+    gap: 18px;
     align-items: start;
-    @media (max-width: 900px) {
+
+    @media (max-width: 1024px) {
       grid-template-columns: 1fr;
     }
   `,
-  leftPanel: css`
-    position: sticky;
-    top: 88px;
-    background: ${claudeAlpha('#ffffff', 0.4)};
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid ${claudeAlpha('#ffffff', 0.5)};
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px ${claudeAlpha('#ffffff', 0.4)};
-    border-radius: ${claudeRadius.md}px;
-    padding: 16px;
-    @media (max-width: 900px) {
-      position: static;
+  workspace: css`
+    display: grid;
+    gap: 14px;
+  `,
+  skeletonShell: css`
+    display: grid;
+    grid-template-columns: minmax(280px, 0.34fr) minmax(0, 0.66fr);
+    gap: 18px;
+    padding: 24px;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
     }
   `,
-  rightPanel: css`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  orbitSkeleton: css`
+    min-height: 560px;
+    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha(claudeColors.nearBlack, 0.86)};
   `,
-  sectionHeader: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 8px;
-  `,
-  sectionTitle: css`
-    font-family: var(--font-heading, "Noto Serif SC", "Songti SC", serif);
-    font-size: 16px;
-    font-weight: 700;
-    color: ${token.colorText};
-    margin: 0;
+  resourceSkeleton: css`
+    min-height: 340px;
+    border-radius: ${claudeRadius.xl}px;
+    background: ${claudeAlpha(claudeColors.ivory, 0.72)};
   `,
 }));
 
@@ -185,9 +143,9 @@ const LearningPathPage: React.FC = () => {
   const [activeReviewType, setActiveReviewType] = useState<
     'weekly' | 'monthly'
   >('weekly');
+  const [reviewWorkspaceOpen, setReviewWorkspaceOpen] = useState(false);
   const phaseMotionStateRef = useRef<'idle' | 'leaving' | 'entering'>('idle');
   const phaseTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const reviewSectionRef = useRef<HTMLDivElement>(null);
   const phases = workspace?.growth_plan_phases || [];
   const report = workspace?.favorite
     ?.report_snapshot as API.CareerDevelopmentMatchReport | null;
@@ -209,7 +167,6 @@ const LearningPathPage: React.FC = () => {
     setSelectedModuleId,
     resourceCompletedSet,
     toggleResourceComplete,
-    toggleModuleComplete,
   } = useModuleProgress(phases, progressPhaseKey, storageKey);
 
   const completedModuleIds = useMemo(
@@ -308,16 +265,14 @@ const LearningPathPage: React.FC = () => {
     setResourceDrawerOpen(true);
   }, []);
 
-  const handleReviewShortcut = useCallback(
-    (reviewType: 'weekly' | 'monthly') => {
-      setActiveReviewType(reviewType);
-      reviewSectionRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    },
-    [],
-  );
+  const handleOpenReview = useCallback((reviewType: 'weekly' | 'monthly') => {
+    setActiveReviewType(reviewType);
+    setReviewWorkspaceOpen(true);
+  }, []);
+
+  const handleCloseReview = useCallback(() => {
+    setReviewWorkspaceOpen(false);
+  }, []);
 
   const handleEditPlan = useCallback(() => {
     if (!favoriteId) return;
@@ -369,10 +324,22 @@ const LearningPathPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageContainer>
-        <div data-testid="learning-path-skeleton">
-          <Skeleton active paragraph={{ rows: 8 }} />
-        </div>
+      <PageContainer title={false} pageHeaderRender={false} style={{ margin: -24 }}>
+        <GlassShell>
+          <div
+            className={styles.skeletonShell}
+            data-testid="learning-path-skeleton"
+          >
+            <div
+              className={styles.orbitSkeleton}
+              data-testid="learning-path-orbit-skeleton"
+            />
+            <div
+              className={styles.resourceSkeleton}
+              data-testid="learning-path-resource-skeleton"
+            />
+          </div>
+        </GlassShell>
       </PageContainer>
     );
   }
@@ -437,18 +404,6 @@ const LearningPathPage: React.FC = () => {
     workspace?.favorite?.overall_match ?? reportSnapshot?.overall_match ?? 0;
   const currentPhaseLabel =
     activePhase?.phase_label ?? PHASE_LABELS[currentPhaseKey ?? ''];
-  const heroCurrentModule =
-    modules.find((module) => module.module_id === currentModule?.module_id) ??
-    modules.find((module) => !module.status.done) ??
-    modules[0];
-  const practicePercent =
-    modules.length > 0
-      ? Math.round(
-          (modules.filter((module) => module.status.done).length /
-            Math.max(modules.length, 1)) *
-            100,
-        )
-      : 0;
   const moduleTitle = selectedModule
     ? getModuleDisplayTitle(selectedModule)
     : '';
@@ -469,158 +424,103 @@ const LearningPathPage: React.FC = () => {
     <PageContainer title={false} pageHeaderRender={false} style={{ margin: -24 }}>
       <GlassShell>
         <div className={styles.page}>
-        <FadeInWhenVisible>
-          <div className={styles.workspaceHeader}>
-            <div className={styles.workspaceTitleLine}>
-              <span className={styles.workspaceTitle}>蜗牛学习路径</span>
-              <span className={styles.workspaceSubtitle}>
-                {workspace?.favorite?.target_title ??
-                  reportSnapshot?.target_title}
-              </span>
-            </div>
-            <Space wrap>
-              <AskCoachButton
-                step="learning"
-                context={{
-                  sourcePage: 'snail-learning-path',
-                  favoriteId,
-                  workspaceId: workspace?.workspace_id,
-                }}
-              />
-              <Button onClick={refresh}>刷新</Button>
-              <Button
-                type="primary"
-                onClick={() => handleReviewShortcut('weekly')}
-              >
-                周检查
-              </Button>
-              <Button onClick={() => handleReviewShortcut('monthly')}>
-                月检查
-              </Button>
-              <Button type="default" onClick={handleEditPlan}>
-                编辑计划
-              </Button>
-            </Space>
-          </div>
-        </FadeInWhenVisible>
+          <LearningTopTools
+            favoriteId={favoriteId}
+            workspaceId={workspace?.workspace_id}
+            activeReviewType={activeReviewType}
+            reviewOpen={reviewWorkspaceOpen}
+            onRefresh={refresh}
+            onOpenReview={handleOpenReview}
+            onEditPlan={handleEditPlan}
+          />
 
-        <FadeInWhenVisible delay={0.1}>
-          <ProCard ghost style={{ marginBottom: 16 }}>
-            <PathHero
-              currentPhaseLabel={currentPhaseLabel}
-              timeHorizon={activePhase?.time_horizon ?? ''}
-              matchPercent={matchPercent}
-              contentCompletion={activePhaseProgress.percent}
-              practiceCompletion={practicePercent}
-              currentModuleName={heroCurrentModule?.topic ?? ''}
-              moduleCount={{
-                completed: activePhaseProgress.completed,
-                total: activePhaseProgress.total,
-              }}
+          <div className={styles.workbench}>
+            <PhaseOrbitPanel
+              phases={phases}
+              activePhaseKey={activePhaseKeyValue}
+              completedModuleIds={completedModuleIds}
+              onPhaseChange={handlePhaseChange}
             />
-            {phases.length > 0 && (
-              <PhaseTimeline
-                phases={phases}
-                activePhaseKey={activePhaseKeyValue}
-                completedModuleIds={completedModuleIds}
-                onPhaseChange={handlePhaseChange}
-              />
-            )}
-          </ProCard>
-        </FadeInWhenVisible>
 
-        <div className={styles.mainLayout}>
-          <FadeInWhenVisible delay={0.15}>
-            <div className={styles.leftPanel}>
-              <ModuleList
+            <div className={styles.workspace}>
+              <LearningContextStrip
+                targetTitle={
+                  workspace?.favorite?.target_title ??
+                  reportSnapshot?.target_title
+                }
+                phaseLabel={currentPhaseLabel}
+                timeHorizon={activePhase?.time_horizon ?? ''}
+                matchPercent={matchPercent}
+                phaseProgress={activePhaseProgress}
                 modules={modules}
                 selectedModuleId={selectedModule?.module_id}
                 onModuleSelect={setSelectedModuleId}
-                onModuleComplete={toggleModuleComplete}
-                practiceActions={activePhase?.practice_actions}
               />
-            </div>
-          </FadeInWhenVisible>
 
-          <div className={styles.rightPanel}>
-            <FadeInWhenVisible delay={0.2}>
-              <ProCard ghost>
-                <div className={styles.sectionHeader}>
-                  <h3 className={styles.sectionTitle}>学习资源</h3>
-                </div>
-                <ResourceCards
-                  phaseKey={activePhase?.phase_key ?? 'short_term'}
-                  moduleId={selectedModule?.module_id ?? ''}
-                  resources={selectedResources}
-                  completedResourceIds={resourceCompletedSet}
-                  onResourceCheck={handleResourceCheckToggle}
-                  onResourceDetail={handleResourceDetail}
-                  onResourceOpen={(resource) => {
-                    if (resource.url) {
-                      window.open(
-                        resource.url,
-                        '_blank',
-                        'noopener,noreferrer',
-                      );
-                    }
-                  }}
-                />
-              </ProCard>
-            </FadeInWhenVisible>
-
-            <FadeInWhenVisible delay={0.25}>
-              <ProCard ghost>
-                <div
-                  ref={reviewSectionRef}
-                  data-testid="learning-review-section"
-                >
-                  <div className={styles.sectionHeader}>
-                    <h3 className={styles.sectionTitle}>学习复盘</h3>
-                  </div>
-                  <ReviewPanel
-                    workspaceId={workspace?.workspace_id ?? ''}
+              <LearningWorkspaceSplit
+                reviewOpen={reviewWorkspaceOpen}
+                resourceContent={
+                  <LearningResourceFocus
+                    phaseKey={activePhase?.phase_key ?? 'short_term'}
+                    moduleId={selectedModule?.module_id ?? ''}
+                    resources={selectedResources}
+                    completedResourceIds={resourceCompletedSet}
+                    compact={reviewWorkspaceOpen}
+                    onResourceCheck={handleResourceCheckToggle}
+                    onResourceDetail={handleResourceDetail}
+                    onResourceOpen={(resource) => {
+                      if (resource.url) {
+                        window.open(
+                          resource.url,
+                          '_blank',
+                          'noopener,noreferrer',
+                        );
+                      }
+                    }}
+                  />
+                }
+                reviewContent={
+                  <ReviewWorkspacePanel
+                    activeReviewType={activeReviewType}
+                    onActiveReviewTypeChange={setActiveReviewType}
                     activePhase={activePhase ?? makeFallbackPhase()}
                     checkedResourceUrls={checkedResourceUrls}
-                    report={reportSnapshot ?? makeFallbackReport()}
-                    progress={activePhaseProgress}
                     reviews={reviews}
                     loading={reviewLoading}
                     submittingType={submittingType}
-                    activeReviewType={activeReviewType}
-                    onActiveReviewTypeChange={setActiveReviewType}
                     onSubmitReview={submitReview}
+                    onClose={handleCloseReview}
                   />
-                </div>
-              </ProCard>
-            </FadeInWhenVisible>
+                }
+              />
+            </div>
           </div>
-        </div>
 
-        <ResourceDetail
-          resource={
-            activeResource ?? {
-              title: '',
-              url: '',
-              learnWhat: '',
-              whyLearn: '',
-              doneWhen: '',
+          <ResourceDetail
+            resource={
+              activeResource ?? {
+                title: '',
+                url: '',
+                learnWhat: '',
+                whyLearn: '',
+                doneWhen: '',
+              }
             }
-          }
-          moduleTitle={moduleTitle}
-          checked={activeResourceChecked}
-          open={resourceDrawerOpen}
-          onClose={() => {
-            setResourceDrawerOpen(false);
-            setActiveResourceIndex(undefined);
-          }}
-          onCheckToggle={() => {
-            if (activeResourceIndex == null || !activeResource) return;
-            handleResourceCheckToggle(
-              activeResourceIndex,
-              !activeResourceChecked,
-            );
-          }}
-        />
+            moduleTitle={moduleTitle}
+            checked={activeResourceChecked}
+            open={resourceDrawerOpen}
+            onClose={() => {
+              setResourceDrawerOpen(false);
+              setActiveResourceIndex(undefined);
+            }}
+            onCheckToggle={() => {
+              if (activeResourceIndex == null || !activeResource) return;
+              handleResourceCheckToggle(
+                activeResourceIndex,
+                !activeResourceChecked,
+              );
+            }}
+          />
         </div>
       </GlassShell>
     </PageContainer>
