@@ -1,22 +1,23 @@
 import { Spin } from 'antd';
 import React from 'react';
+import { history } from '@umijs/max';
 import {
   AskCoachButton,
   FadeInWhenVisible,
   GlassShell,
   PageError,
 } from '@/components/ui';
-import { useStyles } from './pageStyles';
-import {
-  useCareerMatchData,
-  type MatchTabKey,
-} from './hooks/useCareerMatchData';
-import { ScoreNav } from './components/ScoreNav';
-import { MatchOverviewCard } from './components/MatchOverviewCard';
-import { RadarComparisonPanel } from './components/RadarComparisonPanel';
-import { GapAdvicePanel } from './components/GapAdvicePanel';
 import { CompanyGallery } from './components/CompanyGallery';
 import { DataSourceFooter } from './components/DataSourceFooter';
+import { GapAdvicePanel } from './components/GapAdvicePanel';
+import { MatchOverviewCard } from './components/MatchOverviewCard';
+import { RadarComparisonPanel } from './components/RadarComparisonPanel';
+import { ScoreNav } from './components/ScoreNav';
+import {
+  type MatchTabKey,
+  useCareerMatchData,
+} from './hooks/useCareerMatchData';
+import { useStyles } from './pageStyles';
 
 const CareerMatchPage: React.FC = () => {
   const { styles, cx } = useStyles();
@@ -83,8 +84,7 @@ const CareerMatchPage: React.FC = () => {
               step="match"
               context={{
                 sourcePage: 'career-match',
-                favoriteId:
-                  data.activeRecommendationFavorite?.favorite_id,
+                favoriteId: data.activeRecommendationFavorite?.favorite_id,
                 reportId: activeReport?.report_id,
                 recommendationId: data.activeRecommendationId,
               }}
@@ -143,9 +143,7 @@ const CareerMatchPage: React.FC = () => {
                   {data.activeTab === 'advice' && (
                     <GapAdvicePanel
                       advices={activeReport?.action_advices || []}
-                      priorityGaps={
-                        activeReport?.priority_gap_dimensions || []
-                      }
+                      priorityGaps={activeReport?.priority_gap_dimensions || []}
                       activeGapKey={data.activeGapKey}
                       onGapSelect={data.setActiveGapKey}
                     />
@@ -153,6 +151,11 @@ const CareerMatchPage: React.FC = () => {
                   {data.activeTab === 'company' && (
                     <CompanyGallery
                       cards={activeReport?.evidence_cards || []}
+                      onCardClick={(card) =>
+                        history.push(
+                          `/job-competency-graph?profile_id=${card.profile_id}`,
+                        )
+                      }
                     />
                   )}
                 </div>

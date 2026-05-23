@@ -7,6 +7,7 @@ import { claudeColors, claudeFonts } from '@/styles/claude-tokens';
 
 interface CompanyGalleryProps {
   cards: API.CareerDevelopmentMatchEvidenceCard[];
+  onCardClick?: (card: API.CareerDevelopmentMatchEvidenceCard) => void;
 }
 
 const CARD_WIDTH = 230;
@@ -55,6 +56,7 @@ const useStyles = createStyles(({ css }) => ({
     border-radius: 12px; padding: 18px;
     display: flex; flex-direction: column; gap: 10px;
     transition: all 0.25s ease;
+    cursor: pointer;
     box-shadow: 0 8px 32px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255,255,255,0.4);
     &:hover {
       transform: translateY(-2px);
@@ -91,7 +93,7 @@ const useStyles = createStyles(({ css }) => ({
   `,
 }));
 
-export function CompanyGallery({ cards }: CompanyGalleryProps) {
+export function CompanyGallery({ cards, onCardClick }: CompanyGalleryProps) {
   const { styles } = useStyles();
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number>(0);
@@ -123,7 +125,10 @@ export function CompanyGallery({ cards }: CompanyGalleryProps) {
       <div className={styles.panel}>
         <div className={styles.title}>最匹配的工作机会</div>
         <div className={styles.emptyWrap}>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无匹配公司数据" />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="暂无匹配公司数据"
+          />
         </div>
       </div>
     );
@@ -140,21 +145,52 @@ export function CompanyGallery({ cards }: CompanyGalleryProps) {
             const score = Math.round(card.match_score);
             const circ = 2 * Math.PI * 16;
             return (
-              <div key={card.profile_id} className={styles.card}>
+              <div key={card.profile_id} className={styles.card}
+                onClick={() => onCardClick?.(card)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') onCardClick?.(card);
+                }}
+              >
                 <div className={styles.cardHeader}>
-                  <div className={styles.companyIcon}><BankOutlined /></div>
+                  <div className={styles.companyIcon}>
+                    <BankOutlined />
+                  </div>
                   <div>
-                    <div className={styles.companyName}>{card.company_name}</div>
+                    <div className={styles.companyName}>
+                      {card.company_name}
+                    </div>
                     <div className={styles.companyJob}>{card.job_title}</div>
                   </div>
                 </div>
                 <div className={styles.scoreRow}>
                   <div className={styles.miniRing}>
-                    <svg className={styles.miniRingSvg} width="40" height="40" viewBox="0 0 40 40">
-                      <circle cx="20" cy="20" r="16" fill="none" stroke="#f0eee6" strokeWidth="4" />
-                      <circle cx="20" cy="20" r="16" fill="none" stroke={claudeColors.terracotta}
-                        strokeWidth="4" strokeDasharray={circ}
-                        strokeDashoffset={circ - (circ * score) / 100} strokeLinecap="round" />
+                    <svg
+                      className={styles.miniRingSvg}
+                      width="40"
+                      height="40"
+                      viewBox="0 0 40 40"
+                    >
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="16"
+                        fill="none"
+                        stroke="#f0eee6"
+                        strokeWidth="4"
+                      />
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="16"
+                        fill="none"
+                        stroke={claudeColors.terracotta}
+                        strokeWidth="4"
+                        strokeDasharray={circ}
+                        strokeDashoffset={circ - (circ * score) / 100}
+                        strokeLinecap="round"
+                      />
                     </svg>
                     <span className={styles.miniScore}>{score}</span>
                   </div>
@@ -163,10 +199,14 @@ export function CompanyGallery({ cards }: CompanyGalleryProps) {
                 <div className={styles.tagRow}>
                   {card.industry && <ClaudeTag>{card.industry}</ClaudeTag>}
                   {card.professional_threshold_dimension_count > 0 && (
-                    <ClaudeTag>{card.professional_threshold_dimension_count} 个核心维度</ClaudeTag>
+                    <ClaudeTag>
+                      {card.professional_threshold_dimension_count} 个核心维度
+                    </ClaudeTag>
                   )}
                   {card.group_similarities?.slice(0, 2).map((g) => (
-                    <ClaudeTag key={g.group_key}>{g.label || g.group_key}</ClaudeTag>
+                    <ClaudeTag key={g.group_key}>
+                      {g.label || g.group_key}
+                    </ClaudeTag>
                   ))}
                 </div>
               </div>
