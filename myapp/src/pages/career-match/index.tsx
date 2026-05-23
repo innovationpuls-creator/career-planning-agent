@@ -1,6 +1,6 @@
+import { history } from '@umijs/max';
 import { Spin } from 'antd';
 import React from 'react';
-import { history } from '@umijs/max';
 import {
   AskCoachButton,
   FadeInWhenVisible,
@@ -151,11 +151,7 @@ const CareerMatchPage: React.FC = () => {
                   {data.activeTab === 'company' && (
                     <CompanyGallery
                       cards={activeReport?.evidence_cards || []}
-                      onCardClick={(card) =>
-                        history.push(
-                          `/job-competency-graph?profile_id=${card.profile_id}`,
-                        )
-                      }
+                      onCardClick={() => history.push('/admin/job-postings')}
                     />
                   )}
                 </div>
