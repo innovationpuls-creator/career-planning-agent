@@ -254,3 +254,29 @@ def test_growth_workbench_aggregate_includes_evidence_sources():
     assert "competency" in evidence_keys
     assert "learning_path" in evidence_keys
     assert "report" in evidence_keys
+
+
+def test_get_growth_workbench_endpoint_returns_aggregate():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    response = client.get(
+        f"/api/career-development-report/personal-growth-workbench/{favorite_id}",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["data"]["target_summary"]["favorite_id"] == favorite_id
+    assert body["data"]["target_summary"]["title"] == "前端工程师"
+    assert body["data"]["existing_report_workspace"] is not None
+    assert {item["key"] for item in body["data"]["evidence_sources"]} >= {
+        "profile",
+        "competency",
+        "learning_path",
+        "resume_material",
+        "report",
+    }

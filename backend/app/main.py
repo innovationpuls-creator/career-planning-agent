@@ -40,6 +40,7 @@ from app.api.coach_observability import router as coach_observability_router
 from app.api.coach_sessions import router as coach_sessions_router
 from app.api.coach_upload import router as coach_upload_router
 from app.api.goal_setting import router as goal_setting_router
+from app.api.growth_workbench import router as growth_workbench_router
 from app.api.snail_learning_path import router as snail_learning_path_router
 from app.api.student_competency_profile import router as student_competency_profile_router
 from app.core.config import DATA_DIR, settings
@@ -512,6 +513,7 @@ app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(user_profile_router)
 app.include_router(career_development_report_router)
+app.include_router(growth_workbench_router)
 app.include_router(job_requirement_comparisons_router)
 app.include_router(job_requirement_graph_router)
 app.include_router(job_requirement_vertical_router)
