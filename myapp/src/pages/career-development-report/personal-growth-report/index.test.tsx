@@ -389,10 +389,13 @@ describe('PersonalGrowthReportPage', () => {
 
     render(<PersonalGrowthReportPage />);
 
-    expect(await screen.findByText('生成报告')).toBeTruthy();
+    const generateButton = await screen.findByRole('button', {
+      name: /生成报告/,
+    });
+    await waitFor(() => expect(generateButton.hasAttribute('disabled')).toBe(false));
     expect(screen.getByTestId('prerequisite-check')).toBeTruthy();
 
-    fireEvent.click(screen.getByText('生成报告'));
+    fireEvent.click(generateButton);
 
     await waitFor(() =>
       expect(mockedCreatePersonalGrowthReportTask).toHaveBeenCalledWith(

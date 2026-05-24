@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { Alert, Card, Empty, message, Spin } from 'antd';
+import { Alert, Button, Card, Drawer, Empty, message, Space, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import * as React from 'react';
 import { useMemo, useState } from 'react';
@@ -16,7 +16,6 @@ import ReportArtifactPanel from './components/ReportArtifactPanel';
 import ReportHero from './components/ReportHero';
 import ResumeArtifactPanel from './components/ResumeArtifactPanel';
 import TaskOrchestrationPanel from './components/TaskOrchestrationPanel';
-import WorkbenchHero from './components/WorkbenchHero';
 import { useGrowthWorkbench } from './hooks/useGrowthWorkbench';
 import { usePrerequisites } from './hooks/usePrerequisites';
 import { useReportTaskLifecycle } from './hooks/useReportTaskLifecycle';
@@ -75,15 +74,6 @@ const useStyles = createStyles(({ css, token }) => ({
       padding: ${token.padding}px;
     }
   `,
-  workbench: css`
-    display: grid;
-    gap: ${token.margin}px;
-    padding: ${token.paddingLG}px ${token.paddingLG}px 0;
-
-    @media (max-width: 900px) {
-      padding: ${token.padding}px ${token.padding}px 0;
-    }
-  `,
   insightGrid: css`
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
@@ -93,10 +83,17 @@ const useStyles = createStyles(({ css, token }) => ({
       grid-template-columns: 1fr;
     }
   `,
-  coachRow: css`
+  toolRow: css`
     display: flex;
     justify-content: flex-end;
-    padding: ${token.paddingXXS}px 0;
+    gap: ${token.marginSM}px;
+    padding: ${token.paddingSM}px ${token.paddingLG}px 0;
+
+    @media (max-width: 900px) {
+      justify-content: flex-start;
+      padding: ${token.paddingSM}px ${token.padding}px 0;
+      flex-wrap: wrap;
+    }
   `,
   content: css`
     flex: 1;
@@ -115,14 +112,15 @@ const useStyles = createStyles(({ css, token }) => ({
       display: grid;
     }
   `,
-  resumeColumn: css`
-    width: min(360px, 34vw);
-    min-width: 300px;
-
-    @media (max-width: 900px) {
-      width: 100%;
-      min-width: 0;
-    }
+  drawerBody: css`
+    display: grid;
+    gap: ${token.margin}px;
+  `,
+  drawerActions: css`
+    display: flex;
+    justify-content: space-between;
+    gap: ${token.margin}px;
+    flex-wrap: wrap;
   `,
 }));
 
@@ -212,6 +210,7 @@ const PersonalGrowthReportPage: React.FC = () => {
   const [activeSectionKey, setActiveSectionKey] =
     useState<PersonalGrowthSectionKey>('self_cognition');
   const [editing, setEditing] = useState(false);
+  const [workbenchOpen, setWorkbenchOpen] = useState(false);
 
   const activeSection = useMemo(
     () => sections.find((section) => section.key === activeSectionKey) || sections[0],
@@ -287,40 +286,6 @@ const PersonalGrowthReportPage: React.FC = () => {
         ) : (
           <>
             <PrerequisiteCheck items={prerequisiteItems} />
-            <div className={styles.workbench}>
-              <WorkbenchHero
-                targetSummary={workbench?.target_summary}
-                loading={workbenchLoading || Boolean(runningTaskId)}
-                onRunFullQueue={() => void runFullQueue()}
-                onAskCoach={() => {
-                  window.location.href = `/coach?step=report&favoriteId=${favoriteId || ''}`;
-                }}
-              />
-              <TaskOrchestrationPanel
-                tasks={workbench?.task_queue || []}
-                runningTaskId={runningTaskId}
-                onRunTask={(taskType) => void runTask(taskType)}
-                onSkipTask={(taskId) => void skipTask(taskId)}
-                onCancelTask={(taskId) => void cancelTask(taskId)}
-              />
-              <div className={styles.insightGrid}>
-                <MarketAlignmentPanel
-                  targetDiagnosis={workbench?.latest_diagnoses?.target as any}
-                  gapDiagnosis={workbench?.latest_diagnoses?.gap as any}
-                />
-                <EvidenceDock sources={workbench?.evidence_sources || []} />
-              </div>
-            </div>
-            <div className={styles.coachRow}>
-              <AskCoachButton
-                step="report"
-                context={{
-                  sourcePage: 'personal-growth-report',
-                  favoriteId,
-                  workspaceId: reportWorkspace?.workspace_id,
-                }}
-              />
-            </div>
             <ReportHero
               favoriteId={favoriteId}
               title={`${activeFavorite?.canonical_job_title || '个人'}职业成长报告`}
@@ -339,6 +304,69 @@ const PersonalGrowthReportPage: React.FC = () => {
                 setWorkspaceError(undefined);
               }}
             />
+            <div className={styles.toolRow}>
+              <Button onClick={() => setWorkbenchOpen(true)}>
+                AI生成与简历
+              </Button>
+              <AskCoachButton
+                step="report"
+                context={{
+                  sourcePage: 'personal-growth-report',
+                  favoriteId,
+                  workspaceId: reportWorkspace?.workspace_id,
+                }}
+              />
+            </div>
+            <Drawer
+              title="AI生成与简历优化"
+              width={760}
+              open={workbenchOpen}
+              onClose={() => setWorkbenchOpen(false)}
+              destroyOnHidden
+            >
+              <div className={styles.drawerBody}>
+                <div className={styles.drawerActions}>
+                  <Space wrap>
+                    <Button
+                      type="primary"
+                      loading={workbenchLoading || Boolean(runningTaskId)}
+                      onClick={() => void runFullQueue()}
+                    >
+                      一键生成
+                    </Button>
+                    <Button onClick={() => void runFullQueue()}>
+                      继续队列
+                    </Button>
+                  </Space>
+                  <AskCoachButton
+                    step="report"
+                    context={{
+                      sourcePage: 'personal-growth-report',
+                      favoriteId,
+                      workspaceId: reportWorkspace?.workspace_id,
+                    }}
+                  />
+                </div>
+                <TaskOrchestrationPanel
+                  tasks={workbench?.task_queue || []}
+                  runningTaskId={runningTaskId}
+                  onRunTask={(taskType) => void runTask(taskType)}
+                  onSkipTask={(taskId) => void skipTask(taskId)}
+                  onCancelTask={(taskId) => void cancelTask(taskId)}
+                />
+                <ResumeArtifactPanel
+                  versions={workbench?.resume_versions || []}
+                  onAccept={(artifactId) => void acceptArtifact(artifactId)}
+                />
+                <div className={styles.insightGrid}>
+                  <MarketAlignmentPanel
+                    targetDiagnosis={workbench?.latest_diagnoses?.target as any}
+                    gapDiagnosis={workbench?.latest_diagnoses?.gap as any}
+                  />
+                  <EvidenceDock sources={workbench?.evidence_sources || []} />
+                </div>
+              </div>
+            </Drawer>
 
             {pageLoading ? (
               <div className={styles.loading}>
@@ -406,12 +434,6 @@ const PersonalGrowthReportPage: React.FC = () => {
                       </div>
                     </div>
                   </ReportArtifactPanel>
-                </div>
-                <div className={styles.resumeColumn}>
-                  <ResumeArtifactPanel
-                    versions={workbench?.resume_versions || []}
-                    onAccept={(artifactId) => void acceptArtifact(artifactId)}
-                  />
                 </div>
               </main>
             )}
