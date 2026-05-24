@@ -11,6 +11,10 @@ const getRequestErrorMessage = (error: unknown, fallback: string) =>
   (error as { message?: string })?.message ||
   fallback;
 
+const isNotFoundError = (error: unknown) =>
+  (error as { response?: { status?: number } })?.response?.status === 404 ||
+  String((error as { message?: string })?.message || '').includes('404');
+
 export function useGrowthWorkbench({ favoriteId }: UseGrowthWorkbenchOptions) {
   const [workbench, setWorkbench] =
     useState<API.GrowthWorkbenchAggregatePayload>();
@@ -33,6 +37,10 @@ export function useGrowthWorkbench({ favoriteId }: UseGrowthWorkbenchOptions) {
       });
       setWorkbench(response?.data);
     } catch (requestError: unknown) {
+      if (isNotFoundError(requestError)) {
+        setWorkbench(undefined);
+        return;
+      }
       setError(
         getRequestErrorMessage(requestError, '工作台数据加载失败。'),
       );

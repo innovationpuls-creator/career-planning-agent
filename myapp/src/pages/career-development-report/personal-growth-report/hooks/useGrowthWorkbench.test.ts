@@ -46,4 +46,16 @@ describe('useGrowthWorkbench', () => {
     expect(result.current.workbench).toBeUndefined();
     expect(result.current.error).toBeUndefined();
   });
+
+  it('keeps the report page usable when aggregate data is missing', async () => {
+    mockedGetGrowthWorkbench.mockRejectedValue({
+      response: { status: 404, data: { detail: 'Not Found' } },
+    });
+
+    const { result } = renderHook(() => useGrowthWorkbench({ favoriteId: 1 }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.workbench).toBeUndefined();
+    expect(result.current.error).toBeUndefined();
+  });
 });

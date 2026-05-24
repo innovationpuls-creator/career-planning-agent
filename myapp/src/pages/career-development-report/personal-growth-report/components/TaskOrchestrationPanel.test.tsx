@@ -14,7 +14,9 @@ describe('TaskOrchestrationPanel', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('目标校验').closest('button')!);
+    const targetButton = screen.getByText('目标校验').closest('button');
+    expect(targetButton).toBeTruthy();
+    fireEvent.click(targetButton as HTMLButtonElement);
     expect(onRunTask).toHaveBeenCalledWith('target_validation');
     expect(screen.getByText('差距诊断')).toBeTruthy();
     expect(screen.getByText('报告改写')).toBeTruthy();

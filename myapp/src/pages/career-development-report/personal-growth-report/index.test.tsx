@@ -478,7 +478,10 @@ describe('PersonalGrowthReportPage', () => {
     const buttons = nav.querySelectorAll('button');
     const careerButton = Array.from(buttons).find((button) =>
       button.textContent?.includes('职业方向分析'),
-    )!;
+    );
+    if (!careerButton) {
+      throw new Error('Missing career direction chapter button.');
+    }
     fireEvent.click(careerButton);
 
     expect(careerButton.getAttribute('aria-current')).toBe('true');

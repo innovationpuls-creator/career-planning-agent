@@ -56,10 +56,11 @@ export function useWorkbenchTaskQueue({
           controller.signal,
         )) {
           if (event.stage === '__end__') break;
-          if (event.snapshot) {
+          const snapshot = event.snapshot;
+          if (snapshot) {
             setTaskSnapshots((current) => ({
               ...current,
-              [event.snapshot!.task_id]: event.snapshot!,
+              [snapshot.task_id]: snapshot,
             }));
           }
           if (terminalStatuses.has(event.status)) {
