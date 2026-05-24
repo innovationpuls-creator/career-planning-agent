@@ -8,12 +8,20 @@ import { useCareerGoalPlanningData } from '../shared/useCareerGoalPlanningData';
 import ChapterContent from './components/ChapterContent';
 import ChapterEditor from './components/ChapterEditor';
 import ChapterNav from './components/ChapterNav';
+import EvidenceDock from './components/EvidenceDock';
 import GenerationProgress from './components/GenerationProgress';
+import MarketAlignmentPanel from './components/MarketAlignmentPanel';
 import PrerequisiteCheck from './components/PrerequisiteCheck';
+import ReportArtifactPanel from './components/ReportArtifactPanel';
 import ReportHero from './components/ReportHero';
+import ResumeArtifactPanel from './components/ResumeArtifactPanel';
+import TaskOrchestrationPanel from './components/TaskOrchestrationPanel';
+import WorkbenchHero from './components/WorkbenchHero';
+import { useGrowthWorkbench } from './hooks/useGrowthWorkbench';
 import { usePrerequisites } from './hooks/usePrerequisites';
 import { useReportTaskLifecycle } from './hooks/useReportTaskLifecycle';
 import { useReportWorkspace } from './hooks/useReportWorkspace';
+import { useWorkbenchTaskQueue } from './hooks/useWorkbenchTaskQueue';
 import {
   formatPersonalGrowthDateTime,
   hasPersistedReportContent,
@@ -67,9 +75,54 @@ const useStyles = createStyles(({ css, token }) => ({
       padding: ${token.padding}px;
     }
   `,
+  workbench: css`
+    display: grid;
+    gap: ${token.margin}px;
+    padding: ${token.paddingLG}px ${token.paddingLG}px 0;
+
+    @media (max-width: 900px) {
+      padding: ${token.padding}px ${token.padding}px 0;
+    }
+  `,
+  insightGrid: css`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+    gap: ${token.margin}px;
+
+    @media (max-width: 980px) {
+      grid-template-columns: 1fr;
+    }
+  `,
+  coachRow: css`
+    display: flex;
+    justify-content: flex-end;
+    padding: ${token.paddingXXS}px 0;
+  `,
   content: css`
     flex: 1;
     min-width: 0;
+  `,
+  reportColumn: css`
+    flex: 1;
+    min-width: 0;
+  `,
+  reportEditorLayout: css`
+    display: flex;
+    align-items: flex-start;
+    gap: ${token.marginLG}px;
+
+    @media (max-width: 900px) {
+      display: grid;
+    }
+  `,
+  resumeColumn: css`
+    width: min(360px, 34vw);
+    min-width: 300px;
+
+    @media (max-width: 900px) {
+      width: 100%;
+      min-width: 0;
+    }
   `,
 }));
 
@@ -102,6 +155,13 @@ const PersonalGrowthReportPage: React.FC = () => {
     restoreTemplate,
   } = useReportWorkspace({ favoriteId });
 
+  const {
+    workbench,
+    loading: workbenchLoading,
+    error: workbenchError,
+    refresh: refreshWorkbench,
+  } = useGrowthWorkbench({ favoriteId });
+
   const { prerequisiteItems, blockingMissingItems, allReady } =
     usePrerequisites({
       activeFavorite: activeFavorite ?? undefined,
@@ -125,6 +185,24 @@ const PersonalGrowthReportPage: React.FC = () => {
     workspaceId: reportWorkspace?.workspace_id,
     activeTaskId: reportWorkspace?.active_task?.task_id,
     onReportReady: async () => {
+      if (favoriteId) {
+        await refreshPageData(favoriteId);
+      }
+    },
+  });
+
+  const {
+    runningTaskId,
+    taskError,
+    runTask,
+    runFullQueue,
+    skipTask,
+    cancelTask,
+    acceptArtifact,
+  } = useWorkbenchTaskQueue({
+    favoriteId,
+    onRefresh: async () => {
+      await refreshWorkbench();
       if (favoriteId) {
         await refreshPageData(favoriteId);
       }
@@ -182,7 +260,8 @@ const PersonalGrowthReportPage: React.FC = () => {
     }
   };
 
-  const currentError = pageError || actionError || workspaceError;
+  const currentError =
+    pageError || actionError || workspaceError || workbenchError || taskError;
 
   return (
     <GlassShell>
@@ -208,7 +287,31 @@ const PersonalGrowthReportPage: React.FC = () => {
         ) : (
           <>
             <PrerequisiteCheck items={prerequisiteItems} />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 0 4px' }}>
+            <div className={styles.workbench}>
+              <WorkbenchHero
+                targetSummary={workbench?.target_summary}
+                loading={workbenchLoading || Boolean(runningTaskId)}
+                onRunFullQueue={() => void runFullQueue()}
+                onAskCoach={() => {
+                  window.location.href = `/coach?step=report&favoriteId=${favoriteId || ''}`;
+                }}
+              />
+              <TaskOrchestrationPanel
+                tasks={workbench?.task_queue || []}
+                runningTaskId={runningTaskId}
+                onRunTask={(taskType) => void runTask(taskType)}
+                onSkipTask={(taskId) => void skipTask(taskId)}
+                onCancelTask={(taskId) => void cancelTask(taskId)}
+              />
+              <div className={styles.insightGrid}>
+                <MarketAlignmentPanel
+                  targetDiagnosis={workbench?.latest_diagnoses?.target as any}
+                  gapDiagnosis={workbench?.latest_diagnoses?.gap as any}
+                />
+                <EvidenceDock sources={workbench?.evidence_sources || []} />
+              </div>
+            </div>
+            <div className={styles.coachRow}>
               <AskCoachButton
                 step="report"
                 context={{
@@ -257,40 +360,58 @@ const PersonalGrowthReportPage: React.FC = () => {
               ) : null
             ) : (
               <main className={styles.main}>
-                <ChapterNav
-                  sections={sections}
-                  activeSectionKey={activeSectionKey}
-                  editedSectionKeys={editedSectionKeys}
-                  onSelect={(key) => {
-                    setActiveSectionKey(key);
-                    setEditing(false);
-                  }}
-                />
-                <div className={styles.content}>
-                  {editing ? (
-                    <ChapterEditor
-                      title={activeSection?.title || '报告章节'}
-                      content={sectionHtmlMap[activeSectionKey] || ''}
-                      dirty={dirty}
-                      saving={saving}
-                      placeholder={
-                        PERSONAL_GROWTH_SECTION_META[activeSectionKey].placeholder
-                      }
-                      onChange={(html) =>
-                        setSectionHtmlMap((current) => ({
-                          ...current,
-                          [activeSectionKey]: html,
-                        }))
-                      }
-                      onRestoreTemplate={() => restoreTemplate(activeSectionKey)}
-                      onSave={() => void handleSave()}
-                    />
-                  ) : (
-                    <ChapterContent
-                      section={activeSection}
-                      onEdit={() => setEditing(true)}
-                    />
-                  )}
+                <div className={styles.reportColumn}>
+                  <ReportArtifactPanel
+                    versions={workbench?.report_versions || []}
+                    existingWorkspace={workbench?.existing_report_workspace}
+                    onAccept={(artifactId) => void acceptArtifact(artifactId)}
+                  >
+                    <div className={styles.reportEditorLayout}>
+                      <ChapterNav
+                        sections={sections}
+                        activeSectionKey={activeSectionKey}
+                        editedSectionKeys={editedSectionKeys}
+                        onSelect={(key) => {
+                          setActiveSectionKey(key);
+                          setEditing(false);
+                        }}
+                      />
+                      <div className={styles.content}>
+                        {editing ? (
+                          <ChapterEditor
+                            title={activeSection?.title || '报告章节'}
+                            content={sectionHtmlMap[activeSectionKey] || ''}
+                            dirty={dirty}
+                            saving={saving}
+                            placeholder={
+                              PERSONAL_GROWTH_SECTION_META[activeSectionKey].placeholder
+                            }
+                            onChange={(html) =>
+                              setSectionHtmlMap((current) => ({
+                                ...current,
+                                [activeSectionKey]: html,
+                              }))
+                            }
+                            onRestoreTemplate={() =>
+                              restoreTemplate(activeSectionKey)
+                            }
+                            onSave={() => void handleSave()}
+                          />
+                        ) : (
+                          <ChapterContent
+                            section={activeSection}
+                            onEdit={() => setEditing(true)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </ReportArtifactPanel>
+                </div>
+                <div className={styles.resumeColumn}>
+                  <ResumeArtifactPanel
+                    versions={workbench?.resume_versions || []}
+                    onAccept={(artifactId) => void acceptArtifact(artifactId)}
+                  />
                 </div>
               </main>
             )}

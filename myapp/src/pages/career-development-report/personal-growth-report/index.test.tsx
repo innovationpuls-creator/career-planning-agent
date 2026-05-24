@@ -341,7 +341,8 @@ describe('PersonalGrowthReportPage', () => {
     expect(screen.getByText('报告改写')).toBeTruthy();
     expect(screen.getAllByText('简历草稿').length).toBeGreaterThan(0);
     expect(screen.getByText('证据')).toBeTruthy();
-    expect(screen.getByText('自我认知')).toBeTruthy();
+    await screen.findByTestId('chapter-content');
+    expect(screen.getAllByText('自我认知').length).toBeGreaterThan(0);
     expect(screen.getByText('导出 Word')).toBeTruthy();
   });
 
