@@ -26,9 +26,11 @@ from app.schemas.growth_workbench import (
     GrowthWorkbenchPrerequisiteItem,
     GrowthWorkbenchTaskPayload,
 )
+from app.schemas.career_development_report import PersonalGrowthReportSection
 from app.services.career_development_goal_planning import read_favorite_report_payload
 from app.services.career_development_personal_growth_report import (
     build_personal_growth_report_payload,
+    update_personal_growth_report_workspace,
 )
 from app.services.student_competency_latest_analysis import (
     get_student_competency_latest_profile_record,
@@ -612,3 +614,124 @@ def create_and_run_workbench_task(
     db.commit()
     db.refresh(row)
     return row
+
+
+def get_workbench_task(
+    db: Session,
+    *,
+    user_id: int,
+    task_id: str,
+) -> GrowthWorkbenchTask | None:
+    return db.scalar(
+        select(GrowthWorkbenchTask).where(
+            GrowthWorkbenchTask.user_id == user_id,
+            GrowthWorkbenchTask.id == task_id,
+        )
+    )
+
+
+def skip_workbench_task(
+    db: Session,
+    *,
+    user_id: int,
+    task_id: str,
+) -> GrowthWorkbenchTask:
+    row = get_workbench_task(db, user_id=user_id, task_id=task_id)
+    if row is None:
+        raise ValueError("任务不存在。")
+    now = utc_now()
+    row.status = "skipped"
+    row.progress = 100
+    row.completed_at = now
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def cancel_workbench_task(
+    db: Session,
+    *,
+    user_id: int,
+    task_id: str,
+) -> GrowthWorkbenchTask:
+    row = get_workbench_task(db, user_id=user_id, task_id=task_id)
+    if row is None:
+        raise ValueError("任务不存在。")
+    now = utc_now()
+    row.status = "cancelled"
+    row.progress = 100
+    row.cancel_requested_at = now
+    row.completed_at = now
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def _report_sections_from_version(row: GrowthReportVersion) -> list[PersonalGrowthReportSection]:
+    sections: list[PersonalGrowthReportSection] = []
+    for item in _as_list(row.sections_json):
+        if isinstance(item, dict):
+            sections.append(PersonalGrowthReportSection.model_validate(item))
+    if not sections:
+        raise ValueError("报告版本内容为空。")
+    return sections
+
+
+def accept_workbench_artifact(
+    db: Session,
+    *,
+    user_id: int,
+    artifact_id: str,
+) -> dict[str, object]:
+    report = db.scalar(
+        select(GrowthReportVersion).where(
+            GrowthReportVersion.user_id == user_id,
+            GrowthReportVersion.id == artifact_id,
+        )
+    )
+    if report is not None:
+        workspace = _workspace_for_favorite(
+            db,
+            user_id=user_id,
+            favorite_id=report.favorite_id,
+        )
+        if workspace is None:
+            raise ValueError("报告工作区不存在。")
+        updated = update_personal_growth_report_workspace(
+            db,
+            row=workspace,
+            sections=_report_sections_from_version(report),
+        )
+        report.accepted = 1
+        report.accepted_at = utc_now()
+        report.backfilled_workspace_id = updated.id
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        return {
+            "artifact_type": "report",
+            "artifact_id": artifact_id,
+            "workspace_id": updated.id,
+        }
+
+    resume = db.scalar(
+        select(GrowthResumeVersion).where(
+            GrowthResumeVersion.user_id == user_id,
+            GrowthResumeVersion.id == artifact_id,
+        )
+    )
+    if resume is not None:
+        resume.accepted = 1
+        resume.accepted_at = utc_now()
+        db.add(resume)
+        db.commit()
+        db.refresh(resume)
+        return {
+            "artifact_type": "resume",
+            "artifact_id": artifact_id,
+            "accepted": True,
+        }
+
+    raise ValueError("产物不存在。")

@@ -318,3 +318,102 @@ def test_create_growth_workbench_full_queue_creates_four_tasks():
     assert aggregate["latest_diagnoses"]["gap"] is not None
     assert aggregate["report_versions"]
     assert aggregate["resume_versions"]
+
+
+def test_growth_workbench_get_and_stream_task_endpoint_returns_snapshot():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    create = client.post(
+        "/api/career-development-report/personal-growth-workbench/tasks",
+        headers=headers,
+        json={
+            "favorite_id": favorite_id,
+            "task_type": "target_validation",
+            "run_mode": "single",
+        },
+    )
+    task_id = create.json()["data"]["task_id"]
+
+    detail = client.get(
+        f"/api/career-development-report/personal-growth-workbench/tasks/{task_id}",
+        headers=headers,
+    )
+    assert detail.status_code == 200
+    assert detail.json()["data"]["task_id"] == task_id
+
+    stream = client.get(
+        f"/api/career-development-report/personal-growth-workbench/tasks/{task_id}/stream",
+        headers=headers,
+    )
+    assert stream.status_code == 200
+    events = [json.loads(line) for line in stream.text.strip().splitlines()]
+    assert events[0]["task_id"] == task_id
+    assert events[0]["snapshot"]["task_id"] == task_id
+    assert events[-1]["stage"] == "__end__"
+
+
+def test_growth_workbench_skip_and_cancel_endpoints_update_task():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    create = client.post(
+        "/api/career-development-report/personal-growth-workbench/tasks",
+        headers=headers,
+        json={
+            "favorite_id": favorite_id,
+            "task_type": "target_validation",
+            "run_mode": "single",
+        },
+    )
+    task_id = create.json()["data"]["task_id"]
+
+    skip = client.post(
+        f"/api/career-development-report/personal-growth-workbench/tasks/{task_id}/skip",
+        headers=headers,
+    )
+    assert skip.status_code == 200
+    assert skip.json()["data"]["status"] == "skipped"
+
+    cancel = client.post(
+        f"/api/career-development-report/personal-growth-workbench/tasks/{task_id}/cancel",
+        headers=headers,
+    )
+    assert cancel.status_code == 200
+    assert cancel.json()["data"]["status"] == "cancelled"
+
+
+def test_accept_report_artifact_backfills_report_workspace():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    create = client.post(
+        "/api/career-development-report/personal-growth-workbench/tasks",
+        headers=headers,
+        json={
+            "favorite_id": favorite_id,
+            "task_type": "report_rewrite",
+            "run_mode": "single",
+        },
+    )
+    artifact_id = create.json()["data"]["result_artifact_id"]
+
+    accept = client.post(
+        f"/api/career-development-report/personal-growth-workbench/artifacts/{artifact_id}/accept",
+        headers=headers,
+    )
+
+    assert accept.status_code == 200
+    assert accept.json()["data"]["artifact_type"] == "report"
+
+    workspace = client.get(
+        f"/api/career-development-report/personal-growth-report/workspaces/{favorite_id}",
+        headers=headers,
+    ).json()["data"]
+    assert workspace["sections"][0]["content"]
