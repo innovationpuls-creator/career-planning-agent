@@ -197,6 +197,8 @@ const readyWorkspace = {
 const growthWorkbenchPayload = {
   target_summary: {
     favorite_id: favorite.favorite_id,
+    title: favorite.target_title,
+    industry: favorite.industry,
     target_title: favorite.target_title,
     overall_match: favorite.overall_match,
   },
@@ -205,7 +207,20 @@ const growthWorkbenchPayload = {
   latest_diagnoses: {},
   report_versions: [],
   resume_versions: [],
-  evidence_sources: [],
+  evidence_sources: [
+    {
+      key: 'competency',
+      label: '12维',
+      status: 'available',
+      summary: '1 个维度',
+    },
+    {
+      key: 'resume_material',
+      label: '简历材料',
+      status: 'missing',
+      summary: '需上传或粘贴材料',
+    },
+  ],
   existing_report_workspace: readyWorkspace,
 } as unknown as API.GrowthWorkbenchAggregatePayload;
 
@@ -223,6 +238,17 @@ const emptyWorkspace = {
 } as API.PersonalGrowthReportPayload;
 
 async function* emptyStream() {}
+
+async function* completedGrowthWorkbenchStream() {
+  yield {
+    stage: 'completed',
+    task_id: 'workbench-task-1',
+    task_type: 'full_queue',
+    status: 'completed',
+    status_text: '已完成',
+    progress: 100,
+  };
+}
 
 async function* runningStream() {
   yield {
@@ -288,10 +314,37 @@ beforeEach(() => {
   mockedGetGrowthWorkbench.mockResolvedValue({
     data: growthWorkbenchPayload,
   });
+  mockedCreateGrowthWorkbenchTask.mockResolvedValue({
+    data: {
+      task_id: 'workbench-task-1',
+      favorite_id: 1,
+      task_type: 'full_queue',
+      status: 'completed',
+      progress: 100,
+      created_at: '2026-05-24T00:00:00Z',
+      updated_at: '2026-05-24T00:00:00Z',
+    },
+  });
   mockedStreamGrowthWorkbenchTask.mockReturnValue(emptyStream());
 });
 
 describe('PersonalGrowthReportPage', () => {
+  it('renders the comprehensive workbench and preserves report content', async () => {
+    mockedStreamGrowthWorkbenchTask.mockReturnValue(
+      completedGrowthWorkbenchStream(),
+    );
+
+    render(<PersonalGrowthReportPage />);
+
+    expect(await screen.findByText('目标校验')).toBeTruthy();
+    expect(screen.getByText('差距诊断')).toBeTruthy();
+    expect(screen.getByText('报告改写')).toBeTruthy();
+    expect(screen.getAllByText('简历草稿').length).toBeGreaterThan(0);
+    expect(screen.getByText('证据')).toBeTruthy();
+    expect(screen.getByText('自我认知')).toBeTruthy();
+    expect(screen.getByText('导出 Word')).toBeTruthy();
+  });
+
   it('renders the empty report hero and creates a task from the CTA', async () => {
     mockedGetPersonalGrowthReportWorkspace.mockResolvedValue({
       data: emptyWorkspace,
