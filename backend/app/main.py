@@ -70,6 +70,13 @@ from app.models.career_development_personal_growth_report_task import (
 from app.models.career_development_plan_workspace import CareerDevelopmentPlanWorkspace
 from app.models.career_requirement_profile import CareerRequirementProfile
 from app.models.career_title_alias import CareerTitleAlias
+from app.models.growth_workbench import (
+    GrowthGapDiagnosis,
+    GrowthReportVersion,
+    GrowthResumeVersion,
+    GrowthTargetDiagnosis,
+    GrowthWorkbenchTask,
+)
 from app.models.job_group_embedding import JobGroupEmbedding
 from app.models.job_posting import JobPosting
 from app.models.job_requirement_profile import JobRequirementProfile
@@ -369,6 +376,11 @@ def init_db() -> None:
         CareerDevelopmentGoalPlanningTask,
         CareerDevelopmentPersonalGrowthReportTask,
         CareerDevelopmentPlanWorkspace,
+        GrowthWorkbenchTask,
+        GrowthTargetDiagnosis,
+        GrowthGapDiagnosis,
+        GrowthReportVersion,
+        GrowthResumeVersion,
         JobGroupEmbedding,
         JobRequirementProfile,
         JobTransferAnalysisTask,
