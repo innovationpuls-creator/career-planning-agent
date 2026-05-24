@@ -57,6 +57,18 @@ export type PersonalGrowthReportTaskStreamEvent = {
   snapshot?: API.PersonalGrowthReportTaskPayload;
 };
 
+export type GrowthWorkbenchTaskStreamEvent = {
+  stage: string;
+  task_id: string;
+  queue_id?: string;
+  task_type: API.GrowthWorkbenchTaskType;
+  status: API.GrowthWorkbenchTaskStatus;
+  status_text?: string;
+  progress?: number;
+  snapshot?: API.GrowthWorkbenchTaskPayload;
+  created_at?: string;
+};
+
 export type CareerDevelopmentPlanWorkspaceExportResult = {
   blob: Blob;
   filename?: string;
@@ -658,6 +670,148 @@ export async function bootstrapPersonalGrowthReport(
       ...(options || {}),
     },
   );
+}
+
+export async function getGrowthWorkbench(
+  favoriteId: number,
+  options?: { [key: string]: any },
+) {
+  return request<API.GrowthWorkbenchAggregateResponse>(
+    `/api/career-development-report/personal-growth-workbench/${favoriteId}`,
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function createGrowthWorkbenchTask(
+  body: API.GrowthWorkbenchTaskCreateRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.GrowthWorkbenchTaskResponse>(
+    '/api/career-development-report/personal-growth-workbench/tasks',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function getGrowthWorkbenchTask(
+  taskId: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.GrowthWorkbenchTaskResponse>(
+    `/api/career-development-report/personal-growth-workbench/tasks/${taskId}`,
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function skipGrowthWorkbenchTask(
+  taskId: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.GrowthWorkbenchTaskResponse>(
+    `/api/career-development-report/personal-growth-workbench/tasks/${taskId}/skip`,
+    {
+      method: 'POST',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function cancelGrowthWorkbenchTask(
+  taskId: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.GrowthWorkbenchTaskResponse>(
+    `/api/career-development-report/personal-growth-workbench/tasks/${taskId}/cancel`,
+    {
+      method: 'POST',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function acceptGrowthWorkbenchArtifact(
+  artifactId: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.GrowthWorkbenchAcceptResponse>(
+    `/api/career-development-report/personal-growth-workbench/artifacts/${artifactId}/accept`,
+    {
+      method: 'POST',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function* streamGrowthWorkbenchTask(
+  taskId: string,
+  signal: AbortSignal,
+): AsyncGenerator<GrowthWorkbenchTaskStreamEvent, void, void> {
+  const token = getAccessToken();
+  const response = await fetch(
+    `/api/career-development-report/personal-growth-workbench/tasks/${taskId}/stream`,
+    {
+      method: 'GET',
+      signal,
+      headers: {
+        Accept: 'application/x-ndjson',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorResponse(response));
+  }
+
+  if (!response.body) {
+    throw new Error('Growth workbench task stream response was empty.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      while (true) {
+        const newlineIndex = buffer.indexOf('\n');
+        if (newlineIndex < 0) {
+          break;
+        }
+        const line = buffer.slice(0, newlineIndex).trim();
+        buffer = buffer.slice(newlineIndex + 1);
+        if (!line) {
+          continue;
+        }
+        yield JSON.parse(line) as GrowthWorkbenchTaskStreamEvent;
+      }
+    }
+
+    const tail = `${buffer}${decoder.decode()}`.trim();
+    if (tail) {
+      yield JSON.parse(tail) as GrowthWorkbenchTaskStreamEvent;
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 export async function exportPersonalGrowthReport(

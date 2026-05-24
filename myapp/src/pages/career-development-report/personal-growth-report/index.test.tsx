@@ -13,6 +13,13 @@ const mockedCreatePersonalGrowthReportTask = jest.fn();
 const mockedGetPersonalGrowthReportTask = jest.fn();
 const mockedCancelPersonalGrowthReportTask = jest.fn();
 const mockedStreamPersonalGrowthReportTask = jest.fn();
+const mockedGetGrowthWorkbench = jest.fn();
+const mockedCreateGrowthWorkbenchTask = jest.fn();
+const mockedGetGrowthWorkbenchTask = jest.fn();
+const mockedSkipGrowthWorkbenchTask = jest.fn();
+const mockedCancelGrowthWorkbenchTask = jest.fn();
+const mockedAcceptGrowthWorkbenchArtifact = jest.fn();
+const mockedStreamGrowthWorkbenchTask = jest.fn();
 const mockedSetActionError = jest.fn();
 
 jest.mock('@ant-design/pro-components', () => ({
@@ -44,6 +51,19 @@ jest.mock('@/services/ant-design-pro/api', () => ({
     mockedCancelPersonalGrowthReportTask(...args),
   streamPersonalGrowthReportTask: (...args: any[]) =>
     mockedStreamPersonalGrowthReportTask(...args),
+  getGrowthWorkbench: (...args: any[]) => mockedGetGrowthWorkbench(...args),
+  createGrowthWorkbenchTask: (...args: any[]) =>
+    mockedCreateGrowthWorkbenchTask(...args),
+  getGrowthWorkbenchTask: (...args: any[]) =>
+    mockedGetGrowthWorkbenchTask(...args),
+  skipGrowthWorkbenchTask: (...args: any[]) =>
+    mockedSkipGrowthWorkbenchTask(...args),
+  cancelGrowthWorkbenchTask: (...args: any[]) =>
+    mockedCancelGrowthWorkbenchTask(...args),
+  acceptGrowthWorkbenchArtifact: (...args: any[]) =>
+    mockedAcceptGrowthWorkbenchArtifact(...args),
+  streamGrowthWorkbenchTask: (...args: any[]) =>
+    mockedStreamGrowthWorkbenchTask(...args),
 }));
 
 const favorite = {
@@ -174,6 +194,21 @@ const readyWorkspace = {
   ],
 } as API.PersonalGrowthReportPayload;
 
+const growthWorkbenchPayload = {
+  target_summary: {
+    favorite_id: favorite.favorite_id,
+    target_title: favorite.target_title,
+    overall_match: favorite.overall_match,
+  },
+  prerequisites: [],
+  task_queue: [],
+  latest_diagnoses: {},
+  report_versions: [],
+  resume_versions: [],
+  evidence_sources: [],
+  existing_report_workspace: readyWorkspace,
+} as unknown as API.GrowthWorkbenchAggregatePayload;
+
 const emptyWorkspace = {
   ...readyWorkspace,
   generated_markdown: '',
@@ -250,6 +285,10 @@ beforeEach(() => {
     data: readyWorkspace,
   });
   mockedStreamPersonalGrowthReportTask.mockReturnValue(emptyStream());
+  mockedGetGrowthWorkbench.mockResolvedValue({
+    data: growthWorkbenchPayload,
+  });
+  mockedStreamGrowthWorkbenchTask.mockReturnValue(emptyStream());
 });
 
 describe('PersonalGrowthReportPage', () => {

@@ -876,6 +876,112 @@ declare namespace API {
     data: PersonalGrowthReportTaskPayload;
   };
 
+  type GrowthWorkbenchTaskType =
+    | 'target_validation'
+    | 'gap_diagnosis'
+    | 'report_rewrite'
+    | 'resume_draft'
+    | 'full_queue';
+
+  type GrowthWorkbenchTaskStatus =
+    | 'queued'
+    | 'running'
+    | 'completed'
+    | 'skipped'
+    | 'blocked'
+    | 'failed'
+    | 'cancelled';
+
+  type GrowthWorkbenchTaskPayload = {
+    task_id: string;
+    favorite_id: number;
+    queue_id?: string;
+    task_type: GrowthWorkbenchTaskType;
+    status: GrowthWorkbenchTaskStatus;
+    progress: number;
+    status_text?: string;
+    result_artifact_id?: string;
+    error_message?: string;
+    can_cancel?: boolean;
+    created_at: string;
+    updated_at: string;
+    completed_at?: string | null;
+  };
+
+  type GrowthWorkbenchEvidenceSource = {
+    key: string;
+    label: string;
+    status: 'available' | 'partial' | 'missing';
+    summary: string;
+    href?: string;
+    details?: Record<string, any>;
+  };
+
+  type GrowthReportVersionPayload = {
+    id: string;
+    task_id: string;
+    sections: Array<Record<string, any>>;
+    markdown: string;
+    source_summary?: Record<string, any>;
+    accepted: boolean;
+    accepted_at?: string | null;
+    backfilled_workspace_id?: string;
+    created_at: string;
+  };
+
+  type GrowthResumeVersionPayload = {
+    id: string;
+    task_id: string;
+    suggestions: Array<Record<string, any>>;
+    section_rewrites: Record<string, string>;
+    resume_markdown: string;
+    resume_html: string;
+    source_material_status: 'available' | 'partial' | 'missing';
+    source_summary?: Record<string, any>;
+    accepted: boolean;
+    accepted_at?: string | null;
+    created_at: string;
+  };
+
+  type GrowthWorkbenchAggregatePayload = {
+    target_summary: Record<string, any>;
+    prerequisites: Array<{
+      key: string;
+      label: string;
+      ready: boolean;
+      blocking: boolean;
+      action_label?: string;
+      action_path?: string;
+    }>;
+    task_queue: GrowthWorkbenchTaskPayload[];
+    latest_diagnoses: Record<string, any>;
+    report_versions: GrowthReportVersionPayload[];
+    resume_versions: GrowthResumeVersionPayload[];
+    evidence_sources: GrowthWorkbenchEvidenceSource[];
+    existing_report_workspace?: PersonalGrowthReportPayload | null;
+  };
+
+  type GrowthWorkbenchAggregateResponse = {
+    success?: boolean;
+    data: GrowthWorkbenchAggregatePayload;
+  };
+
+  type GrowthWorkbenchTaskCreateRequest = {
+    favorite_id: number;
+    task_type: GrowthWorkbenchTaskType;
+    run_mode?: 'single' | 'full_queue';
+  };
+
+  type GrowthWorkbenchTaskResponse = {
+    success?: boolean;
+    data: GrowthWorkbenchTaskPayload;
+  };
+
+  type GrowthWorkbenchAcceptResponse = {
+    success?: boolean;
+    data: Record<string, any>;
+  };
+
   type SnailUploadedFileSummary = {
     file_name: string;
     content_type: string;
