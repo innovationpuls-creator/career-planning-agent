@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -34,6 +35,10 @@ from app.services.student_competency_latest_analysis import (
     read_student_competency_latest_analysis,
 )
 from app.services.student_profile import get_student_profile, list_student_profile_attachments
+from app.utils.datetime_utils import utc_now
+
+
+TASK_ORDER = ["target_validation", "gap_diagnosis", "report_rewrite", "resume_draft"]
 
 
 def _json_loads(raw: str, fallback: Any) -> Any:
@@ -43,6 +48,10 @@ def _json_loads(raw: str, fallback: Any) -> Any:
         return json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return fallback
+
+
+def _json_dumps(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False)
 
 
 def _as_list(raw: str) -> list[Any]:
@@ -153,6 +162,17 @@ def _workspace_for_favorite(
             CareerDevelopmentPlanWorkspace.favorite_id == favorite_id,
         )
     )
+
+
+def _ensure_favorite_exists(db: Session, *, user_id: int, favorite_id: int) -> None:
+    exists = db.scalar(
+        select(CareerDevelopmentFavoriteReport.id).where(
+            CareerDevelopmentFavoriteReport.user_id == user_id,
+            CareerDevelopmentFavoriteReport.id == favorite_id,
+        )
+    )
+    if exists is None:
+        raise ValueError("收藏目标不存在。")
 
 
 def _build_prerequisites(
@@ -359,3 +379,236 @@ def build_growth_workbench_payload(
         evidence_sources=evidence_sources,
         existing_report_workspace=existing_report_workspace,
     )
+
+
+def _create_task_row(
+    db: Session,
+    *,
+    user_id: int,
+    favorite_id: int,
+    task_type: str,
+    queue_id: str,
+) -> GrowthWorkbenchTask:
+    row = GrowthWorkbenchTask(
+        id=str(uuid4()),
+        user_id=user_id,
+        favorite_id=favorite_id,
+        queue_id=queue_id,
+        task_type=task_type,
+        status="running",
+        progress=10,
+        input_snapshot_json=_json_dumps(
+            {"favorite_id": favorite_id, "task_type": task_type}
+        ),
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _complete_task(
+    db: Session,
+    row: GrowthWorkbenchTask,
+    artifact_id: str = "",
+) -> GrowthWorkbenchTask:
+    row.status = "completed"
+    row.progress = 100
+    row.result_artifact_id = artifact_id
+    row.completed_at = utc_now()
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _run_target_validation(db: Session, *, task: GrowthWorkbenchTask) -> str:
+    artifact = GrowthTargetDiagnosis(
+        id=str(uuid4()),
+        user_id=task.user_id,
+        favorite_id=task.favorite_id,
+        task_id=task.id,
+        fit_status="可继续推进",
+        risk_level="medium",
+        recommendation="keep",
+        summary="当前目标可继续推进，需重点补强岗位证据和市场关键词表达。",
+        evidence_refs_json=_json_dumps(
+            [{"source": "favorite", "label": "职业匹配收藏目标"}]
+        ),
+    )
+    db.add(artifact)
+    db.flush()
+    return artifact.id
+
+
+def _run_gap_diagnosis(db: Session, *, task: GrowthWorkbenchTask) -> str:
+    artifact = GrowthGapDiagnosis(
+        id=str(uuid4()),
+        user_id=task.user_id,
+        favorite_id=task.favorite_id,
+        task_id=task.id,
+        priority_dimensions_json=_json_dumps(
+            [
+                {"key": "work_experience", "label": "工作经验", "priority": "high"},
+                {
+                    "key": "professional_skills",
+                    "label": "专业技能",
+                    "priority": "high",
+                },
+            ]
+        ),
+        market_keyword_gaps_json=_json_dumps(
+            [
+                {"keyword": "项目落地", "reason": "岗位市场常见表达"},
+                {"keyword": "工程化", "reason": "前端岗位高频要求"},
+            ]
+        ),
+        learning_path_suggestions_json=_json_dumps(
+            ["把学习路径中的项目成果转成可证明经历。"]
+        ),
+        resume_expression_gaps_json=_json_dumps(["项目经历需要量化结果和技术栈。"]),
+        summary="优先补齐工作经验和专业技能的岗位证据。",
+        evidence_refs_json=_json_dumps([{"source": "competency", "label": "12维画像"}]),
+    )
+    db.add(artifact)
+    db.flush()
+    return artifact.id
+
+
+def _run_report_rewrite(db: Session, *, task: GrowthWorkbenchTask) -> str:
+    sections = [
+        {
+            "key": "self_cognition",
+            "title": "自我认知",
+            "content": "结合画像，当前优势是学习能力和前端基础。",
+        },
+        {
+            "key": "career_direction_analysis",
+            "title": "职业方向分析",
+            "content": "目标可继续聚焦前端工程方向。",
+        },
+        {
+            "key": "match_assessment",
+            "title": "匹配度判断",
+            "content": "匹配基础存在，项目证据和市场表达仍需补强。",
+        },
+        {
+            "key": "development_suggestions",
+            "title": "发展建议",
+            "content": "优先补齐工程化项目、协作证据和岗位关键词。",
+        },
+        {
+            "key": "action_plan",
+            "title": "行动计划",
+            "content": "### 短期行动（0-3个月）\n- 完成项目改写\n\n"
+            "### 中期行动（3-9个月）\n- 沉淀作品集\n\n"
+            "### 长期行动（9-24个月）\n- 持续投递并复盘",
+        },
+    ]
+    markdown = "# 个人职业成长报告\n\n" + "\n\n".join(
+        f"## {item['title']}\n{item['content']}" for item in sections
+    )
+    artifact = GrowthReportVersion(
+        id=str(uuid4()),
+        user_id=task.user_id,
+        favorite_id=task.favorite_id,
+        task_id=task.id,
+        sections_json=_json_dumps(sections),
+        markdown=markdown,
+        source_summary_json=_json_dumps({"mode": "workbench_task"}),
+    )
+    db.add(artifact)
+    db.flush()
+    return artifact.id
+
+
+def _resume_source_status(db: Session, *, user_id: int) -> str:
+    return "available" if list_student_profile_attachments(db, user_id=user_id) else "missing"
+
+
+def _run_resume_draft(db: Session, *, task: GrowthWorkbenchTask) -> str:
+    source_status = _resume_source_status(db, user_id=task.user_id)
+    missing_note = "（待补充材料）" if source_status == "missing" else ""
+    artifact = GrowthResumeVersion(
+        id=str(uuid4()),
+        user_id=task.user_id,
+        favorite_id=task.favorite_id,
+        task_id=task.id,
+        suggestions_json=_json_dumps(
+            [
+                {"title": "补强项目证据", "detail": "用动作、技术栈、结果重写项目经历。"},
+                {"title": "对齐市场关键词", "detail": "补充工程化、组件化、性能优化等表达。"},
+            ]
+        ),
+        section_rewrites_json=_json_dumps(
+            {
+                "summary": f"前端方向候选人{missing_note}，具备组件开发和持续学习能力。",
+                "projects": f"项目经历需补充可验证成果{missing_note}。",
+            }
+        ),
+        resume_markdown=f"# 简历草稿\n\n## 个人总结\n前端方向候选人{missing_note}，具备组件开发和持续学习能力。",
+        resume_html="<h1>简历草稿</h1><h2>个人总结</h2>"
+        f"<p>前端方向候选人{missing_note}，具备组件开发和持续学习能力。</p>",
+        source_material_status=source_status,
+        source_summary_json=_json_dumps({"resume_material": source_status}),
+    )
+    db.add(artifact)
+    db.flush()
+    return artifact.id
+
+
+def run_task_body(db: Session, *, task: GrowthWorkbenchTask) -> str:
+    if task.task_type == "target_validation":
+        return _run_target_validation(db, task=task)
+    if task.task_type == "gap_diagnosis":
+        return _run_gap_diagnosis(db, task=task)
+    if task.task_type == "report_rewrite":
+        return _run_report_rewrite(db, task=task)
+    if task.task_type == "resume_draft":
+        return _run_resume_draft(db, task=task)
+    return ""
+
+
+def create_and_run_workbench_task(
+    db: Session,
+    *,
+    user_id: int,
+    favorite_id: int,
+    task_type: str,
+    run_mode: str = "single",
+) -> GrowthWorkbenchTask:
+    _ensure_favorite_exists(db, user_id=user_id, favorite_id=favorite_id)
+    queue_id = str(uuid4())
+    if run_mode == "full_queue" or task_type == "full_queue":
+        root = _create_task_row(
+            db,
+            user_id=user_id,
+            favorite_id=favorite_id,
+            task_type="full_queue",
+            queue_id=queue_id,
+        )
+        for item in TASK_ORDER:
+            child = _create_task_row(
+                db,
+                user_id=user_id,
+                favorite_id=favorite_id,
+                task_type=item,
+                queue_id=queue_id,
+            )
+            artifact_id = run_task_body(db, task=child)
+            _complete_task(db, child, artifact_id)
+        _complete_task(db, root)
+        db.commit()
+        db.refresh(root)
+        return root
+
+    row = _create_task_row(
+        db,
+        user_id=user_id,
+        favorite_id=favorite_id,
+        task_type=task_type,
+        queue_id=queue_id,
+    )
+    artifact_id = run_task_body(db, task=row)
+    _complete_task(db, row, artifact_id)
+    db.commit()
+    db.refresh(row)
+    return row

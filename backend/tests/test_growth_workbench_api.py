@@ -280,3 +280,41 @@ def test_get_growth_workbench_endpoint_returns_aggregate():
         "resume_material",
         "report",
     }
+
+
+def test_create_growth_workbench_full_queue_creates_four_tasks():
+    headers, user_id = _register_and_login()
+    _seed_student_profile(user_id)
+    _seed_latest_competency_analysis(user_id)
+    favorite_id = _seed_favorite_and_workspace(user_id)
+
+    response = client.post(
+        "/api/career-development-report/personal-growth-workbench/tasks",
+        headers=headers,
+        json={
+            "favorite_id": favorite_id,
+            "task_type": "full_queue",
+            "run_mode": "full_queue",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["task_type"] == "full_queue"
+    assert payload["status"] == "completed"
+
+    aggregate = client.get(
+        f"/api/career-development-report/personal-growth-workbench/{favorite_id}",
+        headers=headers,
+    ).json()["data"]
+    task_types = {item["task_type"] for item in aggregate["task_queue"]}
+    assert {
+        "target_validation",
+        "gap_diagnosis",
+        "report_rewrite",
+        "resume_draft",
+    } <= task_types
+    assert aggregate["latest_diagnoses"]["target"] is not None
+    assert aggregate["latest_diagnoses"]["gap"] is not None
+    assert aggregate["report_versions"]
+    assert aggregate["resume_versions"]
