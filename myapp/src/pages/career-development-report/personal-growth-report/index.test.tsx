@@ -329,21 +329,27 @@ beforeEach(() => {
 });
 
 describe('PersonalGrowthReportPage', () => {
-  it('renders the comprehensive workbench and preserves report content', async () => {
+  it('keeps the report as the primary screen and opens AI tools on demand', async () => {
     mockedStreamGrowthWorkbenchTask.mockReturnValue(
       completedGrowthWorkbenchStream(),
     );
 
     render(<PersonalGrowthReportPage />);
 
+    await screen.findByTestId('chapter-content');
+    expect(screen.getAllByText('自我认知').length).toBeGreaterThan(0);
+    expect(screen.getByText('导出 Word')).toBeTruthy();
+    expect(screen.queryByText('目标校验')).toBeNull();
+    expect(screen.queryByText('市场对齐')).toBeNull();
+    expect(screen.queryByText('证据')).toBeNull();
+
+    fireEvent.click(screen.getByText('AI生成与简历'));
+
     expect(await screen.findByText('目标校验')).toBeTruthy();
     expect(screen.getByText('差距诊断')).toBeTruthy();
     expect(screen.getByText('报告改写')).toBeTruthy();
     expect(screen.getAllByText('简历草稿').length).toBeGreaterThan(0);
     expect(screen.getByText('证据')).toBeTruthy();
-    await screen.findByTestId('chapter-content');
-    expect(screen.getAllByText('自我认知').length).toBeGreaterThan(0);
-    expect(screen.getByText('导出 Word')).toBeTruthy();
   });
 
   it('renders the empty report hero and creates a task from the CTA', async () => {
