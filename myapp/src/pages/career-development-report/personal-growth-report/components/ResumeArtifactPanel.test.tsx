@@ -25,6 +25,7 @@ describe('ResumeArtifactPanel', () => {
 
     expect(screen.getByText('需补充')).toBeTruthy();
     expect(screen.getByText('补强项目证据')).toBeTruthy();
+    expect(screen.queryByText('编辑')).toBeNull();
     fireEvent.click(screen.getByText('接受'));
     expect(onAccept).toHaveBeenCalledWith('resume-1');
   });
