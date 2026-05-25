@@ -8,6 +8,8 @@ Date: 2026-05-24
 
 Update on 2026-05-25: the default entry was simplified back to a report-first screen. Workbench task orchestration, resume draft output, market alignment, and evidence details now live behind the `AI生成与简历` secondary panel so the first screen keeps a single primary job: read, edit, regenerate, or export the growth report.
 
+Follow-up on 2026-05-25: the secondary panel now exposes generated report rewrite drafts with an explicit accept/backfill action, keeps resume draft accept as the only live resume action, and renders gap diagnosis summaries in the market alignment panel.
+
 ## Included
 
 - Target overview for the current favorite target, industry, and match score.

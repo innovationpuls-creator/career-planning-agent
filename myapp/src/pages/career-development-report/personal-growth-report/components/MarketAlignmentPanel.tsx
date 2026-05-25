@@ -32,6 +32,11 @@ const useStyles = createStyles(({ css, token }) => ({
     color: ${token.colorTextSecondary};
     line-height: ${token.lineHeight};
   `,
+  sectionLabel: css`
+    margin: ${token.margin}px 0 ${token.marginXS}px;
+    color: ${token.colorText};
+    font-weight: 600;
+  `,
 }));
 
 const MarketAlignmentPanel: React.FC<MarketAlignmentPanelProps> = ({
@@ -55,6 +60,12 @@ const MarketAlignmentPanel: React.FC<MarketAlignmentPanelProps> = ({
       ) : (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无目标诊断" />
       )}
+      {gapDiagnosis?.summary ? (
+        <>
+          <div className={styles.sectionLabel}>差距诊断</div>
+          <p className={styles.summary}>{String(gapDiagnosis.summary)}</p>
+        </>
+      ) : null}
       {dimensions.length ? (
         <List
           size="small"

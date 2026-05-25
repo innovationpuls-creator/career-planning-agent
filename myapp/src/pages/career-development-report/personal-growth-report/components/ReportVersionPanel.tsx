@@ -1,20 +1,11 @@
-import { FileTextOutlined } from '@ant-design/icons';
-import { Button, Empty, List, Tag } from 'antd';
+import { CheckOutlined, FileDoneOutlined } from '@ant-design/icons';
+import { Button, Empty, Space, Tag } from 'antd';
 import { createStyles } from 'antd-style';
 import * as React from 'react';
 
-export type ResumeArtifactPanelProps = {
-  versions: API.GrowthResumeVersionPayload[];
+export type ReportVersionPanelProps = {
+  versions: API.GrowthReportVersionPayload[];
   onAccept: (artifactId: string) => void;
-};
-
-const sourceLabels: Record<
-  API.GrowthResumeVersionPayload['source_material_status'],
-  string
-> = {
-  available: '材料可用',
-  partial: '部分材料',
-  missing: '需补充',
 };
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -48,7 +39,7 @@ const useStyles = createStyles(({ css, token }) => ({
     font-weight: 600;
   `,
   preview: css`
-    max-height: 220px;
+    max-height: 240px;
     overflow: auto;
     padding: ${token.paddingSM}px;
     border-radius: ${token.borderRadius}px;
@@ -59,7 +50,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
 }));
 
-const ResumeArtifactPanel: React.FC<ResumeArtifactPanelProps> = ({
+const ReportVersionPanel: React.FC<ReportVersionPanelProps> = ({
   versions,
   onAccept,
 }) => {
@@ -68,56 +59,46 @@ const ResumeArtifactPanel: React.FC<ResumeArtifactPanelProps> = ({
 
   if (!latest) {
     return (
-      <section className={styles.panel} data-testid="resume-artifact-panel">
+      <section className={styles.panel} data-testid="report-version-panel">
         <div className={styles.header}>
           <div className={styles.titleWrap}>
-            <FileTextOutlined />
-            <h2 className={styles.title}>简历草稿</h2>
+            <FileDoneOutlined />
+            <h2 className={styles.title}>报告改写草稿</h2>
             <Tag>待生成</Tag>
           </div>
         </div>
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无简历产物" />
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无报告草稿" />
       </section>
     );
   }
 
   return (
-    <section className={styles.panel} data-testid="resume-artifact-panel">
+    <section className={styles.panel} data-testid="report-version-panel">
       <div className={styles.header}>
         <div className={styles.titleWrap}>
-          <FileTextOutlined />
-          <h2 className={styles.title}>简历草稿</h2>
-          <Tag>{sourceLabels[latest.source_material_status]}</Tag>
-          {latest.accepted ? <Tag>已接受</Tag> : null}
+          <FileDoneOutlined />
+          <h2 className={styles.title}>报告改写草稿</h2>
+          <Tag>{latest.accepted ? '已接受' : '新版本'}</Tag>
         </div>
         {!latest.accepted ? (
           <Button
             size="small"
             type="primary"
+            icon={<CheckOutlined />}
             autoInsertSpace={false}
             onClick={() => onAccept(latest.id)}
           >
-            接受
+            接受回填
           </Button>
         ) : null}
       </div>
-      <List
-        size="small"
-        dataSource={latest.suggestions}
-        renderItem={(item) => (
-          <List.Item>
-            <List.Item.Meta
-              title={String(item.title || '')}
-              description={String(item.detail || '')}
-            />
-          </List.Item>
-        )}
-      />
-      <div className={styles.preview}>
-        {latest.resume_markdown || '暂无正文'}
-      </div>
+      <Space direction="vertical" size="small">
+        <div className={styles.preview}>
+          {latest.markdown || '暂无正文'}
+        </div>
+      </Space>
     </section>
   );
 };
 
-export default ResumeArtifactPanel;
+export default ReportVersionPanel;

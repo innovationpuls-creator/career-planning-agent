@@ -14,6 +14,7 @@ import MarketAlignmentPanel from './components/MarketAlignmentPanel';
 import PrerequisiteCheck from './components/PrerequisiteCheck';
 import ReportArtifactPanel from './components/ReportArtifactPanel';
 import ReportHero from './components/ReportHero';
+import ReportVersionPanel from './components/ReportVersionPanel';
 import ResumeArtifactPanel from './components/ResumeArtifactPanel';
 import TaskOrchestrationPanel from './components/TaskOrchestrationPanel';
 import { useGrowthWorkbench } from './hooks/useGrowthWorkbench';
@@ -353,6 +354,10 @@ const PersonalGrowthReportPage: React.FC = () => {
                   onRunTask={(taskType) => void runTask(taskType)}
                   onSkipTask={(taskId) => void skipTask(taskId)}
                   onCancelTask={(taskId) => void cancelTask(taskId)}
+                />
+                <ReportVersionPanel
+                  versions={workbench?.report_versions || []}
+                  onAccept={(artifactId) => void acceptArtifact(artifactId)}
                 />
                 <ResumeArtifactPanel
                   versions={workbench?.resume_versions || []}
